@@ -222,7 +222,15 @@ class Runtime:
         ]
         if component == "P1":
             values += [ROOT / "P4/var/mac-p1" / suffix, ROOT / "P4/var/python39/python.exe"]
-        for name in ("python3.9", "python3.11", "python3.12", "python3.13", "python3.14", "python3", "python"):
+        for name in (
+            "python3.9",
+            "python3.11",
+            "python3.12",
+            "python3.13",
+            "python3.14",
+            "python3",
+            "python",
+        ):
             found = shutil.which(name)
             if found:
                 values.append(Path(found))
@@ -277,9 +285,7 @@ class Runtime:
             else:
                 result = json.loads(process.stdout)
             version = tuple(int(p) for p in result["version"].split("."))
-            result["compatible"] = (
-                version == (3, 9, 6) if component == "P1" else version >= (3, 11)
-            )
+            result["compatible"] = version == (3, 9, 6) if component == "P1" else version >= (3, 11)
             return result
         except (OSError, ValueError, subprocess.SubprocessError):
             return {"compatible": False, "ready": False}
@@ -299,7 +305,11 @@ class Runtime:
                 compatible.append(executable)
         if not compatible:
             required = "Python 3.9.6（完整版本号）" if component == "P1" else "Python 3.11 或以上"
-            hint = f"请检查 P4_{component}_PYTHON 的设置。" if override else "请先安装该解释器，再重试。"
+            hint = (
+                f"请检查 P4_{component}_PYTHON 的设置。"
+                if override
+                else "请先安装该解释器，再重试。"
+            )
             raise ValueError(f"{component} 需要 {required}。{hint}")
         target = self.directory / component
         suffix = "Scripts/python.exe" if os.name == "nt" else "bin/python"
@@ -438,7 +448,8 @@ class Panel:
 
     def wait_health(self, role):
         url = (
-            f"http://127.0.0.1:{self.web_port}/config" if role == "web"
+            f"http://127.0.0.1:{self.web_port}/config"
+            if role == "web"
             else self.config[f"{role}_url"] + f"/api/{role}/v1/healthz"
         )
         deadline = time.monotonic() + 18
@@ -448,7 +459,8 @@ class Panel:
             try:
                 data = request_json(url, timeout=1)
                 ready = (
-                    data.get("managed") is True if role == "web"
+                    data.get("managed") is True
+                    if role == "web"
                     else data.get("contract_version") == "0.2.0"
                 )
                 if ready:
@@ -463,7 +475,9 @@ class Panel:
             if self.mode != "center" or self.address == "127.0.0.1":
                 raise ValueError("请使用局域网地址启动中心后再配对。")
             candidate = f"{secrets.randbelow(1000000):06d}"
-            self.code = candidate if candidate != self.code else f"{(int(candidate) + 1) % 1000000:06d}"
+            self.code = (
+                candidate if candidate != self.code else f"{(int(candidate) + 1) % 1000000:06d}"
+            )
             self.code_until, self.bad_codes = time.monotonic() + 600, 0
 
     def start_center(self, local_node=True, address=None):
@@ -633,9 +647,17 @@ class Panel:
         self.progress("已使用本机保存的配对信息重连，并请求开启共享。")
 
     def set_computing(self, enabled):
-        if self.mode == "center" and enabled and "node" not in self.processes:
+        process = self.processes.get("node")
+        if (
+            self.mode in {"center", "node"}
+            and enabled
+            and (not process or process.poll() is not None)
+        ):
             self.progress("正在启动这台电脑的计算节点…")
             self.runtime.ensure("P1", self.progress)
+            previous_log = self.logs.pop("node", None)
+            if previous_log:
+                previous_log.close()
             self.spawn("node")
         self.sharing(enabled)
 
@@ -758,9 +780,7 @@ class Panel:
         else:
             for name, raw in prepared:
                 (image_dir / name).write_bytes(raw)
-        self.progress(
-            f"测试 {title}：正在提交 {len(prepared) or 2} 张图片，等待 OCR 与结果核验…"
-        )
+        self.progress(f"测试 {title}：正在提交 {len(prepared) or 2} 张图片，等待 OCR 与结果核验…")
         verification = output / "verification"
         with (self.directory / "test.log").open("wb") as log:
             result = subprocess.run(
@@ -820,7 +840,11 @@ class Panel:
         try:
             node = read_json(self.directory / "node-status.json")
             if time.time() - node["received_at"] <= 12:
-                return {"connection": "ONLINE", "mode": node["mode"], "worker_id": node["worker_id"]}
+                return {
+                    "connection": "ONLINE",
+                    "mode": node["mode"],
+                    "worker_id": node["worker_id"],
+                }
             return {"connection": "STALE", "mode": None, "worker_id": node["worker_id"]}
         except (OSError, ValueError, KeyError):
             return {"connection": "PENDING", "mode": None, "worker_id": None}
@@ -913,6 +937,10 @@ class Panel:
         if any(not running for running in state["processes"].values()):
             state["message"] = (
                 "有服务已退出，请查看下方日志。点击“停止本机服务”后可以重试。\n" + state["message"]
+            )
+        if state["mode"] == "node" and not state["processes"].get("node"):
+            state["message"] = (
+                "未完成：本机计算节点已退出，请查看“本机计算”日志；修复后可点击“开启计算”重试。"
             )
         if self.mode == "center" and self.config:
             try:
@@ -1040,7 +1068,9 @@ def handler_for(panel):
         def log_message(self, *args):
             pass  # Never log pairing codes or payloads.
 
-        def send(self, status, body, content_type="application/json; charset=utf-8", cache="no-store"):
+        def send(
+            self, status, body, content_type="application/json; charset=utf-8", cache="no-store"
+        ):
             raw = (
                 body
                 if isinstance(body, bytes)
@@ -1081,11 +1111,14 @@ def handler_for(panel):
             if self.path == "/api/bridge-upstreams" and self.headers.get("X-P4-Bridge") == "1":
                 with panel.lock:
                     if panel.mode == "center" and panel.config:
-                        return self.send(200, {
-                            "resource": panel.config["resource_url"],
-                            "task": panel.config["task_url"],
-                            "lan": panel.address != "127.0.0.1",
-                        })
+                        return self.send(
+                            200,
+                            {
+                                "resource": panel.config["resource_url"],
+                                "task": panel.config["task_url"],
+                                "lan": panel.address != "127.0.0.1",
+                            },
+                        )
                 return self.send(503, {"error": "中心服务未连接"})
             if self.path == "/":
                 html = (
@@ -1173,7 +1206,11 @@ def main():
     parser.add_argument("--web-port", type=int, default=5173)
     parser.add_argument("--data-dir", type=Path, default=ROOT / "P4/var/control")
     parser.add_argument("--no-browser", action="store_true")
-    parser.add_argument("--control-only", action="store_true", help="Open the fallback P4 panel for a node-only device.")
+    parser.add_argument(
+        "--control-only",
+        action="store_true",
+        help="Open the fallback P4 panel for a node-only device.",
+    )
     args = parser.parse_args()
     if not 1 <= args.web_port <= 65535 or args.web_port in {8001, 8002, args.port}:
         parser.error("--web-port must be a valid port distinct from P1, P2 and the control panel")

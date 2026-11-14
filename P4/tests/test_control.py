@@ -2,6 +2,7 @@ import base64
 import http.client
 import json
 import re
+import subprocess
 import sys
 import threading
 import time
@@ -12,6 +13,37 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 import control  # noqa: E402
+
+
+def test_managed_node_imports_in_isolated_python_from_other_directory(tmp_path):
+    result = subprocess.run(
+        [sys.executable, "-I", str(control.ROOT / "P4/scripts/managed_node.py"), "--help"],
+        cwd=tmp_path,
+        capture_output=True,
+        timeout=20,
+    )
+    assert result.returncode == 0, result.stderr.decode(errors="replace")
+    assert b"--control-file" in result.stdout
+
+
+def test_dead_joined_node_reports_failure_and_can_restart(panel, monkeypatch):
+    panel.mode = "node"
+    panel.processes["node"] = SimpleNamespace(poll=lambda: 1)
+    state = panel.status()
+    assert state["message"].startswith("未完成：")
+    assert "本机计算" in state["message"]
+    starts = []
+    monkeypatch.setattr(panel.runtime, "ensure", lambda *args: None)
+
+    def spawn(role):
+        starts.append(role)
+        panel.processes[role] = SimpleNamespace(poll=lambda: None)
+
+    monkeypatch.setattr(panel, "spawn", spawn)
+    panel.set_computing(True)
+    panel.set_computing(True)
+    assert starts == ["node"]
+    assert panel.sharing_requested
 
 
 def test_uploaded_images_use_original_bytes_and_timestamped_results(panel, monkeypatch):
@@ -152,7 +184,10 @@ def test_http_panel_locality_session_and_origin(panel, server):
     status, css = call(server, "/styles.css")
     assert status == 200 and b"--device-glass" in css
     assert call(server, "/api/bridge-session")[0] == 404
-    assert call(server, "/api/bridge-session", headers={"Host": "evil.example", "X-P4-Bridge": "1"})[0] == 403
+    assert (
+        call(server, "/api/bridge-session", headers={"Host": "evil.example", "X-P4-Bridge": "1"})[0]
+        == 403
+    )
     status, body = call(server, "/api/bridge-session", headers={"X-P4-Bridge": "1"})
     assert status == 200 and json.loads(body) == {"session": panel.session}
     assert call(server, "/api/status")[0] != 200
@@ -166,7 +201,12 @@ def test_http_panel_locality_session_and_origin(panel, server):
     assert call(server, "/api/stop", {}, headers={})[0] == 403
     assert b"demo-private" not in body
     assert call(server, "/api/workbench-token", {})[0] == 403
-    assert call(server, "/api/workbench-token", {}, headers={**headers, "Origin": "http://evil.example"})[0] == 403
+    assert (
+        call(
+            server, "/api/workbench-token", {}, headers={**headers, "Origin": "http://evil.example"}
+        )[0]
+        == 403
+    )
     status, body = call(server, "/api/workbench-token", {}, headers=headers)
     assert status == 200 and json.loads(body) == {"token": "demo-private"}
 
@@ -245,7 +285,7 @@ def test_sharing_buttons_send_requests_without_claiming_confirmation(panel):
 
 def test_runtime_detects_version_without_installing(tmp_path):
     runtime = control.Runtime(tmp_path)
-    assert runtime.probe(Path(sys.executable), "P2")["compatible"] is True
+    assert runtime.probe(Path(sys.executable), "P2")["compatible"] is (sys.version_info[:2] >= (3, 11))
     assert runtime.probe(Path(sys.executable), "P1")["compatible"] is (
         sys.version_info[:3] == (3, 9, 6)
     )
@@ -350,8 +390,14 @@ def test_control_status_exposes_p4_job_reference_and_confirmed_heartbeat(panel, 
     status = panel.status()
     assert status["ocr_test"] == {"state": "running", "job_id": "test-job"}
     assert status["local_node"] == {"worker_id": "worker", "mode": "PAUSED", "connection": "ONLINE"}
-    control.save(status_file, {"worker_id": "worker", "mode": "PAUSED", "received_at": time.time() - 30})
-    assert panel.status()["local_node"] == {"worker_id": "worker", "mode": None, "connection": "STALE"}
+    control.save(
+        status_file, {"worker_id": "worker", "mode": "PAUSED", "received_at": time.time() - 30}
+    )
+    assert panel.status()["local_node"] == {
+        "worker_id": "worker",
+        "mode": None,
+        "connection": "STALE",
+    }
 
 
 def test_zip_requires_local_session(panel, server, tmp_path):
@@ -396,7 +442,8 @@ def test_p2_rejects_python_396_even_with_dependencies(tmp_path, monkeypatch):
     executable = Path(sys.executable).absolute()
     runtime.selected["P1"] = str(executable)
     monkeypatch.setattr(
-        control.subprocess, "run",
+        control.subprocess,
+        "run",
         lambda *args, **kw: SimpleNamespace(
             returncode=0, stdout=b'{"version":"3.9.6","ready":true}'
         ),

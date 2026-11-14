@@ -7,9 +7,11 @@ import threading
 import time
 from pathlib import Path
 
-from control import save
-
 ROOT = Path(__file__).resolve().parents[2]
+# Windows embedded Python and isolated mode do not add the script directory.
+sys.path.insert(0, str(ROOT / "P4/scripts"))
+from control import save  # noqa: E402
+
 sys.path.insert(0, str(ROOT / "P1"))
 from node_agent.agent import Agent, lock_node_directory  # noqa: E402
 
@@ -24,11 +26,14 @@ class LoggedAgent(Agent):
         response = super()._internal(path, payload)
         if path.endswith("/heartbeat") and response:
             try:
-                save(self.status_file, {
-                    "worker_id": self.worker_id,
-                    "mode": response.get("mode"),
-                    "received_at": time.time(),
-                })
+                save(
+                    self.status_file,
+                    {
+                        "worker_id": self.worker_id,
+                        "mode": response.get("mode"),
+                        "received_at": time.time(),
+                    },
+                )
             except OSError:
                 # The next heartbeat can refresh the panel snapshot.
                 pass

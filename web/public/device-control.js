@@ -51,7 +51,9 @@ export function setupDeviceControl({ authenticate, unauthenticate, navigate }) {
         logViews.set(name, { heading, output });
       }
       const { heading, output } = logViews.get(name);
-      heading.textContent = labels[name] ? t(...labels[name]) : name;
+      const label = labels[name] ? t(...labels[name]) : name;
+      const historical = ['resource', 'task', 'node', 'web'].includes(name) && !Object.hasOwn(snapshot.processes, name);
+      heading.textContent = `${snapshot.node_name} · ${label}${historical ? t('（历史日志）', ' (historical log)') : ''}`;
       if (output.textContent !== value) {
         const top = output.scrollTop;
         const follow = output.scrollHeight - output.clientHeight - top < 16;
@@ -78,7 +80,8 @@ export function setupDeviceControl({ authenticate, unauthenticate, navigate }) {
   function render() {
     const available = availability?.available;
     const disconnected = snapshot && !snapshot.busy && (snapshot.mode === 'idle' ||
-      (snapshot.mode === 'center' && (!snapshot.processes.resource || !snapshot.processes.task)));
+      (snapshot.mode === 'center' && (!snapshot.processes.resource || !snapshot.processes.task)) ||
+      (snapshot.mode === 'node' && !snapshot.processes.node));
     $('p4-content').hidden = !snapshot || !available;
     const launcher = $('p4-launcher');
     launcher.hidden = available || !availability?.localUrl;
@@ -164,7 +167,8 @@ export function setupDeviceControl({ authenticate, unauthenticate, navigate }) {
           : t('正在切换共享状态', 'Updating sharing status')
       : localNode?.connection === 'STALE' ? t('暂未收到中心心跳确认', 'Center heartbeat confirmation is stale')
         : localNode ? t('正在等待中心确认注册', 'Waiting for the center to confirm registration')
-          : t('本机计算节点未启动', 'Local compute node is stopped');
+          : mode === 'node' ? t('本机计算节点已退出，请查看“本机计算”日志，修复后点击“开启计算”重试。', 'Local compute node exited. Check the Local compute log, then retry Start compute.')
+            : t('本机计算节点未启动', 'Local compute node is stopped');
     $('p4-worker-id').hidden = !localNode?.worker_id;
     $('p4-worker-id').textContent = localNode?.worker_id || '';
     $('p4-short-code').textContent = `${snapshot.address}:${snapshot.control_port} · ${snapshot.code || t('已过期', 'Expired')}`;
