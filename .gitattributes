@@ -1,0 +1,2 @@
+P4/*.command text eol=lf
+P4/start.cmd text eol=crlf

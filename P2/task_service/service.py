@@ -495,5 +495,5 @@ class TaskService:
                 delay = 10
             try:
                 await asyncio.wait_for(self.wake.wait(), timeout=delay)
-            except TimeoutError:
+            except asyncio.TimeoutError:
                 pass

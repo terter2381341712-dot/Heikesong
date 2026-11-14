@@ -27,6 +27,7 @@ import urllib.error
 import urllib.request
 import uuid
 import webbrowser
+from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -354,6 +355,7 @@ class Panel:
         self.closed = threading.Event()
         self.worker = None
         self.last_result = None
+        self.last_result_title = ""
         self.profile_dir = self.directory / "profiles"
         self.operation_started = None
         self.events = []
@@ -655,17 +657,66 @@ class Panel:
         self.mode, self.sharing_requested = "idle", False
         self.progress("本次启动的服务已停止，配置与任务数据保留。")
 
-    def test_job(self):
+    def test_job(self, images=None):
         if self.mode != "center":
             raise ValueError("请先启动中心。")
-        image_dir = self.directory / "test-inputs"
-        image_dir.mkdir(exist_ok=True)
-        generator = "from PIL import Image,ImageDraw,ImageFont; from pathlib import Path; import sys\nfor i,text in enumerate(('HELLO OCR 123','APPROVED 456')):\n im=Image.new('RGB',(640,220),'white'); ImageDraw.Draw(im).text((30,70),text,font=ImageFont.load_default(size=44),fill='black'); im.save(Path(sys.argv[1])/f'input-{i}.png')"
-        subprocess.run(
-            [self.runtime.selected["P1"], "-c", generator, str(image_dir)], check=True, timeout=15
+        prepared = []
+        if images is not None:
+            if not isinstance(images, list) or not 1 <= len(images) <= 20:
+                raise ValueError("请选择 1–20 张 PNG/JPG 图片。")
+            hashes = set()
+            total = 0
+            for index, image in enumerate(images):
+                try:
+                    name = str(image["name"]).replace("\\", "/").split("/")[-1]
+                    suffix = Path(name).suffix.lower()
+                    raw = base64.b64decode(image["data"], validate=True)
+                except (KeyError, TypeError, ValueError):
+                    raise ValueError("图片数据无效，请重新选择。") from None
+                total += len(raw)
+                if suffix not in {".png", ".jpg", ".jpeg"} or not raw or total > 20 * 1024 * 1024:
+                    raise ValueError("只支持 PNG/JPG，图片总大小不能超过 20 MB。")
+                if not (
+                    raw.startswith(b"\x89PNG\r\n\x1a\n")
+                    if suffix == ".png"
+                    else raw.startswith(b"\xff\xd8\xff")
+                ):
+                    raise ValueError("图片内容与 PNG/JPG 格式不符。")
+                digest = hashlib.sha256(raw).hexdigest()
+                if digest in hashes:
+                    raise ValueError("选择了内容重复的图片，请移除重复项。")
+                hashes.add(digest)
+                prepared.append((f"{index + 1:03d}-" + re.sub(r"[^\w.\-]", "_", name)[:120], raw))
+        moment = datetime.now(timezone(timedelta(hours=8)))
+        title = moment.strftime("%Y-%m-%d %H:%M:%S") + "（北京时间）"
+        output = self.directory / (
+            "test-" + moment.strftime("%Y%m%d-%H%M%S") + "-" + uuid.uuid4().hex[:8]
         )
-        output = self.directory / ("test-" + uuid.uuid4().hex[:8])
-        self.progress("正在提交两张新测试图，等待真实OCR与结果下载核验…")
+        image_dir = output / "inputs"
+        image_dir.mkdir(parents=True)
+        save(
+            output / "test-info.json",
+            {
+                "title": title,
+                "started_at": moment.isoformat(),
+                "source": "upload" if images is not None else "sample",
+                "images": [i[0] for i in prepared],
+            },
+        )
+        generator = "from PIL import Image,ImageDraw,ImageFont; from pathlib import Path; import sys\nfor i,text in enumerate(('HELLO OCR 123','APPROVED 456')):\n im=Image.new('RGB',(640,220),'white'); ImageDraw.Draw(im).text((30,70),text,font=ImageFont.load_default(size=44),fill='black'); im.save(Path(sys.argv[1])/f'input-{i}.png')"
+        if images is None:
+            subprocess.run(
+                [self.runtime.selected["P1"], "-c", generator, str(image_dir)],
+                check=True,
+                timeout=15,
+            )
+        else:
+            for name, raw in prepared:
+                (image_dir / name).write_bytes(raw)
+        self.progress(
+            f"测试 {title}：正在提交 {len(prepared) if images is not None else 2} 张图片，等待 OCR 与结果核验…"
+        )
+        verification = output / "verification"
         with (self.directory / "test.log").open("wb") as log:
             result = subprocess.run(
                 [
@@ -676,7 +727,7 @@ class Panel:
                     "--inputs",
                     str(image_dir),
                     "--out",
-                    str(output),
+                    str(verification),
                     "--timeout",
                     "180",
                     "--profiles-dir",
@@ -688,21 +739,23 @@ class Panel:
             )
         if result.returncode:
             raise ValueError(f"测试未通过，证据保留于 {output}；查看测试日志。")
-        report = read_json(output / "report.json")
+        report = read_json(verification / "report.json")
         resources = request_json(
             self.config["resource_url"] + "/api/resource/v1/resources",
             token=self.config["tokens"]["DEMO_TOKEN"],
             timeout=3,
         )["resources"]
         names = {n["worker_id"]: n.get("name", n["worker_id"]) for n in resources}
-        for execution in read_json(output / "executions.json"):
+        for execution in read_json(verification / "executions.json"):
             worker = execution["worker_id"]
             self.progress(
                 f"设备 {names.get(worker, worker)}：执行 {execution['execution_id']}，输入 {execution.get('input_sha256', '')[:12]}，结果 {execution['status']}"
             )
+        shutil.copyfile(verification / "results.zip", output / "results.zip")
         self.last_result = output / "results.zip"
+        self.last_result_title = title
         self.progress(
-            f"真实OCR/结果/ZIP验证通过；贡献节点数 {len(report.get('successful_workers', []))}。证据：{output}"
+            f"测试 {title}：真实OCR/结果/ZIP验证通过；贡献节点数 {len(report.get('successful_workers', []))}。证据：{output}"
         )
 
     def background(self, function):
@@ -786,6 +839,8 @@ class Panel:
                 read_json(self.directory / "node.json").get("paired_device_id") == self.identity
             )
         state["has_result"] = self.last_result is not None and self.last_result.exists()
+        state["result_title"] = self.last_result_title
+        state["result_filename"] = self.last_result.parent.name + ".zip" if self.last_result else ""
         if any(not running for running in state["processes"].values()):
             state["message"] = (
                 "有服务已退出，请查看下方日志。点击“停止本机服务”后可以重试。\n" + state["message"]
@@ -970,7 +1025,15 @@ def handler_for(panel):
         def do_POST(self):
             try:
                 length = int(self.headers.get("Content-Length", "0"))
-                if not 0 < length <= 8192:
+                upload = self.path == "/api/test-images"
+                if upload and (
+                    not self.local()
+                    or not secrets.compare_digest(
+                        self.headers.get("X-P4-Session", ""), panel.session
+                    )
+                ):
+                    return self.send(403, {"error": "本机会话无效"})
+                if not 0 < length <= (29 * 1024 * 1024 if upload else 8192):
                     return self.send(413, {"error": "请求大小不正确"})
                 body = json.loads(self.rfile.read(length))
                 if not isinstance(body, dict):
@@ -1008,6 +1071,7 @@ def handler_for(panel):
                     "/api/reconnect": panel.reconnect,
                     "/api/stop": panel.stop,
                     "/api/test": panel.test_job,
+                    "/api/test-images": lambda: panel.test_job(body.get("images", [])),
                     "/api/code": panel.new_code,
                 }
                 if self.path not in actions:
