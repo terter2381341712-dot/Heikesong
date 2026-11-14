@@ -1,8 +1,6 @@
 """artifact 上传/下载：原始字节、幂等、媒体探测、角色限制。"""
 import uuid
 
-import pytest
-
 from tests.resource.conftest import DEMO, TASK, png_bytes, upload_png, wav_bytes
 
 
@@ -21,10 +19,6 @@ def test_upload_png_returns_media_info(client):
 
 
 def test_upload_replay_same_bytes_200(client):
-    first = upload_png(client)
-    second = upload_png(client)  # conftest 每次生成新 upload_id？
-    # 同 upload_id 同内容重放
-    upload_id = first.json()["artifact_id"]  # 仅用于确保第一次成功
     fixed_id = str(uuid.uuid4())
     r1 = client.post(
         "/api/resource/v1/artifacts",
@@ -127,6 +121,29 @@ def test_undecodable_image_422(client):
         headers=DEMO,
         data={"upload_id": str(uuid.uuid4())},
         files={"file": ("fake.png", b"not-a-png", "image/png")},
+    )
+    assert resp.status_code == 422
+
+
+def test_upload_checks_mime_and_removes_filename_path(client):
+    resp = client.post(
+        "/api/resource/v1/artifacts",
+        headers=DEMO,
+        data={"upload_id": str(uuid.uuid4())},
+        files={"file": ("sample.jpg", png_bytes(), "image/jpeg")},
+    )
+    assert resp.status_code == 422
+    uploaded = upload_png(client, name="folder/nested/sample.png")
+    assert uploaded.status_code == 201
+    assert uploaded.json()["original_name"] == "sample.png"
+
+
+def test_truncated_wav_422(client):
+    resp = client.post(
+        "/api/resource/v1/artifacts",
+        headers=DEMO,
+        data={"upload_id": str(uuid.uuid4())},
+        files={"file": ("truncated.wav", wav_bytes()[:-5], "audio/wav")},
     )
     assert resp.status_code == 422
 

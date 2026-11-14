@@ -45,7 +45,7 @@ def client_with_profile(tmp_path):
         {
             "profile_id": "ocr.default.v1",
             "task_type": "ocr.image.v1",
-            "model": {"source": "test-lock", "sha256": "0" * 64},
+            "model_sha256": "0" * 64,
             "backend": "cpu",
         }
     ).encode("utf-8")

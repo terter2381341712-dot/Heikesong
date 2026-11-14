@@ -1,6 +1,9 @@
 """执行生命周期：幂等、业务拒绝持久化、领取、完成、取消、晚到拒收。"""
 import uuid
+from datetime import timedelta
+from time import monotonic, sleep
 
+from resource_service import service
 from tests.resource.conftest import (
     DEMO,
     READY_CAP,
@@ -247,13 +250,68 @@ def test_claim_run_complete_download(client_with_profile):
     assert content.status_code == 200
     assert "你好世界".encode() in content.content
 
-    # 终态后重复提交 → STALE 拒收
+    # 重传同一结果返回同一 artifact；改变内容则拒收。
+    path = f"/api/resource/internal/v1/nodes/{node['worker_id']}/executions/{body['execution_id']}/complete"
+    payload = {"session_id": node["session_id"], "node_secret": node["node_secret"],
+               "outcome": "SUCCEEDED", "result": result}
+    replay = client.post(path, json=payload)
+    assert replay.status_code == 200
+    assert replay.json() == final
     stale = client.post(
-        f"/api/resource/internal/v1/nodes/{node['worker_id']}/executions/{body['execution_id']}/complete",
-        json={"session_id": node["session_id"], "node_secret": node["node_secret"], "outcome": "SUCCEEDED", "result": result},
+        path, json=dict(payload, result=dict(result, text="different")),
     )
     assert stale.status_code == 409
     assert stale.json()["code"] == "STALE_EXECUTION"
+
+
+def test_concurrent_execution_replay(client_with_profile):
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Barrier
+
+    client, digest, node, artifact = setup_ready(client_with_profile)
+    body = make_execution_request(node, artifact["artifact_id"], digest)
+    barrier = Barrier(2)
+
+    def post():
+        barrier.wait(timeout=5)
+        return client.post("/api/resource/v1/executions", json=body, headers=TASK)
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        first, second = (pool.submit(post) for _ in range(2))
+        replies = [first.result(), second.result()]
+    assert sorted(reply.status_code for reply in replies) == [200, 201]
+    assert all(reply.json()["execution_id"] == body["execution_id"] for reply in replies)
+
+
+def test_hard_timeout_blocks_slot_until_worker_ack(client_with_profile, monkeypatch):
+    client, digest, node, artifact = setup_ready(client_with_profile)
+    request = make_execution_request(node, artifact["artifact_id"], digest, timeout_seconds=10)
+    execution_id = request["execution_id"]
+    assert client.post("/api/resource/v1/executions", json=request, headers=TASK).status_code == 201
+    worker = f"/api/resource/internal/v1/nodes/{node['worker_id']}"
+    auth = {key: node[key] for key in ("session_id", "node_secret")}
+    claim = client.post(worker + "/claim", json=auth).json()
+    assert claim["execution"]["execution_id"] == execution_id
+    now = service.utcnow()
+    monkeypatch.setattr(service, "utcnow", lambda: now + timedelta(seconds=11))
+
+    path = f"/api/resource/v1/executions/{execution_id}"
+    deadline = monotonic() + 4
+    while monotonic() < deadline:
+        failed = client.get(path, headers=TASK).json()
+        if failed["status"] == "FAILED":
+            break
+        sleep(0.05)
+    assert failed["status"] == "FAILED"
+    assert failed["error"]["code"] == "EXECUTION_TIMEOUT"
+    next_request = make_execution_request(node, artifact["artifact_id"], digest)
+    blocked = client.post("/api/resource/v1/executions", json=next_request, headers=TASK)
+    assert blocked.json()["code"] == "RESOURCE_BUSY"
+    assert client.post(worker + "/claim", json=auth).json()["stop_ack_required"] == [execution_id]
+    ack = client.post(f"{worker}/executions/{execution_id}/cancel_ack", json=auth)
+    assert ack.json()["status"] == "FAILED"
+    next_request["execution_id"] = str(uuid.uuid4())
+    assert client.post("/api/resource/v1/executions", json=next_request, headers=TASK).status_code == 201
 
 
 def test_invalid_result_rejected_not_published(client_with_profile):

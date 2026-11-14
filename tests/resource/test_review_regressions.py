@@ -5,8 +5,6 @@ from tests.resource.conftest import (
     DEMO,
     READY_CAP,
     TASK,
-    minimal_hardware,
-    png_bytes,
     register_node,
     upload_png,
 )
@@ -83,7 +81,10 @@ def test_f02_registration_publishes_not_prepared_capabilities(client_with_profil
     node = register_node(client)
     resources = client.get("/api/resource/v1/resources", headers=DEMO).json()["resources"]
     caps = resources[0]["capabilities"]
-    assert any(c["task_type"] == "ocr.image.v1" and c["state"] == "NOT_PREPARED" for c in caps)
+    ocr = next(c for c in caps if c["task_type"] == "ocr.image.v1")
+    assert ocr["state"] == "NOT_PREPARED"
+    assert ocr["profile_digest"] == digest
+    assert ocr["verified"] is False
     # 心跳不带 capabilities，能力应保留
     hb = client.post(
         f"/api/resource/internal/v1/nodes/{node['worker_id']}/heartbeat",
@@ -140,8 +141,6 @@ def test_f09_offline_node_session_id_still_uuid(tmp_path):
     """F09：服务重启把旧会话置为 OFFLINE 后，公开 session_id 仍必须是合法 UUID。"""
     import re
 
-    import json as jsonlib
-
     from fastapi.testclient import TestClient
 
     from resource_service.config import Config
@@ -180,8 +179,8 @@ def test_f10_calibration_not_passed_blocks_ready(client_with_profile):
 
     # 直接测试自测返回结构：非 OCR 内容（全白图）应 non_empty=0、passed=False
     agent = Agent.__new__(Agent)
-    from pathlib import Path
     import tempfile
+    from pathlib import Path
 
     tmp = Path(tempfile.mkdtemp())
     agent.data_dir = tmp
@@ -195,3 +194,38 @@ def test_f10_calibration_not_passed_blocks_ready(client_with_profile):
     out = Agent._self_test(agent, "ocr.image.v1", BlankRunner())
     assert out["non_empty"] == 0
     assert out["passed"] is False
+
+
+def test_preparation_rejects_wrong_model_hash(client_with_profile):
+    client, digest = client_with_profile
+    node = register_node(client)
+    prep_id = str(uuid.uuid4())
+    request = {
+        "preparation_id": prep_id,
+        "worker_id": node["worker_id"],
+        "worker_session_id": node["session_id"],
+        "task_type": "ocr.image.v1",
+        "profile_id": "ocr.default.v1",
+        "profile_digest": digest,
+    }
+    assert client.post("/api/resource/v1/preparations", json=request, headers=TASK).status_code == 202
+    response = client.post(
+        f"/api/resource/internal/v1/nodes/{node['worker_id']}/preparations/{prep_id}/status",
+        json={
+            "session_id": node["session_id"],
+            "node_secret": node["node_secret"],
+            "status": "READY",
+            "backend": "cpu",
+            "runtime_provider": "CPUExecutionProvider",
+            "model_sha256": "f" * 64,
+            "calibration": {
+                "sample_count": 3,
+                "median_compute_ms": 100,
+                "passed": True,
+                "finished_at": "2026-11-14T04:30:00Z",
+            },
+        },
+    )
+    assert response.status_code == 200
+    assert response.json()["status"] == "FAILED"
+    assert response.json()["error"]["code"] == "MODEL_HASH_MISMATCH"

@@ -148,12 +148,14 @@ class Database:
     ) -> int:
         """在写事务外单独记录事件也可（事件为追加日志，不参与业务原子性）。"""
         with self._lock:
+            in_transaction = self._conn.in_transaction
             cur = self._conn.execute(
                 "INSERT INTO events (occurred_at, type, worker_id, job_id, task_id, execution_id, preparation_id, message)"
                 " VALUES (?,?,?,?,?,?,?,?)",
                 (occurred_at, type_, worker_id, job_id, task_id, execution_id, preparation_id, message),
             )
-            self._conn.commit()
+            if not in_transaction:
+                self._conn.commit()
             return int(cur.lastrowid)
 
     def close(self) -> None:

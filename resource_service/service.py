@@ -14,24 +14,24 @@ import secrets
 import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any, Optional
+from typing import Optional
 
 from fastapi import Depends, FastAPI, Form, Request, UploadFile
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse
+from PIL import Image
 
-from .auth import require_demo_or_task, require_task, ROLE_DEMO
+from .auth import ROLE_DEMO, require_demo_or_task, require_join, require_task
 from .catalog import Catalog
-from .config import Config, CONTRACT_VERSION
+from .config import CONTRACT_VERSION, Config
 from .db import Database, parse_json
 from .errors import (
     ApiError,
-    error_response,
     ensure_details_keys,
+    error_response,
     forbidden,
     internal_error,
     not_found,
-    unauthorized,
 )
 from .media import probe_media
 from .models import (
@@ -47,7 +47,7 @@ from .models import (
     as_uuid,
 )
 from .resultschema import ResultInvalid, validate_asr_result, validate_ocr_result
-from .timeutil import canonical_json, iso, iso_now, parse_iso, plus, utcnow
+from .timeutil import canonical_json, iso, iso_now, plus, utcnow
 
 LEASE_SECONDS = 15.0
 OFFLINE_AFTER_SECONDS = 15.0
@@ -322,7 +322,7 @@ def _handle_replay(
     if status == "REJECTED":
         error = parse_json(error_raw) or {}
         raise ApiError(
-            409,
+            503 if error.get("code") == "PROFILE_UNCONFIGURED" else 409,
             error.get("code", "INTERNAL_ERROR"),
             error.get("message", "先前已拒绝"),
             retryable=bool(error.get("retryable", False)),
@@ -348,11 +348,13 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
         cfg.profiles_dir.mkdir(parents=True, exist_ok=True)
         state = State(cfg)
         state_holder["state"] = state
-        scanner = asyncio.create_task(_scan_loop(state))
+        stop_scanner = asyncio.Event()
+        scanner = asyncio.create_task(_scan_loop(state, stop_scanner))
         try:
             yield
         finally:
-            scanner.cancel()
+            stop_scanner.set()
+            await scanner
             state.db.close()
 
     app = FastAPI(title="P1 资源服务", version=CONTRACT_VERSION, lifespan=lifespan)
@@ -413,7 +415,7 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
         s = state()
         if role != ROLE_DEMO:
             raise forbidden()
-        node = _get_node_or_404(s, worker_id)
+        _get_node_or_404(s, worker_id)
         now = iso_now()
         with s.db.write() as conn:
             conn.execute(
@@ -441,7 +443,7 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
     async def upload_artifact(upload_id: str = Form(...), file: UploadFile = Form(...), role: str = Depends(auth_demo_or_task)):
         s = state()
         try:
-            as_uuid(upload_id)
+            upload_id = as_uuid(upload_id)
         except ValueError:
             raise ApiError(422, "INVALID_REQUEST", "upload_id 必须是 UUID")
         content_type = file.content_type or ""
@@ -465,7 +467,7 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
             raise ApiError(422, "INVALID_REQUEST", "空文件")
 
         sha = hashlib.sha256(data).hexdigest()
-        original_name = (file.filename or "unnamed").strip() or "unnamed"
+        original_name = (file.filename or "").replace("\\", "/").rsplit("/", 1)[-1].strip() or "unnamed"
         if len(original_name) > 255:
             original_name = original_name[-255:]
 
@@ -554,16 +556,18 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
             node = conn.execute(
                 "SELECT * FROM nodes WHERE worker_id=?", (body.worker_id,)
             ).fetchone()
-            if node is None:
-                raise not_found(f"节点 {body.worker_id} 不存在")
             now_dt = utcnow()
             now = iso(now_dt)
-            reject = _check_node_for_work(s, node, body.worker_session_id)
+            reject = (
+                _check_node_for_work(s, node, body.worker_session_id)
+                if node is not None else (409, "NOT_FOUND", "目标节点不存在", True)
+            )
             if reject is None:
                 type_desc = s.catalog.get(body.task_type)
                 if (
                     type_desc is None
-                    or s.catalog.find_profile(body.profile_id, body.profile_digest) is None
+                    or (body.profile_id, body.profile_digest)
+                    != (type_desc["profile_id"], type_desc["profile_digest"])
                 ):
                     reject = (503, "PROFILE_UNCONFIGURED", "profile 未配置或摘要不匹配", False)
             if reject is not None:
@@ -658,30 +662,27 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
         execution_id = as_uuid(body.execution_id)
         fingerprint = canonical_json(body.model_dump())
 
-        existing = s.db.query_one("SELECT * FROM executions WHERE execution_id=?", (execution_id,))
-        if existing is not None:
-            # 幂等重放也需要在临界区内做（F03），这里先读后写场景由下方临界区覆盖
-            return _handle_replay(
-                existing["request_fingerprint"],
-                fingerprint,
-                existing["status"],
-                existing["error"],
-                "execution_id",
-                execution_id,
-                lambda: s.execution_dict(existing),
-            )
-
-        # F03：资源检查与接纳/拒绝落库在同一临界区完成
-        accepted_payload: Optional[dict] = None
         with s.db.write() as conn:
+            existing = s.db.query_one("SELECT * FROM executions WHERE execution_id=?", (execution_id,))
+            if existing is not None:
+                return _handle_replay(
+                    existing["request_fingerprint"],
+                    fingerprint,
+                    existing["status"],
+                    existing["error"],
+                    "execution_id",
+                    execution_id,
+                    lambda: s.execution_dict(existing),
+                )
             node = conn.execute(
                 "SELECT * FROM nodes WHERE worker_id=?", (body.worker_id,)
             ).fetchone()
-            if node is None:
-                raise not_found(f"节点 {body.worker_id} 不存在")
             now_dt = utcnow()
             now = iso(now_dt)
-            reject = _check_node_for_work(s, node, body.worker_session_id)
+            reject = (
+                _check_node_for_work(s, node, body.worker_session_id)
+                if node is not None else (409, "NOT_FOUND", "目标节点不存在", True)
+            )
             if reject is None:
                 reject = _check_execution_business(s, body)
             if reject is not None:
@@ -720,8 +721,8 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
                 rejected = (status_code, code, message, retryable, error)
             else:
                 accepted_at = now_dt
-                lease_expires = plus(accepted_at, LEASE_SECONDS)
                 hard_deadline = plus(accepted_at, body.timeout_seconds)
+                lease_expires = min(plus(accepted_at, LEASE_SECONDS), hard_deadline)
                 input_row = conn.execute(
                     "SELECT sha256 FROM artifacts WHERE artifact_id=?", (body.input_artifact_id,)
                 ).fetchone()
@@ -780,54 +781,21 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
     @app.post("/api/resource/v1/executions/{execution_id}/cancel")
     def cancel_execution(execution_id: str, role: str = Depends(auth_task)):
         s = state()
-        row = s.db.query_one("SELECT * FROM executions WHERE execution_id=?", (execution_id,))
-        if row is None:
-            raise not_found("execution 不存在")
-        if row["status"] in TERMINAL_EXEC_STATUSES:
-            return s.execution_dict(row)
-        now = iso_now()
-        node = s.db.query_one("SELECT * FROM nodes WHERE worker_id=?", (row["worker_id"],))
-        node_online = node is not None and node["connection"] == "ONLINE"
-
-        if row["status"] in ("ACCEPTED", "RUNNING", "CANCEL_REQUESTED"):
-            # F04：条件更新——终态由 complete / cancel_ack / 扫描器唯一仲裁
-            with s.db.write() as conn:
-                cur = conn.execute(
-                    "UPDATE executions SET status='CANCEL_REQUESTED' WHERE execution_id=? AND status IN ('ACCEPTED','RUNNING')",
-                    (execution_id,),
-                )
-                requested = cur.rowcount > 0
-                if not node_online:
-                    # 契约：节点失联时可确定 CANCELLED 并撤销会话
-                    cur2 = conn.execute(
-                        "UPDATE executions SET status='CANCELLED', finished_at=? WHERE execution_id=? AND status='CANCEL_REQUESTED'",
-                        (now, execution_id),
-                    )
-                    if cur2.rowcount > 0:
-                        conn.execute(
-                            "UPDATE nodes SET session_id=?, node_secret=?, cleanup_pending=1 WHERE worker_id=?",
-                            (str(uuid.uuid4()), secrets.token_hex(16), row["worker_id"]),
-                        )
-                        cancelled_now = True
-                    else:
-                        cancelled_now = False
-                else:
-                    cancelled_now = False
-            if cancelled_now:
-                s.db.insert_event(
-                    now, "execution.cancelled", f"节点离线，执行已取消 {execution_id}",
-                    worker_id=row["worker_id"], execution_id=execution_id,
-                )
-                fresh = s.db.query_one("SELECT * FROM executions WHERE execution_id=?", (execution_id,))
-                return s.execution_dict(fresh)
-            if requested:
+        with s.db.write() as conn:
+            row = s.db.query_one("SELECT * FROM executions WHERE execution_id=?", (execution_id,))
+            if row is None:
+                raise not_found("execution 不存在")
+            if row["status"] in TERMINAL_EXEC_STATUSES:
+                return s.execution_dict(row)
+            now = iso_now()
+            if row["status"] != "CANCEL_REQUESTED":
+                conn.execute("UPDATE executions SET status='CANCEL_REQUESTED' WHERE execution_id=?", (execution_id,))
                 s.db.insert_event(
                     now, "execution.cancel_requested", f"请求取消执行 {execution_id}",
                     worker_id=row["worker_id"], execution_id=execution_id,
                 )
             fresh = s.db.query_one("SELECT * FROM executions WHERE execution_id=?", (execution_id,))
-            return JSONResponse(status_code=202, content=s.execution_dict(fresh))
-        return s.execution_dict(row)
+        return JSONResponse(status_code=202, content=s.execution_dict(fresh))
 
     # ---------------- events ----------------
 
@@ -867,9 +835,7 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
     @app.post("/api/resource/internal/v1/nodes/register")
     def node_register(body: RegisterRequest, request: Request):
         s = state()
-        auth_header = request.headers.get("Authorization", "")
-        if auth_header != f"Bearer {s.config.join_token}":
-            raise unauthorized()
+        require_join(request, s.config)
         now = iso_now()
         worker_id = body.worker_id or ("w" + uuid.uuid4().hex[:16])
         worker_id = _sanitize_worker_id(worker_id)
@@ -884,15 +850,15 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
             {
                 "task_type": t["task_type"],
                 "profile_id": t["profile_id"],
-                "profile_digest": None,
-                "state": "NOT_PREPARED",
+                "profile_digest": t["profile_digest"],
+                "state": "NOT_PREPARED" if t["profile_digest"] else "UNAVAILABLE",
                 "model_cached": False,
                 "backend": None,
                 "runtime_provider": None,
                 "model_sha256": None,
                 "verified": False,
                 "calibration": None,
-                "reason": "等待准备",
+                "reason": "等待准备" if t["profile_digest"] else t["reason"],
             }
             for t in s.catalog.all()
             if t["task_type"] not in reported
@@ -902,6 +868,7 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
                 "SELECT worker_id FROM nodes WHERE worker_id=?", (worker_id,)
             ).fetchone()
             if existing:
+                _end_node_work(s, conn, worker_id, now, "节点重新注册")
                 conn.execute(
                     "UPDATE nodes SET session_id=?, node_secret=?, name=?, hardware=?, capabilities=?, connection='ONLINE',"
                     " cleanup_pending=0, last_seen_at=?, telemetry=NULL WHERE worker_id=?",
@@ -943,75 +910,79 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
     @app.post("/api/resource/internal/v1/nodes/{worker_id}/heartbeat")
     def node_heartbeat(worker_id: str, body: HeartbeatRequest):
         s = state()
-        node = _get_node_or_404(s, worker_id)
-        _require_node_auth(node, body.session_id, body.node_secret)
-        now = iso_now()
-        # F02：心跳合并语义——agent 报告的条目覆盖同 task_type，未报告的保留（不视为删除）
         incoming = [c.model_dump() for c in body.capabilities]
         with s.db.write() as conn:
-            current_row = conn.execute(
-                "SELECT capabilities FROM nodes WHERE worker_id=?", (worker_id,)
-            ).fetchone()
-            caps = parse_json(current_row["capabilities"], []) if current_row else []
+            node = _get_node_or_404(s, worker_id)
+            _require_node_auth(node, body.session_id, body.node_secret)
+            now_dt = utcnow()
+            now = iso(now_dt)
+            caps = parse_json(node["capabilities"], [])
             if incoming:
-                reported = {c["task_type"]: c for c in incoming}
+                reported = {c["task_type"] for c in incoming}
                 caps = [c for c in caps if c.get("task_type") not in reported] + incoming
             conn.execute(
                 "UPDATE nodes SET last_seen_at=?, connection='ONLINE', telemetry=?, capabilities=? WHERE worker_id=?",
-                (
-                    now,
-                    canonical_json(body.telemetry.model_dump()) if body.telemetry else None,
-                    canonical_json(caps),
-                    worker_id,
-                ),
+                (now, canonical_json(body.telemetry.model_dump()) if body.telemetry else None,
+                 canonical_json(caps), worker_id),
             )
-            # 续租：本节点 RUNNING 执行的心跳续租（不能越过硬期限，扫描器兜底）
             conn.execute(
-                "UPDATE executions SET lease_expires_at=? WHERE worker_id=? AND status='RUNNING'",
-                (iso(plus(utcnow(), LEASE_SECONDS)), worker_id),
+                "UPDATE executions SET lease_expires_at=MIN(?, hard_deadline_at)"
+                " WHERE worker_id=? AND worker_session_id=? AND status='RUNNING' AND lease_expires_at>?",
+                (iso(plus(now_dt, LEASE_SECONDS)), worker_id, body.session_id, now),
             )
-        cancelled = [
-            r["execution_id"]
-            for r in s.db.query(
-                "SELECT execution_id FROM executions WHERE worker_id=? AND status='CANCEL_REQUESTED'",
-                (worker_id,),
-            )
-        ]
-        node = _get_node_or_404(s, worker_id)
+            cancelled = [
+                row["execution_id"] for row in conn.execute(
+                    "SELECT execution_id FROM executions WHERE worker_id=? AND status='CANCEL_REQUESTED'",
+                    (worker_id,),
+                )
+            ]
         return {"ok": True, "mode": node["mode"], "cancel_requested": cancelled}
 
     @app.post("/api/resource/internal/v1/nodes/{worker_id}/claim")
     def node_claim(worker_id: str, body: ClaimRequest):
         s = state()
-        node = _get_node_or_404(s, worker_id)
-        _require_node_auth(node, body.session_id, body.node_secret)
-        if node["connection"] != "ONLINE" or node["mode"] != "ACTIVE":
-            return {"execution": None, "preparation": None}
-
-        # 模型准备优先（准备与执行同槽）
-        prep = s.db.query_one(
-            "SELECT * FROM preparations WHERE worker_id=? AND status='ACCEPTED' ORDER BY created_at LIMIT 1",
-            (worker_id,),
-        )
-        if prep is not None:
-            return {"execution": None, "preparation": s.preparation_dict(prep)}
-
-        row = s.db.query_one(
-            "SELECT * FROM executions WHERE worker_id=? AND status='ACCEPTED' AND lease_expires_at>? ORDER BY accepted_at LIMIT 1",
-            (worker_id, iso_now()),
-        )
-        if row is None:
-            return {"execution": None, "preparation": None}
-        now = iso_now()
+        empty = {"execution": None, "preparation": None}
         with s.db.write() as conn:
+            node = _get_node_or_404(s, worker_id)
+            _require_node_auth(node, body.session_id, body.node_secret)
+            if node["connection"] != "ONLINE":
+                return empty
+            pending = conn.execute(
+                "SELECT execution_id FROM executions WHERE worker_id=? AND worker_session_id=?"
+                " AND status='CANCEL_REQUESTED'",
+                (worker_id, body.session_id),
+            ).fetchone()
+            if node["cleanup_pending"]:
+                pending = _cleanup_execution(conn, worker_id, body.session_id)
+            if pending:
+                return {**empty, "stop_ack_required": [pending["execution_id"]]}
+            if node["cleanup_pending"] or node["mode"] == "PAUSED":
+                return empty
+
+            now_dt = utcnow()
+            now = iso(now_dt)
+            prep = conn.execute(
+                "SELECT * FROM preparations WHERE worker_id=? AND worker_session_id=? AND status='ACCEPTED' LIMIT 1",
+                (worker_id, body.session_id),
+            ).fetchone()
+            if prep is not None:
+                return {**empty, "preparation": s.preparation_dict(prep)}
+            row = conn.execute(
+                "SELECT * FROM executions WHERE worker_id=? AND worker_session_id=? AND status='ACCEPTED'"
+                " AND lease_expires_at>? AND hard_deadline_at>? ORDER BY accepted_at LIMIT 1",
+                (worker_id, body.session_id, now, now),
+            ).fetchone()
+            if row is None:
+                return empty
             conn.execute(
-                "UPDATE executions SET status='RUNNING', started_at=?, lease_expires_at=? WHERE execution_id=? AND status='ACCEPTED'",
-                (now, iso(plus(utcnow(), LEASE_SECONDS)), row["execution_id"]),
+                "UPDATE executions SET status='RUNNING', started_at=?, lease_expires_at=MIN(?, hard_deadline_at)"
+                " WHERE execution_id=?",
+                (now, iso(plus(now_dt, LEASE_SECONDS)), row["execution_id"]),
             )
-        s.db.insert_event(
-            now, "execution.running", f"节点 {worker_id} 领取执行 {row['execution_id']}",
-            worker_id=worker_id, execution_id=row["execution_id"],
-        )
+            s.db.insert_event(
+                now, "execution.running", f"节点 {worker_id} 领取执行 {row['execution_id']}",
+                worker_id=worker_id, execution_id=row["execution_id"],
+            )
         artifact = s.db.query_one(
             "SELECT * FROM artifacts WHERE artifact_id=?", (row["input_artifact_id"],)
         )
@@ -1024,6 +995,8 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
             "profile_id": row["profile_id"],
             "profile_digest": row["profile_digest"],
             "input_artifact_id": row["input_artifact_id"],
+            "input_sha256": row["input_sha256"],
+            "input_media_info": parse_json(artifact["media_info"], {}) if artifact else {},
             "parameters": parse_json(row["parameters"]),
             "timeout_seconds": row["timeout_seconds"],
             "hard_deadline_at": row["hard_deadline_at"],
@@ -1036,31 +1009,44 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
     @app.post("/api/resource/internal/v1/nodes/{worker_id}/preparations/{preparation_id}/status")
     def preparation_status(worker_id: str, preparation_id: str, body: PreparationStatusRequest):
         s = state()
-        node = _get_node_or_404(s, worker_id)
-        _require_node_auth(node, body.session_id, body.node_secret)
-        row = s.db.query_one("SELECT * FROM preparations WHERE preparation_id=?", (preparation_id,))
-        if row is None or row["worker_id"] != worker_id:
-            raise not_found("preparation 不存在")
-        if row["status"] not in ACTIVE_PREP_STATUSES:
-            raise ApiError(409, "STALE_EXECUTION", "准备已结束，状态更新被拒收")
-        now = iso_now()
-        error_json = None
-        if body.status == "FAILED":
-            error_json = canonical_json(
-                {
-                    "code": body.error_code or "MODEL_LOAD_FAILED",
-                    "message": body.error_message or "模型准备失败",
-                    "retryable": bool(body.error_retryable),
-                    "details": {"preparation_id": preparation_id},
-                }
-            )
-        finished = now if body.status in ("READY", "FAILED") else None
         with s.db.write() as conn:
+            node = _get_node_or_404(s, worker_id)
+            _require_node_auth(node, body.session_id, body.node_secret)
+            row = s.db.query_one("SELECT * FROM preparations WHERE preparation_id=?", (preparation_id,))
+            if row is None or row["worker_id"] != worker_id:
+                raise not_found("preparation 不存在")
+            if row["status"] not in ACTIVE_PREP_STATUSES:
+                raise ApiError(409, "STALE_EXECUTION", "准备已结束，状态更新被拒收")
+            now_dt = utcnow()
+            now = iso(now_dt)
+            if row["worker_session_id"] != body.session_id:
+                raise ApiError(409, "STALE_EXECUTION", "准备属于已失效的会话")
+            if row["created_at"] <= iso(plus(now_dt, -PREPARATION_TIMEOUT_SECONDS)):
+                raise ApiError(409, "STALE_EXECUTION", "准备已超过硬期限")
+            status = body.status
+            error_code, error_message = body.error_code, body.error_message
+            if status == "READY":
+                expected = s.catalog.model_sha256(row["profile_id"])
+                if not body.calibration or not body.calibration.passed or not body.backend or not body.runtime_provider:
+                    status, error_code, error_message = "FAILED", "MODEL_LOAD_FAILED", "缺少通过的自测或实际后端"
+                elif not expected or body.model_sha256 != expected:
+                    status, error_code, error_message = "FAILED", "MODEL_HASH_MISMATCH", "模型 SHA 与锁文件不符"
+            error_json = None
+            if status == "FAILED":
+                error_json = canonical_json(
+                    {
+                        "code": error_code or "MODEL_LOAD_FAILED",
+                        "message": error_message or "模型准备失败",
+                        "retryable": bool(body.error_retryable),
+                        "details": {"preparation_id": preparation_id},
+                    }
+                )
+            finished = now if status in ("READY", "FAILED") else None
             conn.execute(
                 "UPDATE preparations SET status=?, progress=?, finished_at=?, error=? WHERE preparation_id=?",
-                (body.status, body.progress, finished, error_json, preparation_id),
+                (status, body.progress, finished, error_json, preparation_id),
             )
-            if body.status == "READY":
+            if status == "READY":
                 _upsert_capability(
                     conn,
                     worker_id,
@@ -1078,7 +1064,7 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
                         "reason": None,
                     },
                 )
-            elif body.status == "FAILED":
+            elif status == "FAILED":
                 _upsert_capability(
                     conn,
                     worker_id,
@@ -1093,17 +1079,17 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
                         "model_sha256": None,
                         "verified": False,
                         "calibration": None,
-                        "reason": body.error_message or "模型准备失败",
+                        "reason": error_message or "模型准备失败",
                     },
                 )
-        if body.status == "READY":
+        if status == "READY":
             s.db.insert_event(
                 now, "profile.ready", f"节点 {worker_id} 模型就绪 {row['profile_id']}",
                 worker_id=worker_id, preparation_id=preparation_id,
             )
-        elif body.status == "FAILED":
+        elif status == "FAILED":
             s.db.insert_event(
-                now, "profile.failed", f"节点 {worker_id} 模型准备失败：{body.error_message}",
+                now, "profile.failed", f"节点 {worker_id} 模型准备失败：{error_message}",
                 worker_id=worker_id, preparation_id=preparation_id,
             )
         fresh = s.db.query_one("SELECT * FROM preparations WHERE preparation_id=?", (preparation_id,))
@@ -1112,281 +1098,205 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
     @app.post("/api/resource/internal/v1/nodes/{worker_id}/executions/{execution_id}/complete")
     def execution_complete(worker_id: str, execution_id: str, body: ExecutionCompleteRequest):
         s = state()
-        node = _get_node_or_404(s, worker_id)
-        _require_node_auth(node, body.session_id, body.node_secret)
-        row = s.db.query_one("SELECT * FROM executions WHERE execution_id=?", (execution_id,))
-        if row is None or row["worker_id"] != worker_id:
-            raise not_found("execution 不存在")
-        now_dt = utcnow()
-        now = iso(now_dt)
+        with s.db.write() as conn:
+            node = _get_node_or_404(s, worker_id)
+            _require_node_auth(node, body.session_id, body.node_secret)
+            row = _session_execution(conn, worker_id, execution_id, body.session_id)
+            now = iso_now()
+            if body.outcome == "SUCCEEDED" and body.result is not None:
+                result_bytes = canonical_json(body.result).encode("utf-8")
+                sha = hashlib.sha256(result_bytes).hexdigest()
+                if row["status"] == "SUCCEEDED":
+                    saved = s.execution_dict(row)
+                    if saved["result_artifact"]["sha256"] == sha:
+                        return saved
+            if row["status"] != "RUNNING":
+                stale_reason = "执行未运行或提交权已撤销"
+            elif row["hard_deadline_at"] <= now or row["lease_expires_at"] <= now:
+                stale_reason = "执行硬期限或租约已到期"
+            else:
+                stale_reason = None
 
-        if row["status"] in TERMINAL_EXEC_STATUSES:
-            s.db.insert_event(
-                now, "execution.stale_rejected", f"晚到/重复提交被拒收 {execution_id}",
-                worker_id=worker_id, execution_id=execution_id,
-            )
-            raise ApiError(409, "STALE_EXECUTION", "执行已终态，提交被拒收")
-        if row["status"] == "CANCEL_REQUESTED":
-            # 取消先撤权：拒收之后的结果，节点应转而确认停止
-            raise ApiError(409, "STALE_EXECUTION", "执行已请求取消，提交权已撤销")
-
-        if body.outcome == "SUCCEEDED":
-            if body.result is None:
-                raise ApiError(409, "RESULT_INVALID", "SUCCEEDED 提交缺少 result")
-            try:
-                _validate_execution_result(s, row, body.result)
-            except ResultInvalid as e:
-                raise ApiError(409, "RESULT_INVALID", f"结果不合规：{e.message}")
-            # F04：硬期限复核——期限已过即丧失提交权（扫描器兜底置 FAILED）
-            hard_deadline = parse_iso(row["hard_deadline_at"])
-            if hard_deadline is not None and utcnow() > hard_deadline:
-                with s.db.write() as conn:
-                    conn.execute(
-                        "UPDATE executions SET status='FAILED', finished_at=?, error=? WHERE execution_id=? AND status IN ('ACCEPTED','RUNNING')",
-                        (
-                            now,
-                            canonical_json(_err("EXECUTION_TIMEOUT", "执行超过硬期限", True)),
-                            execution_id,
-                        ),
-                    )
+            if stale_reason:
                 s.db.insert_event(
-                    now, "execution.stale_rejected", f"超期提交被拒收 {execution_id}",
+                    now, "execution.stale_rejected", f"结果提交被拒收 {execution_id}",
                     worker_id=worker_id, execution_id=execution_id,
                 )
-                raise ApiError(409, "STALE_EXECUTION", "执行已超过硬期限，提交被拒收")
-            result_bytes = canonical_json(body.result).encode("utf-8")
-            sha = hashlib.sha256(result_bytes).hexdigest()
-            artifact_id = new_artifact_id()
-            target = s.config.artifacts_dir / f"{artifact_id}.bin"
-            tmp = target.with_suffix(".tmp")
-            tmp.write_bytes(result_bytes)
-            tmp.replace(target)
-            timings = body.timings if body.timings is not None else {
-                "download_ms": 0, "inference_ms": 0, "postprocess_ms": 0,
-                "write_output_ms": 0, "total_worker_ms": 0,
-            }
-            # F04：条件更新仲裁——仅 RUNNING 可发布成功；取消已获胜则整个事务回滚
-            with s.db.write() as conn:
-                cur = conn.execute(
-                    "UPDATE executions SET status='SUCCEEDED', finished_at=?, result_artifact_id=?, timings=?, error=NULL WHERE execution_id=? AND status IN ('ACCEPTED','RUNNING')",
+            elif body.outcome == "SUCCEEDED":
+                if body.result is None:
+                    raise ApiError(409, "RESULT_INVALID", "SUCCEEDED 提交缺少 result")
+                try:
+                    _validate_execution_result(s, row, body.result)
+                except ResultInvalid as exc:
+                    raise ApiError(409, "RESULT_INVALID", f"结果不合规：{exc.message}") from exc
+                artifact_id = new_artifact_id()
+                target = s.config.artifacts_dir / f"{artifact_id}.bin"
+                tmp = target.with_suffix(".tmp")
+                tmp.write_bytes(result_bytes)
+                tmp.replace(target)
+                timings = body.timings if body.timings is not None else {
+                    "download_ms": 0, "inference_ms": 0, "postprocess_ms": 0,
+                    "write_output_ms": 0, "total_worker_ms": 0,
+                }
+                conn.execute(
+                    "INSERT INTO artifacts (artifact_id, upload_id, kind, original_name, content_type,"
+                    " sha256, size_bytes, media_info, created_at)"
+                    " VALUES (?,NULL,'RESULT',?,'application/json',?,?,?,?)",
+                    (artifact_id, f"execution-{execution_id}.json", sha, len(result_bytes),
+                     canonical_json(_NULL_MEDIA), now),
+                )
+                conn.execute(
+                    "UPDATE executions SET status='SUCCEEDED', finished_at=?, result_artifact_id=?,"
+                    " timings=?, error=NULL WHERE execution_id=?",
                     (now, artifact_id, canonical_json(timings), execution_id),
                 )
-                if cur.rowcount == 0:
-                    raise ApiError(409, "STALE_EXECUTION", "执行已被取消，提交权已撤销")
-                # F01：结果 Artifact 的 media_info 是完整六字段对象（字段值可为 null）
-                conn.execute(
-                    "INSERT INTO artifacts (artifact_id, upload_id, kind, original_name, content_type, sha256, size_bytes, media_info, created_at)"
-                    " VALUES (?,?, 'RESULT', ?, 'application/json', ?, ?, ?, ?)",
-                    (
-                        artifact_id,
-                        None,
-                        f"execution-{execution_id}.json",
-                        sha,
-                        len(result_bytes),
-                        canonical_json(_NULL_MEDIA.copy()),
-                        now,
-                    ),
+                s.db.insert_event(
+                    now, "execution.succeeded", f"执行成功 {execution_id}",
+                    worker_id=worker_id, execution_id=execution_id,
                 )
-            s.db.insert_event(
-                now, "execution.succeeded", f"执行成功 {execution_id}",
-                worker_id=worker_id, execution_id=execution_id,
-            )
-        else:
-            error = {
-                "code": body.error_code or "EXECUTION_ERROR",
-                "message": body.error_message or "执行失败",
-                "retryable": bool(body.error_retryable),
-                "details": {"execution_id": execution_id},
-            }
-            with s.db.write() as conn:
-                cur = conn.execute(
-                    "UPDATE executions SET status='FAILED', finished_at=?, error=? WHERE execution_id=? AND status IN ('ACCEPTED','RUNNING')",
-                    (now, canonical_json(error), execution_id),
+            else:
+                _finish_execution(
+                    s, conn, row, now, "FAILED",
+                    _err(body.error_code or "EXECUTION_ERROR", body.error_message or "执行失败", bool(body.error_retryable)),
                 )
-                if cur.rowcount == 0:
-                    raise ApiError(409, "STALE_EXECUTION", "执行已被取消，报告被拒收")
-            s.db.insert_event(
-                now, "execution.failed", f"执行失败 {execution_id}: {error['code']}",
-                worker_id=worker_id, execution_id=execution_id,
-            )
-        fresh = s.db.query_one("SELECT * FROM executions WHERE execution_id=?", (execution_id,))
+            fresh = s.db.query_one("SELECT * FROM executions WHERE execution_id=?", (execution_id,))
+        if stale_reason:
+            raise ApiError(409, "STALE_EXECUTION", stale_reason)
         return s.execution_dict(fresh)
 
     @app.post("/api/resource/internal/v1/nodes/{worker_id}/executions/{execution_id}/cancel_ack")
     def execution_cancel_ack(worker_id: str, execution_id: str, body: CancelAckRequest):
         s = state()
-        node = _get_node_or_404(s, worker_id)
-        _require_node_auth(node, body.session_id, body.node_secret)
-        row = s.db.query_one("SELECT * FROM executions WHERE execution_id=?", (execution_id,))
-        if row is None or row["worker_id"] != worker_id:
-            raise not_found("execution 不存在")
-        if row["status"] == "CANCEL_REQUESTED":
-            now = iso_now()
-            with s.db.write() as conn:
-                cur = conn.execute(
-                    "UPDATE executions SET status='CANCELLED', finished_at=? WHERE execution_id=? AND status='CANCEL_REQUESTED'",
-                    (now, execution_id),
-                )
-                if cur.rowcount > 0:
-                    conn.execute(
-                        "UPDATE nodes SET cleanup_pending=0 WHERE worker_id=?", (worker_id,)
-                    )
-            s.db.insert_event(
-                now, "execution.cancelled", f"执行已取消 {execution_id}",
-                worker_id=worker_id, execution_id=execution_id,
-            )
-        fresh = s.db.query_one("SELECT * FROM executions WHERE execution_id=?", (execution_id,))
-        return s.execution_dict(fresh)
+        with s.db.write() as conn:
+            node = _get_node_or_404(s, worker_id)
+            _require_node_auth(node, body.session_id, body.node_secret)
+            row = _session_execution(conn, worker_id, execution_id, body.session_id)
+            if row["status"] == "CANCEL_REQUESTED":
+                _finish_execution(s, conn, row, iso_now(), "CANCELLED")
+            elif node["cleanup_pending"]:
+                pending = _cleanup_execution(conn, worker_id, body.session_id)
+                if pending and pending["execution_id"] == execution_id:
+                    conn.execute("UPDATE nodes SET cleanup_pending=0 WHERE worker_id=?", (worker_id,))
+            return s.execution_dict(s.db.query_one(
+                "SELECT * FROM executions WHERE execution_id=?", (execution_id,)
+            ))
 
     # ---------------- 后台扫描 ----------------
 
-    async def _scan_loop(st: State):
-        while True:
+    async def _scan_loop(st: State, stop: asyncio.Event):
+        while not stop.is_set():
             try:
                 await asyncio.to_thread(run_scan, st)
             except Exception:
                 import traceback
 
                 traceback.print_exc()
-            await asyncio.sleep(SCAN_INTERVAL_SECONDS)
+            try:
+                await asyncio.wait_for(stop.wait(), timeout=SCAN_INTERVAL_SECONDS)
+            except asyncio.TimeoutError:
+                pass
 
     def run_scan(st: State) -> None:
         now_dt = utcnow()
         now = iso(now_dt)
-        db = st.db
-        # 1) 硬期限（先于租约判断）
-        for row in db.query(
-            "SELECT * FROM executions WHERE status IN ('ACCEPTED','RUNNING') AND hard_deadline_at IS NOT NULL AND hard_deadline_at<?",
-            (now,),
-        ):
-            with db.write() as conn:
-                conn.execute(
-                    "UPDATE executions SET status='FAILED', finished_at=?, error=? WHERE execution_id=? AND status IN ('ACCEPTED','RUNNING')",
-                    (
-                        now,
-                        canonical_json(_err("EXECUTION_TIMEOUT", "执行超过硬期限", True)),
-                        row["execution_id"],
-                    ),
+        with st.db.write() as conn:
+            for node in conn.execute(
+                "SELECT * FROM nodes WHERE connection='ONLINE' AND last_seen_at<=?",
+                (iso(plus(now_dt, -OFFLINE_AFTER_SECONDS)),),
+            ).fetchall():
+                _end_node_work(st, conn, node["worker_id"], now, "节点失联")
+                _revoke_node_session(conn, node["worker_id"])
+                st.db.insert_event(now, "node.offline", "节点失联", worker_id=node["worker_id"])
+
+            expired = conn.execute(
+                "SELECT * FROM executions WHERE status IN ('ACCEPTED','RUNNING')"
+                " AND (hard_deadline_at<=? OR lease_expires_at<=?)",
+                (now, now),
+            ).fetchall()
+            for row in expired:
+                error = (
+                    _err("EXECUTION_TIMEOUT", "执行超过硬期限", True)
+                    if row["hard_deadline_at"] <= now
+                    else _err("LEASE_EXPIRED", "执行租约过期", True)
                 )
+                _finish_execution(st, conn, row, now, "FAILED", error)
                 if row["status"] == "RUNNING":
-                    conn.execute(
-                        "UPDATE nodes SET cleanup_pending=1 WHERE worker_id=?", (row["worker_id"],)
-                    )
-            db.insert_event(
-                now, "execution.failed", f"执行硬超时 {row['execution_id']}",
-                worker_id=row["worker_id"], execution_id=row["execution_id"],
-            )
-        # 2) 租约过期
-        for row in db.query(
-            "SELECT * FROM executions WHERE status='ACCEPTED' AND lease_expires_at IS NOT NULL AND lease_expires_at<?",
-            (now,),
-        ):
-            with db.write() as conn:
-                conn.execute(
-                    "UPDATE executions SET status='FAILED', finished_at=?, error=? WHERE execution_id=? AND status='ACCEPTED'",
-                    (now, canonical_json(_err("LEASE_EXPIRED", "接受后未在租约内领取", True)), row["execution_id"]),
-                )
-            db.insert_event(
-                now, "execution.failed", f"租约过期未领取 {row['execution_id']}",
-                worker_id=row["worker_id"], execution_id=row["execution_id"],
-            )
-        for row in db.query(
-            "SELECT * FROM executions WHERE status='RUNNING' AND lease_expires_at IS NOT NULL AND lease_expires_at<?",
-            (now,),
-        ):
-            with db.write() as conn:
-                conn.execute(
-                    "UPDATE executions SET status='FAILED', finished_at=?, error=? WHERE execution_id=? AND status='RUNNING'",
-                    (now, canonical_json(_err("LEASE_EXPIRED", "执行期间心跳续租中断", True)), row["execution_id"]),
-                )
-                conn.execute(
-                    "UPDATE nodes SET cleanup_pending=1 WHERE worker_id=?", (row["worker_id"],)
-                )
-            db.insert_event(
-                now, "execution.failed", f"执行租约过期 {row['execution_id']}",
-                worker_id=row["worker_id"], execution_id=row["execution_id"],
-            )
-        # 3) 节点失联（阈值 15s）
-        for row in db.query(
-            "SELECT * FROM nodes WHERE connection='ONLINE' AND last_seen_at IS NOT NULL AND last_seen_at<?",
-            (iso(plus(now_dt, -OFFLINE_AFTER_SECONDS)),),
-        ):
-            with db.write() as conn:
-                conn.execute(
-                    "UPDATE nodes SET connection='OFFLINE', session_id=?, node_secret=?, cleanup_pending=CASE WHEN EXISTS("
-                    "SELECT 1 FROM executions WHERE worker_id=? AND status IN ('ACCEPTED','RUNNING','CANCEL_REQUESTED')"
-                    ") THEN 1 ELSE cleanup_pending END WHERE worker_id=?",
-                    (
-                        str(uuid.uuid4()),
-                        secrets.token_hex(16),
-                        row["worker_id"],
-                        row["worker_id"],
-                    ),
-                )
-                for exec_row in conn.execute(
-                    "SELECT execution_id FROM executions WHERE worker_id=? AND status IN ('ACCEPTED','RUNNING')",
-                    (row["worker_id"],),
-                ).fetchall():
-                    conn.execute(
-                        "UPDATE executions SET status='FAILED', finished_at=?, error=? WHERE execution_id=? AND status IN ('ACCEPTED','RUNNING')",
-                        (
-                            now,
-                            canonical_json(_err("LEASE_EXPIRED", "节点失联", True)),
-                            exec_row["execution_id"],
-                        ),
-                    )
-                for prep_row in conn.execute(
-                    "SELECT preparation_id FROM preparations WHERE worker_id=? AND status IN (?,?,?,?)",
-                    (row["worker_id"], *ACTIVE_PREP_STATUSES),
-                ).fetchall():
-                    conn.execute(
-                        "UPDATE preparations SET status='FAILED', finished_at=?, error=? WHERE preparation_id=?",
-                        (
-                            now,
-                            canonical_json(_err("MODEL_LOAD_FAILED", "节点失联，准备中断", True)),
-                            prep_row["preparation_id"],
-                        ),
-                    )
-            db.insert_event(now, "node.offline", f"节点失联 {row['worker_id']}", worker_id=row["worker_id"])
-        # 4) 准备硬期限 900s
-        for row in db.query(
-            "SELECT * FROM preparations WHERE status IN (?,?,?,?) AND created_at<?",
-            (*ACTIVE_PREP_STATUSES, iso(plus(now_dt, -PREPARATION_TIMEOUT_SECONDS))),
-        ):
-            with db.write() as conn:
-                conn.execute(
-                    "UPDATE preparations SET status='FAILED', finished_at=?, error=? WHERE preparation_id=?",
-                    (
-                        now,
-                        canonical_json(_err("PREPARATION_TIMEOUT", "准备超过 900 秒硬期限", True)),
-                        row["preparation_id"],
-                    ),
-                )
-            db.insert_event(
-                now, "profile.failed", f"准备超时 {row['preparation_id']}",
-                worker_id=row["worker_id"], preparation_id=row["preparation_id"],
-            )
-        # 5) DRAINING 且无活动工作 -> PAUSED
-        for row in db.query("SELECT * FROM nodes WHERE mode='DRAINING'"):
-            active_exec = st.node_active_executions(row["worker_id"])
-            active_prep = st.node_active_preparation(row["worker_id"])
-            if not active_exec and not active_prep and not row["cleanup_pending"]:
-                with db.write() as conn:
-                    conn.execute(
-                        "UPDATE nodes SET mode='PAUSED' WHERE worker_id=?", (row["worker_id"],)
-                    )
-                db.insert_event(
-                    now, "node.mode_changed", f"节点 {row['worker_id']} 完成工作，DRAINING -> PAUSED",
-                    worker_id=row["worker_id"],
-                )
+                    conn.execute("UPDATE nodes SET cleanup_pending=1 WHERE worker_id=?", (row["worker_id"],))
+
+            expired_preps = conn.execute(
+                "SELECT * FROM preparations WHERE status IN (?,?,?,?) AND created_at<=?",
+                (*ACTIVE_PREP_STATUSES, iso(plus(now_dt, -PREPARATION_TIMEOUT_SECONDS))),
+            ).fetchall()
+            for row in expired_preps:
+                error = _err("PREPARATION_TIMEOUT", "准备超过 900 秒硬期限", True)
+                _fail_preparation(st, conn, row, now, error)
+                # 旧节点须在准备退出后重新建立会话。
+                _revoke_node_session(conn, row["worker_id"])
+
+            for node in conn.execute("SELECT * FROM nodes WHERE mode='DRAINING' AND cleanup_pending=0").fetchall():
+                worker_id = node["worker_id"]
+                if not st.node_active_executions(worker_id) and not st.node_active_preparation(worker_id):
+                    conn.execute("UPDATE nodes SET mode='PAUSED' WHERE worker_id=?", (worker_id,))
+                    st.db.insert_event(now, "node.mode_changed", "节点完成工作并进入 PAUSED", worker_id=worker_id)
+
+    def _session_execution(conn, worker_id: str, execution_id: str, session_id: str):
+        row = conn.execute("SELECT * FROM executions WHERE execution_id=?", (execution_id,)).fetchone()
+        if row is None or row["worker_id"] != worker_id:
+            raise not_found("execution 不存在")
+        if row["worker_session_id"] != session_id:
+            raise ApiError(409, "STALE_EXECUTION", "执行属于已失效的会话")
+        return row
+
+    def _cleanup_execution(conn, worker_id: str, session_id: str):
+        return conn.execute(
+            "SELECT execution_id FROM executions WHERE worker_id=? AND worker_session_id=?"
+            " AND status='FAILED' AND started_at IS NOT NULL ORDER BY rowid DESC LIMIT 1",
+            (worker_id, session_id),
+        ).fetchone()
+
+    def _finish_execution(s: State, conn, row, now: str, status: str, error=None) -> None:
+        conn.execute(
+            "UPDATE executions SET status=?, finished_at=?, error=? WHERE execution_id=?",
+            (status, now, canonical_json(error) if error else None, row["execution_id"]),
+        )
+        s.db.insert_event(
+            now, f"execution.{status.lower()}", error["message"] if error else "执行已取消",
+            worker_id=row["worker_id"], execution_id=row["execution_id"],
+        )
+
+    def _fail_preparation(s: State, conn, row, now: str, error: dict) -> None:
+        conn.execute(
+            "UPDATE preparations SET status='FAILED', finished_at=?, error=? WHERE preparation_id=?",
+            (now, canonical_json(error), row["preparation_id"]),
+        )
+        s.db.insert_event(
+            now, "profile.failed", error["message"],
+            worker_id=row["worker_id"], preparation_id=row["preparation_id"],
+        )
+
+    def _end_node_work(s: State, conn, worker_id: str, now: str, reason: str) -> None:
+        for row in conn.execute(
+            "SELECT * FROM executions WHERE worker_id=? AND status IN (?,?,?)",
+            (worker_id, *ACTIVE_EXEC_STATUSES),
+        ).fetchall():
+            if row["status"] == "CANCEL_REQUESTED":
+                _finish_execution(s, conn, row, now, "CANCELLED")
+            else:
+                _finish_execution(s, conn, row, now, "FAILED", _err("LEASE_EXPIRED", reason, True))
+        for row in conn.execute(
+            "SELECT * FROM preparations WHERE worker_id=? AND status IN (?,?,?,?)",
+            (worker_id, *ACTIVE_PREP_STATUSES),
+        ).fetchall():
+            _fail_preparation(s, conn, row, now, _err("MODEL_LOAD_FAILED", reason, True))
+
+    def _revoke_node_session(conn, worker_id: str) -> None:
+        conn.execute(
+            "UPDATE nodes SET connection='OFFLINE', session_id=?, node_secret=?, last_seen_at=NULL,"
+            " cleanup_pending=1 WHERE worker_id=?",
+            (str(uuid.uuid4()), secrets.token_hex(16), worker_id),
+        )
 
     # ---------------- helpers ----------------
-
-    def request_state_role(request: Request, config: Config) -> str:
-        header = request.headers.get("Authorization", "")
-        if header == f"Bearer {config.demo_token}":
-            return ROLE_DEMO
-        return "task"
 
     def _err(code: str, message: str, retryable: bool) -> dict:
         return {"code": code, "message": message, "retryable": retryable, "details": {}}
@@ -1417,8 +1327,6 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
             return (409, "UNSUPPORTED_TASK_TYPE", f"类型 {body.task_type} 不受支持", False)
         if body.parameters.language not in type_desc["supported_languages"]:
             return (409, "PARAMETER_UNSUPPORTED", f"语言 {body.parameters.language} 不受支持", False)
-        if s.catalog.find_profile(body.profile_id, body.profile_digest) is None:
-            return (409, "PROFILE_MISMATCH", "profile 或摘要与目录不符", False)
         artifact = s.db.query_one(
             "SELECT * FROM artifacts WHERE artifact_id=?", (body.input_artifact_id,)
         )
@@ -1426,6 +1334,8 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
             return (409, "NOT_FOUND", f"输入 artifact {body.input_artifact_id} 不存在", True)
         if artifact["content_type"] not in type_desc["input_mime_types"]:
             return (409, "INPUT_INVALID", f"输入类型 {artifact['content_type']} 与任务不符", False)
+        if (body.profile_id, body.profile_digest) != (type_desc["profile_id"], type_desc["profile_digest"]):
+            return (409, "PROFILE_MISMATCH", "profile 或摘要与目录不符", False)
         # 能力就绪检查
         node = s.db.query_one("SELECT * FROM nodes WHERE worker_id=?", (body.worker_id,))
         capabilities = parse_json(node["capabilities"], [])
@@ -1434,6 +1344,7 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
             and c.get("profile_id") == body.profile_id
             and c.get("profile_digest") == body.profile_digest
             and c.get("state") == "READY"
+            and c.get("verified") is True
             for c in capabilities
         )
         if not ready:
@@ -1443,6 +1354,8 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
     def _probe_or_422(content_type: str, data: bytes, max_pixels: Optional[int]) -> dict:
         try:
             media = probe_media(content_type, data)
+        except Image.DecompressionBombError as exc:
+            raise ApiError(413, "INPUT_TOO_LARGE", "图像像素超过上限") from exc
         except ValueError as e:
             raise ApiError(422, "INVALID_REQUEST", f"内容解码失败：{e}")
         if (
@@ -1463,6 +1376,12 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
     def _validate_execution_result(s: State, row, result: dict) -> None:
         if row["task_type"] == "ocr.image.v1":
             validate_ocr_result(result, row["input_artifact_id"])
+            artifact = s.db.query_one(
+                "SELECT media_info FROM artifacts WHERE artifact_id=?", (row["input_artifact_id"],)
+            )
+            media = parse_json(artifact["media_info"])
+            if (result["image_width"], result["image_height"]) != (media["width"], media["height"]):
+                raise ResultInvalid("结果图像尺寸与输入不符")
         else:
             validate_asr_result(result, row["input_artifact_id"])
 

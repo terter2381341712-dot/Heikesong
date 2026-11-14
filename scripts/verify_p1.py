@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""P1 自检：按验收矩阵 R02–R12、X01 逐项跑真实进程，输出 PASS/FAIL 与证据。
+"""P1 自检：运行本机进程，检查 R02–R08、R10、R11、X01 和 R09 忙时拒绝。
 
 用法（仓库根目录）：
     .venv/bin/python scripts/verify_p1.py
@@ -16,7 +16,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import io
-import json
 import os
 import shutil
 import socket
@@ -27,7 +26,7 @@ import threading
 import time
 import uuid
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Optional
 
 import httpx
 from PIL import Image, ImageDraw, ImageFont
@@ -372,7 +371,10 @@ def case_r06(server: Server, node: dict, digest: str) -> None:
 
     t1 = threading.Thread(target=fire, args=(b1,))
     t2 = threading.Thread(target=fire, args=(b2,))
-    t1.start(); t2.start(); t1.join(); t2.join()
+    t1.start()
+    t2.start()
+    t1.join()
+    t2.join()
     codes = sorted(r.status_code for r in out)
     accepted = [r for r in out if r.status_code == 201]
     rejected = [r for r in out if r.status_code == 409]
@@ -417,7 +419,7 @@ def case_r08(server: Server, node: dict, digest: str) -> None:
     assert post_exec(server, body).status_code == 201
     eid = body["execution_id"]
     cancel = httpx.post(f"{server.base}/api/resource/v1/executions/{eid}/cancel", headers=TASK, timeout=10)
-    # 等节点确认停止（agent 在心跳里看到 cancel_requested 后 ack）
+    # 等节点主线程确认停止
     deadline = time.time() + 40
     status = None
     while time.time() < deadline:
@@ -442,7 +444,11 @@ def case_r08(server: Server, node: dict, digest: str) -> None:
         timeout=10,
     )
     after = httpx.get(f"{server.base}/api/resource/v1/executions/{eid}", headers=TASK, timeout=10).json()
-    ok = cancel.status_code == 202 and status in ("CANCELLED", "SUCCEEDED") and late.status_code == 409
+    ok = (
+        cancel.status_code == 202 and status == "CANCELLED"
+        and late.status_code == 409 and late.json()["code"] == "STALE_EXECUTION"
+        and after["status"] == status and after["result_artifact"] is None
+    )
     record("R08 取消与晚到提交", ok,
            f"cancel={cancel.status_code} 终态={status} 晚到提交={late.status_code}/"
            f"{late.json().get('code') if late.status_code == 409 else ''} 终态未被改写={after['status'] == status}")
@@ -461,12 +467,15 @@ def case_r09(server: Server, node: dict, digest: str) -> None:
 
 def case_r10(server: Server, node: dict, digest: str) -> None:
     wid = node["worker_id"]
+    art = upload(server).json()
+    before = post_exec(server, exec_body(node, art["artifact_id"], digest))
+    assert before.status_code == 201, before.text
     mode = httpx.post(
         f"{server.base}/api/resource/v1/resources/{wid}/mode",
         headers=DEMO, json={"mode": "DRAINING"}, timeout=10,
     )
-    art = upload(server).json()
     blocked = post_exec(server, exec_body(node, art["artifact_id"], digest))
+    drained = wait_exec(server, before.json()["execution_id"], timeout=20)
     # 空闲节点应在扫描后进入 PAUSED
     deadline = time.time() + 15
     state = None
@@ -481,18 +490,16 @@ def case_r10(server: Server, node: dict, digest: str) -> None:
         headers=DEMO, json={"mode": "ACTIVE"}, timeout=10,
     )
     after = post_exec(server, exec_body(node, art["artifact_id"], digest))
+    final = wait_exec(server, after.json()["execution_id"], timeout=20) if after.status_code == 201 else {}
     ok = (
         mode.status_code == 200 and blocked.status_code == 409
         and blocked.json()["code"] in ("NODE_UNAVAILABLE", "RESOURCE_BUSY")
-        and state == "PAUSED" and resumed.status_code == 200 and after.status_code == 201
+        and drained["status"] == "SUCCEEDED"
+        and state == "PAUSED" and resumed.status_code == 200 and final.get("status") == "SUCCEEDED"
     )
     record("R10 DRAINING/ACTIVE", ok,
            f"DRAINING={mode.json().get('mode')} 新执行被拒={blocked.json().get('code')} "
-           f"空闲后={state} 恢复后受理={after.status_code}")
-    if after.status_code == 201:
-        httpx.post(f"{server.base}/api/resource/v1/executions/{after.json()['execution_id']}/cancel",
-                   headers=TASK, timeout=10)
-        wait_exec(server, after.json()["execution_id"], timeout=60)
+           f"原执行={drained['status']} 空闲后={state} 恢复后执行={final.get('status')}")
 
 
 def case_r11(server: Server, digest: str) -> None:
@@ -552,7 +559,7 @@ def case_r11(server: Server, digest: str) -> None:
         time.sleep(0.5)
     ok = claimed and offline_after is not None and offline_after <= 18 and exec_status == "FAILED"
     record("R11 失联检测", ok,
-           f"模拟节点领取={claimed} 离线耗时={offline_after:.1f}s(阈值18) 执行终态={exec_status}")
+           f"模拟节点领取={claimed} 离线耗时={offline_after!r}s(阈值18) 执行终态={exec_status}")
 
 
 def case_x01(data_dir: Path, digest: str) -> None:
@@ -576,17 +583,15 @@ def case_x01(data_dir: Path, digest: str) -> None:
         done = wait_exec(server, body["execution_id"])
         success_artifact = done["result_artifact"]["artifact_id"]
 
-        # 2) 一个活动执行（受理后不领取）
+        # 停止轮询后，创建可确定留在 ACCEPTED 的记录。
+        agent.stop()
         art2 = upload(server).json()
         body2 = exec_body(node, art2["artifact_id"], digest)
-        # 让 agent 忙于前一个 → 先确保空闲
-        time.sleep(1.5)
         active = post_exec(server, body2)
         if active.status_code != 201:
             record("X01 重启恢复", False, f"活动执行受理失败 {active.status_code}")
             return
         active_id = body2["execution_id"]
-        agent.stop()
         server.stop(hard=True)  # 模拟崩溃
 
         # 3) 同数据目录重启
@@ -673,9 +678,7 @@ def main() -> int:
         case_r11(server, digest)
 
         print("\n== R01 跨机互通（需第二台物理机）==")
-        record("R01 第二台电脑互通", None,
-               f"本机无法自证。在另一台电脑执行：curl -H 'Authorization: Bearer demo-t' "
-               f"http://<本机IP>:{server.port}/api/resource/v1/resources 并比对上传下载 SHA")
+        record("R01 第二台电脑互通", None, "按 docs/P1-启动与验收.md 在两台物理机复验。")
 
         print("\n== 重启恢复 ==")
         agent.stop()
@@ -702,7 +705,7 @@ def main() -> int:
         print(f"数据保留在 {tmp}")
     else:
         shutil.rmtree(tmp, ignore_errors=True)
-    return 0 if failed == 0 else 1
+    return rc or int(failed > 0)
 
 
 def _read_agent_secret(agent_dir: Path) -> str:

@@ -14,7 +14,10 @@ def _bearer(request: Request) -> str:
     auth = request.headers.get("Authorization", "")
     if not auth.startswith("Bearer "):
         raise unauthorized()
-    return auth[len("Bearer "):].strip()
+    token = auth[len("Bearer "):].strip()
+    if not token:
+        raise unauthorized()
+    return token
 
 
 def require_demo_or_task(request: Request, config: Config) -> str:

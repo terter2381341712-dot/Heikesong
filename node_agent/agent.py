@@ -8,6 +8,7 @@ JOIN_TOKEN 从环境变量读取；日志不打印令牌。
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import signal
@@ -16,7 +17,7 @@ import sys
 import threading
 import time
 from pathlib import Path
-from typing import Any, Optional
+from typing import Optional
 
 import httpx
 
@@ -41,10 +42,7 @@ class Agent:
         self.session_id: Optional[str] = None
         self.node_secret: Optional[str] = None
         self._stop = False
-        self._draining = False
-        self._current_execution: Optional[str] = None
-        self._abort_current = False
-        self._cancel_queue: list[str] = []
+        self._session_stale = False
         self._state_lock = threading.Lock()
         self._client = httpx.Client(timeout=10.0)
 
@@ -84,6 +82,7 @@ class Agent:
                     self.worker_id = data["worker_id"]
                     self.session_id = data["session_id"]
                     self.node_secret = data["node_secret"]
+                    self._session_stale = False
                 self._save_worker_id(self.worker_id)
                 print(f"[agent] 注册成功 worker_id={self.worker_id}", file=sys.stderr)
                 return
@@ -93,7 +92,8 @@ class Agent:
                 backoff = min(backoff * 2, 30.0)
 
     def _auth_payload(self) -> dict:
-        return {"session_id": self.session_id, "node_secret": self.node_secret}
+        with self._state_lock:
+            return {"session_id": self.session_id, "node_secret": self.node_secret}
 
     def _internal(self, path: str, payload: dict) -> Optional[dict]:
         try:
@@ -103,8 +103,9 @@ class Agent:
             if resp.status_code == 409:
                 detail = resp.json()
                 if detail.get("code") == "SESSION_CHANGED":
-                    print("[agent] 会话失效，重新注册", file=sys.stderr)
-                    self.register()
+                    with self._state_lock:
+                        if payload["session_id"] == self.session_id:
+                            self._session_stale = True
                 return None
             resp.raise_for_status()
             return resp.json()
@@ -118,15 +119,16 @@ class Agent:
         signal.signal(signal.SIGINT, self._handle_sigint)
         signal.signal(signal.SIGTERM, self._handle_sigint)
         self.register()
-        # F05：心跳独立线程——长推理期间租约仍能续期，取消通知也能及时收到
+        # 心跳独立续租，停止确认由主线程在计算返回后发送。
         hb_thread = threading.Thread(target=self._heartbeat_loop, daemon=True)
         hb_thread.start()
         try:
             while not self._stop:
-                if self._draining and self._current_execution is None:
-                    time.sleep(0.5)
-                    continue
-                self._try_claim_and_work()
+                if self._session_stale:
+                    # 仅在主线程空闲时重新注册，旧推理尚未结束时不释放槽位。
+                    self.register()
+                else:
+                    self._try_claim_and_work()
                 time.sleep(self.CLAIM_INTERVAL)
         finally:
             hb_thread.join(timeout=2.0)
@@ -134,7 +136,6 @@ class Agent:
     def _handle_sigint(self, signum, frame) -> None:
         print("[agent] 收到退出信号：完成当前任务后停止", file=sys.stderr)
         self._stop = True
-        self._draining = True
 
     def _heartbeat_loop(self) -> None:
         while not self._stop:
@@ -147,40 +148,21 @@ class Agent:
     def _heartbeat(self) -> None:
         if not self.worker_id or not self.session_id:
             return
-        data = self._internal(
+        self._internal(
             f"/api/resource/internal/v1/nodes/{self.worker_id}/heartbeat",
             {**self._auth_payload(), "telemetry": sample()},
         )
-        if data is None:
-            return
-        if data.get("mode") == "DRAINING":
-            self._draining = True
-        cancelled = data.get("cancel_requested") or []
-        with self._state_lock:
-            for exec_id in cancelled:
-                if exec_id == self._current_execution:
-                    if not self._abort_current:
-                        print(f"[agent] 执行 {exec_id} 被请求取消", file=sys.stderr)
-                    self._abort_current = True
-                elif exec_id not in self._cancel_queue:
-                    self._cancel_queue.append(exec_id)
-        # F05：未领取的执行被取消——节点主动确认停止，避免 CANCEL_REQUESTED 长期挂起
-        pending = list(self._cancel_queue)
-        for exec_id in pending:
-            self._ack_cancel(exec_id)
-            with self._state_lock:
-                if exec_id in self._cancel_queue:
-                    self._cancel_queue.remove(exec_id)
 
     def _try_claim_and_work(self) -> None:
-        if self._current_execution is not None:
-            return
         data = self._internal(
             f"/api/resource/internal/v1/nodes/{self.worker_id}/claim",
             self._auth_payload(),
         )
         if not data:
             return
+        # 认领、运行和确认停止均由主线程串行执行。
+        for execution_id in data.get("stop_ack_required", []):
+            self._ack_cancel(execution_id)
         prep = data.get("preparation")
         if prep:
             self._do_preparation(prep)
@@ -286,7 +268,6 @@ class Agent:
 
     def _self_test(self, task_type: str, runner) -> dict:
         """固定合成样本真实试跑：3 张样本，输出耗时中位数；OCR 要求至少一张非空。"""
-        import io
         import statistics
 
         from PIL import Image, ImageDraw, ImageFont
@@ -328,8 +309,6 @@ class Agent:
         from runners.base import load_runner
 
         execution_id = execution["execution_id"]
-        self._current_execution = execution_id
-        self._abort_current = False
         timings: dict[str, float] = {
             "download_ms": 0.0,
             "inference_ms": 0.0,
@@ -346,16 +325,13 @@ class Agent:
 
             t0 = time.monotonic()
             runner = load_runner(execution["task_type"])
-            media_info = self._input_media_info(execution["input_artifact_id"])
+            media_info = execution["input_media_info"]
             result = runner.execute(
                 Path(input_path), media_info, execution.get("parameters", {}), workdir
             )
             timings["inference_ms"] = (time.monotonic() - t0) * 1000
 
             result["input_artifact_id"] = execution["input_artifact_id"]
-            if self._abort_current:
-                self._ack_cancel(execution_id)
-                return
 
             t0 = time.monotonic()
             out_file = workdir / "result.json"
@@ -379,9 +355,6 @@ class Agent:
                     file=sys.stderr,
                 )
         except Exception as e:
-            if self._abort_current:
-                self._ack_cancel(execution_id)
-                return
             print(f"[agent] 执行 {execution_id} 失败：{e}", file=sys.stderr)
             self._internal(
                 f"/api/resource/internal/v1/nodes/{self.worker_id}/executions/{execution_id}/complete",
@@ -389,12 +362,10 @@ class Agent:
                     **self._auth_payload(),
                     "outcome": "FAILED",
                     "error_code": "EXECUTION_ERROR",
-                    "error_message": str(e)[:500],
+                    "error_message": "节点执行失败，详见节点日志",
                     "error_retryable": True,
                 },
             )
-        finally:
-            self._current_execution = None
 
     def _download_input(self, execution: dict) -> str:
         path = execution.get("input_download_path")
@@ -407,21 +378,12 @@ class Agent:
             timeout=60.0,
         )
         resp.raise_for_status()
+        if hashlib.sha256(resp.content).hexdigest() != execution["input_sha256"]:
+            raise ValueError("下载文件 SHA-256 与执行记录不符")
         target = self.data_dir / "work" / execution["execution_id"] / "input.bin"
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(resp.content)
         return str(target)
-
-    def _input_media_info(self, artifact_id: str) -> dict:
-        try:
-            resp = self._client.get(
-                f"{self.server}/api/resource/v1/artifacts/{artifact_id}",
-                headers={"Authorization": f"Bearer {self.join_token}"},
-            )
-            resp.raise_for_status()
-            return resp.json().get("media_info") or {}
-        except (httpx.HTTPError, ValueError):
-            return {}
 
     def _ack_cancel(self, execution_id: str) -> None:
         self._internal(

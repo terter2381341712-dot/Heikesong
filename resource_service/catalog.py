@@ -8,7 +8,7 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
-from typing import Any, Optional
+from typing import Optional
 
 DEFAULT_TASK_TYPES: list[dict] = [
     {
@@ -52,6 +52,7 @@ class Catalog:
     def __init__(self, profiles_dir: Path) -> None:
         self._dir = profiles_dir
         self._types: list[dict] = []
+        self._model_hashes: dict[str, str] = {}
         self._load()
 
     def _load(self) -> None:
@@ -61,10 +62,15 @@ class Catalog:
             self._types = data.get("task_types", DEFAULT_TASK_TYPES)
         else:
             self._types = json.loads(json.dumps(DEFAULT_TASK_TYPES))
+        self._model_hashes.clear()
         for t in self._types:
             lock = self._dir / f"{t['profile_id']}.lock.json"
             if lock.exists():
-                digest = hashlib.sha256(lock.read_bytes()).hexdigest()
+                raw = lock.read_bytes()
+                digest = hashlib.sha256(raw).hexdigest()
+                model_sha = json.loads(raw).get("model_sha256")
+                if model_sha:
+                    self._model_hashes[t["profile_id"]] = model_sha
                 t["profile_digest"] = digest
                 t["configuration_state"] = "CONFIGURED"
                 t["reason"] = t.get("reason")
@@ -86,8 +92,5 @@ class Catalog:
                 return dict(t)
         return None
 
-    def find_profile(self, profile_id: str, profile_digest: str) -> Optional[dict]:
-        for t in self._types:
-            if t["profile_id"] == profile_id and t["profile_digest"] == profile_digest:
-                return dict(t)
-        return None
+    def model_sha256(self, profile_id: str) -> Optional[str]:
+        return self._model_hashes.get(profile_id)
