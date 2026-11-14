@@ -2,11 +2,13 @@
 .venv/
 venv/
 __pycache__/
-*.pyc
+*.py[cod]
 .pytest_cache/
+.ruff_cache/
 
 # 本机运行数据（SQLite、artifact 文件、模型缓存）
 data/
+var/
 models/
 
 # macOS

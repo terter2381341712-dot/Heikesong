@@ -1,0 +1,20 @@
+{
+  "checked_at": "2026-11-14T03:39:10.270632Z",
+  "contract_version": "0.2.0",
+  "openapi_3_1": "PASS",
+  "paths": 20,
+  "operations": 20,
+  "schemas": 40,
+  "resolved_refs": 145,
+  "examples_validated": 55,
+  "catalog_and_manifest_schema": "PASS",
+  "semantic_fixture_checks": 25,
+  "negative_schema_checks": 8,
+  "local_links_checked": 60,
+  "missing_links": [],
+  "acceptance_cases": 44,
+  "runtime_acceptance": "NOT_RUN",
+  "models_and_physical_devices": "NOT_RUN",
+  "performance": "NOT_RUN",
+  "note": "只验证静态契约、样例内部一致性、文档链接及原文副本，不证明实现或真实性能。"
+}

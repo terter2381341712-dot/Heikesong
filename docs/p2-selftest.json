@@ -1,0 +1,24 @@
+{
+  "scope": "P2 independent tests against MOCK P1; includes real local TCP processes",
+  "contract_version": "0.2.0",
+  "python": "3.13.7",
+  "tests": 57,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "duration_seconds": 7.254,
+  "timestamp": "2026-11-14T13:29:01.170495+08:00",
+  "contract_sha256": "376f565d7077ae5de41a0270c1c8c6c1952dc1526b0bc4219ee2f6b8b5b93a31",
+  "lock_sha256": "c9535adb7f2ab5122df6641719ab6cab698cbf9ecae7b10bb214b71f30113efa",
+  "lint": "PASS",
+  "format": "PASS",
+  "git_diff_check": "PASS",
+  "not_run": [
+    "real P1 integration",
+    "RapidOCR/ONNXRuntime inference",
+    "physical multi-device execution",
+    "OCR quality",
+    "performance benchmarks",
+    "P3 browser integration"
+  ]
+}
