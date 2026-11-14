@@ -1173,6 +1173,7 @@ def main():
     parser.add_argument("--web-port", type=int, default=5173)
     parser.add_argument("--data-dir", type=Path, default=ROOT / "P4/var/control")
     parser.add_argument("--no-browser", action="store_true")
+    parser.add_argument("--control-only", action="store_true", help="Open the fallback P4 panel for a node-only device.")
     args = parser.parse_args()
     if not 1 <= args.web_port <= 65535 or args.web_port in {8001, 8002, args.port}:
         parser.error("--web-port must be a valid port distinct from P1, P2 and the control panel")
@@ -1187,28 +1188,49 @@ def main():
             with opener.open(url, timeout=2) as response:
                 existing = response.headers.get("X-P4-Control") == PROTOCOL
             if existing:
-                print("控制台已在运行：" + url)
-                if not args.no_browser:
-                    webbrowser.open(url)
-                return 0
-        except OSError:
+                if args.control_only:
+                    print("控制台已在运行：" + url)
+                    if not args.no_browser:
+                        webbrowser.open(url)
+                    return 0
+                bridge_request = urllib.request.Request(
+                    url + "/api/bridge-session", headers={"X-P4-Bridge": "1"}
+                )
+                with opener.open(bridge_request, timeout=2) as response:
+                    session = json.load(response)["session"]
+                status_request = urllib.request.Request(
+                    url + "/api/status", headers={"X-P4-Session": session}
+                )
+                with opener.open(status_request, timeout=4) as response:
+                    workbench = json.load(response).get("workbench")
+                if workbench:
+                    frontend = workbench["local_url"]
+                    print("工作台已在运行：" + frontend)
+                    if not args.no_browser:
+                        webbrowser.open(frontend)
+                    return 0
+                print("现有控制台未启动工作台。请退出旧实例，再运行启动脚本。", file=sys.stderr)
+                return 1
+        except (OSError, ValueError, KeyError):
             pass
         print(
-            f"控制台端口 {args.port} 已占用；先访问 http://127.0.0.1:{args.port} 或停止已有控制台。",
+            f"控制台端口 {args.port} 已占用，无法确认现有工作台。请退出旧控制台再重试。",
             file=sys.stderr,
         )
         return 1
-    threading.Thread(target=discovery_server, args=(panel,), daemon=True).start()
     url = f"http://127.0.0.1:{panel.port}"
     print("控制台：" + url, flush=True)
     open_url = url
-    if shutil.which("node"):
+    if not args.control_only:
         try:
             panel.ensure_workbench()
             open_url = f"http://127.0.0.1:{panel.web_port}/"
             print("工作台：" + open_url, flush=True)
         except (ValueError, OSError) as exc:
-            panel.progress(str(exc))
+            print(f"无法打开前端：{exc} 日志：{panel.directory / 'web.log'}", file=sys.stderr)
+            server.server_close()
+            return 1
+    threading.Thread(target=discovery_server, args=(panel,), daemon=True).start()
     if not args.no_browser:
         webbrowser.open(open_url)
     try:
