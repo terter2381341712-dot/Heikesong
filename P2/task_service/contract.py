@@ -67,4 +67,4 @@ def validate_request(name, value):
         validate(name, value)
     except ValidationError as exc:
         field = ".".join(str(x) for x in exc.absolute_path)
-        raise APIError(422, "INVALID_REQUEST", "请求不符合 0.3.0 契约", field=field) from exc
+        raise APIError(422, "INVALID_REQUEST", "请求不符合 0.4.0 契约", field=field) from exc

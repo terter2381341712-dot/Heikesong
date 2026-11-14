@@ -5,7 +5,7 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
-CONTRACT_VERSION = "0.3.0"
+CONTRACT_VERSION = "0.4.0"
 
 # 仓库根目录（profiles/ 与代码同仓库）
 REPO_ROOT = Path(__file__).resolve().parent.parent

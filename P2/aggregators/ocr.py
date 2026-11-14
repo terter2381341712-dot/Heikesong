@@ -35,7 +35,7 @@ def archive(state):
         raise APIError(409, "JOB_NOT_TERMINAL", "Job 尚未结束", job_id=job["job_id"])
     combined = results(state)
     # Export only public contract objects, never internal requests/config/tokens/leases.
-    manifest = {"contract_version": "0.3.0", "job": job}
+    manifest = {"contract_version": "0.4.0", "job": job}
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w", compression=zipfile.ZIP_DEFLATED) as output:
         output.writestr("manifest.json", canonical(manifest))

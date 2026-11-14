@@ -8,6 +8,10 @@ from pathlib import Path
 from typing import Any, Iterable, Optional
 
 _SCHEMA = """
+CREATE TABLE IF NOT EXISTS input_prefetches (
+  worker_id TEXT PRIMARY KEY, session_id TEXT NOT NULL, revision INTEGER NOT NULL,
+  hint TEXT, expires_at TEXT
+);
 CREATE TABLE IF NOT EXISTS meta (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL
@@ -121,7 +125,7 @@ class Database:
             self._conn.executescript(_SCHEMA)
             # 旧库迁移：新增列（演示期数据不迁移内容，仅补结构）
             cols = {r[1] for r in self._conn.execute("PRAGMA table_info(nodes)")}
-            for name, default in (("max_slots", 1), ("threads_per_slot", 0), ("cpu_thread_budget", 0)):
+            for name, default in (("prefetch_capacity", 0), ("max_slots", 1), ("threads_per_slot", 0), ("cpu_thread_budget", 0)):
                 if name not in cols:
                     self._conn.execute(f"ALTER TABLE nodes ADD COLUMN {name} INTEGER NOT NULL DEFAULT {default}")
             if "sharing_enabled" not in cols:

@@ -21,7 +21,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse
 from PIL import Image
 
-from . import slots
+from . import prefetch, slots
 from .auth import ROLE_DEMO, require_demo_or_task, require_join, require_task
 from .catalog import Catalog
 from .config import CONTRACT_VERSION, Config
@@ -281,7 +281,10 @@ class State:
         if row["connection"] != "ONLINE":
             last_seen = None
         telemetry = parse_json(row["telemetry"])
+        hint = self.db.query_one("SELECT revision FROM input_prefetches WHERE worker_id=?", (row["worker_id"],))
         return {
+            "prefetch_capacity": row["prefetch_capacity"],
+            "prefetch_revision": hint["revision"] if hint else 0,
             "worker_id": row["worker_id"],
             "session_id": row["session_id"],
             "name": row["name"],
@@ -852,6 +855,8 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
             raise not_found(f"artifact {artifact_id} 文件缺失")
         return FileResponse(path, media_type=row["content_type"])
 
+    prefetch.attach_routes(app, state, _get_node_or_404, _require_node_auth)
+
     @app.post("/api/resource/internal/v1/nodes/register")
     def node_register(body: RegisterRequest, request: Request):
         s = state()
@@ -923,8 +928,8 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
                         now,
                     ),
                 )
-            conn.execute("UPDATE nodes SET max_slots=?, threads_per_slot=?, cpu_thread_budget=? WHERE worker_id=?",
-                         (body.max_slots, body.threads_per_slot, body.cpu_thread_budget, worker_id))
+            conn.execute("UPDATE nodes SET max_slots=?, threads_per_slot=?, cpu_thread_budget=?, prefetch_capacity=? WHERE worker_id=?",
+                         (body.max_slots, body.threads_per_slot, body.cpu_thread_budget, body.prefetch_capacity, worker_id))
             slots.provision(conn, worker_id, body.max_slots)
         s.db.insert_event(now, "node.registered", f"节点 {body.name} 注册 ({worker_id})", worker_id=worker_id)
         return {

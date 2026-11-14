@@ -10,7 +10,6 @@ from pathlib import Path
 from typing import Any, Optional
 
 import numpy as np
-from PIL import Image, ImageOps
 
 MODEL_NAMES = {
     "Det": "PP-OCRv6_det_small.onnx",
@@ -121,13 +120,14 @@ class RapidOCRRunner:
         parameters: dict,
         workdir: Path,
     ) -> dict:
-        engine = self.ensure_engine()
-        with Image.open(input_path) as img:
-            img = ImageOps.exif_transpose(img)  # EXIF 纠向后 OCR：坐标即纠正空间坐标
-            rgb = img.convert("RGB")
-        width, height = rgb.size
-        array = np.asarray(rgb, dtype=np.uint8)
+        from node_agent.input_pipeline import decode_image
+        return self.execute_array(decode_image(input_path, media_info), parameters, workdir)
 
+    def execute_array(self, array, parameters: dict, workdir: Path) -> dict:
+        engine = self.ensure_engine()
+        if array.dtype != np.uint8 or array.ndim != 3 or array.shape[2] != 3:
+            raise ValueError("OCR 输入必须是 RGB uint8 数组")
+        height, width = array.shape[:2]
         output = engine(array)
         self._check_providers()
         blocks: list[dict] = []

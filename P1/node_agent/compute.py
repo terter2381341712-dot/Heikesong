@@ -29,7 +29,7 @@ def compute(connection, server, name, identity, options):
         cv2.setNumThreads(threads)
     from node_agent.agent import Agent
 
-    agent = Agent(server, name, **options)
+    agent = Agent(server, name, prefetch=0, **options)
     agent.worker_id, agent.session_id, agent.node_secret = identity
     try:
         while True:
@@ -80,6 +80,10 @@ def close_runtime(agent, invalidate=True):
         stop_process(child)  # Never acknowledge/reset a slot until this succeeds.
         connection.close()
         agent._runtime = None
+    pipeline = getattr(agent, "_input_pipeline", None)
+    if pipeline is not None:
+        pipeline.close()  # Join both workers before runtime_stopped/ack releases anything.
+        agent._input_pipeline = None
     agent._prepared = None
     if invalidate:
         agent._runtime_reset_pending = True
@@ -123,7 +127,16 @@ def supervise(agent, kind, payload):
         child_pipe.close()
         runtime = agent._runtime = (child, parent)
     child, connection = runtime
+    cached = None
     try:
+        pipeline = getattr(agent, "_input_pipeline", None)
+        if kind == "execution" and pipeline is not None:
+            try:
+                cached = pipeline.take(payload)
+            except (OSError, ValueError, EOFError):
+                pipeline.close()
+            if cached:
+                payload = {**payload, "_prefetched": cached}
         connection.send((kind, payload))
         while True:
             interrupted = (
@@ -141,6 +154,9 @@ def supervise(agent, kind, payload):
                 if kind == "execution":
                     agent._ack_cancel(payload["execution_id"])
                 return
+            tick = getattr(agent, "_tick_input_pipeline", None)
+            if tick and kind == "execution":
+                tick()
             if connection.poll(0.05):
                 response = connection.recv()
                 if response["session_stale"]:
@@ -155,3 +171,7 @@ def supervise(agent, kind, payload):
     except (EOFError, BrokenPipeError, OSError, RuntimeError) as exc:
         close_runtime(agent)
         print(f"[agent] 模型进程已停止，等待中心重置：{exc}", file=sys.stderr)
+    finally:
+        if cached:
+            from pathlib import Path
+            Path(cached["path"]).unlink(missing_ok=True)

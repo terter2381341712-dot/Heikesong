@@ -78,6 +78,7 @@ class Store:
               id TEXT PRIMARY KEY, client_id TEXT UNIQUE NOT NULL,
               payload TEXT NOT NULL, state TEXT NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS input_prefetches (worker_id TEXT PRIMARY KEY, state TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS preparations (key TEXT PRIMARY KEY, state TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS scheduling_decisions (
               sequence INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -197,3 +198,11 @@ class Store:
                 (key, bucket, since, until),
             )
         ]
+
+    def prefetches(self):
+        return {worker: json.loads(raw) for worker, raw in self.db.execute("SELECT worker_id,state FROM input_prefetches")}
+
+    def save_prefetch(self, worker, state):
+        with self.db:
+            self.db.execute("INSERT INTO input_prefetches VALUES (?,?) ON CONFLICT(worker_id) DO UPDATE SET state=excluded.state",
+                            (worker, canonical(state)))

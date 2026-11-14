@@ -41,7 +41,7 @@ def resource_key(node, job):
         "profile_id": job["profile_id"],
         "parameters": job["parameters"],
         **{k: cap[k] for k in ("backend", "runtime_provider", "model_sha256")},
-        **{k: node.get(k, 0) for k in ("max_slots", "threads_per_slot", "cpu_thread_budget")},
+        **{k: node.get(k, 0) for k in ("max_slots", "threads_per_slot", "cpu_thread_budget", "prefetch_capacity")},
         "hardware": {
             k: node["hardware"].get(k)
             for k in ("os", "arch", "cpu_name", "logical_cores", "gpu_name", "gpu_vram_bytes")

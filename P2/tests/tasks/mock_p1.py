@@ -193,7 +193,7 @@ class MockP1:
                 "Health",
                 {
                     "service": "p1_resource",
-                    "contract_version": "0.3.0",
+                    "contract_version": "0.4.0",
                     "status": "ok",
                     "server_time": now(),
                 },
@@ -204,7 +204,7 @@ class MockP1:
             return ok(
                 "TypeCatalog",
                 {
-                    "contract_version": "0.3.0",
+                    "contract_version": "0.4.0",
                     "server_time": now(),
                     "task_types": [self.descriptor],
                 },
@@ -214,7 +214,7 @@ class MockP1:
         async def resources():
             return ok(
                 "ResourceSnapshot",
-                {"contract_version": "0.3.0", "server_time": now(), "resources": self.nodes},
+                {"contract_version": "0.4.0", "server_time": now(), "resources": self.nodes},
             )
 
         @app.get(PREFIX + "/artifacts/{artifact_id}")

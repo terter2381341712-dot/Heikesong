@@ -14,6 +14,7 @@ from task_service.contract import (
     uid,
 )
 from task_service.p1 import DependencyUnavailable, InvalidResult, P1Rejected
+from task_service.prefetch import PrefetchPlanner
 from task_service.scheduling import PROVIDERS, Scheduler, measurement
 
 log = logging.getLogger(__name__)
@@ -77,8 +78,11 @@ def candidate_action(node, job):
     if cap["backend"] == "cuda" and node["max_slots"] != 1:
         return None, "GPU 必须保持单卡单槽"
     threads, budget = node.get("threads_per_slot", 0), node.get("cpu_thread_budget", 0)
-    if (node["max_slots"] > 1 and threads < 1) or (
-        threads and threads * node["max_slots"] > budget
+    prefetch = node.get("prefetch_capacity", 0)
+    if (
+        (prefetch and (node["max_slots"] != 1 or threads < 1))
+        or (node["max_slots"] > 1 and threads < 1)
+        or (threads and threads * node["max_slots"] + prefetch > budget)
     ):
         return None, "节点 CPU 线程预算不足或未声明"
     if node["hardware"].get("logical_cores") and budget > node["hardware"]["logical_cores"]:
@@ -95,6 +99,7 @@ class TaskService:
         self.scheduler = Scheduler(store, settings, clock)
         self.io_slots = asyncio.Semaphore(settings.scheduler_concurrency)
         self.healthy_workers = False
+        self.prefetch = PrefetchPlanner(self)
 
     async def catalog(self):
         catalog = await self.p1.catalog()
@@ -491,6 +496,7 @@ class TaskService:
     async def tick(self):
         async with self.tick_lock:
             self.healthy_workers = False
+            await self.prefetch.revoke_invalid()
             if not self.store.active():
                 return True
             try:
@@ -634,6 +640,7 @@ class TaskService:
                                 state["job"]["job_id"],
                                 lambda s: s["job"].update(dependency_status="UNREACHABLE"),
                             )
+                await self.prefetch.sync(nodes, remaining, uncertain, cooldowns)
                 self.healthy_workers = any(
                     n["worker_id"] not in uncertain
                     and n["connection"] == "ONLINE"

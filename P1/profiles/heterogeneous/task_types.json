@@ -1,5 +1,5 @@
 {
-  "contract_version": "0.3.0",
+  "contract_version": "0.4.0",
   "note": "可选 CPU/CUDA 同模型目录；两种后端必须分别通过实际加载与自测。CUDA 实机验收尚待执行。",
   "task_types": [
     {

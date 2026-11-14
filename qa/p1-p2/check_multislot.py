@@ -60,7 +60,8 @@ def main():
         active = []
         for t in j["tasks"]:
             eid = t["current_execution_id"]
-            if eid:
+            # DISPATCHING is durable before POST; P1 may legitimately return 404 then.
+            if eid and t["status"] in {"RUNNING", "CANCELLING"}:
                 e = cluster.request(
                     "resource",
                     "GET",

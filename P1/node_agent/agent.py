@@ -54,13 +54,21 @@ class Agent:
 
     def __init__(self, server: str, name: str, backend: str = "cpu",
                  device_id: int = 0, threads: int = 0, slots: int = 1,
-                 cpu_budget: Optional[int] = None, slot_id: Optional[int] = None) -> None:
+                 cpu_budget: Optional[int] = None, slot_id: Optional[int] = None,
+                 prefetch: Optional[int] = None) -> None:
         if backend not in {"cpu", "cuda"} or device_id < 0 or threads < 0:
             raise ValueError("无效的 backend/device_id/threads")
         cores = os.cpu_count() or 1
         budget = cores if cpu_budget is None else cpu_budget
         if not 1 <= slots <= 64 or not 1 <= budget <= cores or (backend == "cuda" and slots != 1):
             raise ValueError("槽位/CPU 预算无效；GPU 只允许一槽")
+        prefetch = int(backend == "cuda") if prefetch is None else prefetch
+        if prefetch not in (0, 1) or (prefetch and slots != 1):
+            raise ValueError("预取只支持单槽，容量为 0 或 1")
+        if prefetch:
+            threads = threads or min(2, budget - 1)
+            if threads < 1 or threads + 1 > budget:
+                raise ValueError("预取需要额外一个 CPU 线程预算")
         if slots > 1 or cpu_budget is not None:
             threads = threads or budget // slots
             if threads < 1:
@@ -73,6 +81,8 @@ class Agent:
         self.slots, self.cpu_budget = slots, budget if threads else 0
         self._pool = None
         self._slot_metadata = []
+        self.prefetch_capacity = prefetch
+        self._input_pipeline = None
         self._runtime = None
         self._runtime_reset_pending = False
         self.join_token = os.environ.get("JOIN_TOKEN", "")
@@ -125,6 +135,7 @@ class Agent:
                         "worker_id": self._load_worker_id(),
                         "name": self.name,
                         "hardware": detect_hardware(self.device_id),
+                        "prefetch_capacity": self.prefetch_capacity,
                         "max_slots": self.slots,
                         "threads_per_slot": self.threads,
                         "cpu_thread_budget": self.cpu_budget,
@@ -154,10 +165,10 @@ class Agent:
         with self._state_lock:
             return {"session_id": self.session_id, "node_secret": self.node_secret}
 
-    def _internal(self, path: str, payload: dict) -> Optional[dict]:
+    def _internal(self, path: str, payload: dict, timeout: float = 10.0) -> Optional[dict]:
         try:
             resp = self._client.post(
-                f"{self.server}{path}", json=payload, timeout=10.0
+                f"{self.server}{path}", json=payload, timeout=timeout
             )
             if resp.status_code == 409:
                 detail = resp.json()
@@ -213,8 +224,9 @@ class Agent:
                     self._try_claim_and_work()
                     self._internal(f"/api/resource/internal/v1/nodes/{self.worker_id}/confirm_idle", self._auth_payload())
                 else:
+                    self._tick_input_pipeline()
                     self._try_claim_and_work()
-                time.sleep(self.CLAIM_INTERVAL)
+                time.sleep(.1 if self.prefetch_capacity else self.CLAIM_INTERVAL)
         finally:
             close_runtime(self)
             self._reset_runtime()
@@ -228,7 +240,7 @@ class Agent:
 
     def _reset_runtime(self) -> None:
         """Only call after joining the resident process. Retries fence the old session."""
-        if self._runtime is not None:
+        if self._runtime is not None or (self._input_pipeline and self._input_pipeline.process is not None):
             raise RuntimeError("计算进程未停止，不能重置运行时")
         response = self._internal(
             f"/api/resource/internal/v1/nodes/{self.worker_id}/runtime_stopped",
@@ -288,6 +300,16 @@ class Agent:
                 self._cancel_ids = set(response.get("cancel_requested", []))
                 self._slot_metadata = response.get("slots", self._slot_metadata)
 
+
+    def _tick_input_pipeline(self):
+        if self.prefetch_capacity and self._prepared:
+            from .input_pipeline import InputPipeline
+            if self._input_pipeline is None:
+                self._input_pipeline = InputPipeline(self)
+            try:
+                self._input_pipeline.tick()
+            except (OSError, ValueError, EOFError):
+                self._input_pipeline.close()
 
     def _try_claim_and_work(self) -> None:
         data = self._internal(
@@ -444,22 +466,40 @@ class Agent:
         workdir = self.data_dir / "work" / execution_id
         workdir.mkdir(parents=True, exist_ok=True)
         try:
-            t0 = time.monotonic()
-            input_path = self._download_input(execution)
-            timings["download_ms"] = (time.monotonic() - t0) * 1000
-
-            t0 = time.monotonic()
+            from .input_pipeline import decode_image, load_decoded
             key = (execution["task_type"], execution["profile_id"], execution["profile_digest"])
             if self._prepared is None or self._prepared[0] != key:
                 raise ProfileError("PROFILE_MISMATCH", "节点缺少本会话核验过的 profile")
             runner = self._prepared[1]
+            array = None
+            cached = execution.get("_prefetched")
+            t0 = time.monotonic()
+            if cached:
+                try:
+                    array = load_decoded(cached, execution["input_media_info"])
+                    timings.update(prefetch_hit=True, prefetch_download_ms=cached["download_ms"],
+                                   prefetch_decode_ms=cached["decode_ms"])
+                except (OSError, ValueError):
+                    pass  # Local speculative cache never replaces validation of the input.
+                finally:
+                    Path(cached["path"]).unlink(missing_ok=True)
+            timings["decode_ms"] = (time.monotonic() - t0) * 1000
+            if array is None:
+                t0 = time.monotonic()
+                input_path = self._download_input(execution)
+                timings["download_ms"] = (time.monotonic() - t0) * 1000
+                t0 = time.monotonic()
+                try:
+                    array = decode_image(input_path, execution["input_media_info"])
+                except (OSError, ValueError) as exc:
+                    raise ProfileError("INPUT_INVALID", "输入文件无法解码") from exc
+                timings["decode_ms"] += (time.monotonic() - t0) * 1000
             print(f"[agent] execute pid={os.getpid()} execution_id={execution_id} "
-                  f"backend={self.backend} device_id={self.device_id}", flush=True)
-            media_info = execution["input_media_info"]
-            result = runner.execute(
-                Path(input_path), media_info, execution.get("parameters", {}), workdir
-            )
+                  f"backend={self.backend} device_id={self.device_id} started={time.time():.6f}", flush=True)
+            t0 = time.monotonic()
+            result = runner.execute_array(array, execution.get("parameters", {}), workdir)
             timings["inference_ms"] = (time.monotonic() - t0) * 1000
+            print(f"[agent] inference_finished execution_id={execution_id} finished={time.time():.6f}", flush=True)
 
             result["input_artifact_id"] = execution["input_artifact_id"]
 
@@ -468,7 +508,7 @@ class Agent:
             out_file.write_text(json.dumps(result, ensure_ascii=False), encoding="utf-8")
             timings["write_output_ms"] = (time.monotonic() - t0) * 1000
             timings["postprocess_ms"] = 0.0
-            timings["total_worker_ms"] = sum(v for k, v in timings.items() if k != "total_worker_ms")
+            timings["total_worker_ms"] = sum(timings[k] for k in ("download_ms", "decode_ms", "inference_ms", "postprocess_ms", "write_output_ms"))
 
             data = self._internal(
                 f"/api/resource/internal/v1/nodes/{self.worker_id}/executions/{execution_id}/complete",
@@ -512,7 +552,7 @@ class Agent:
         if hashlib.sha256(resp.content).hexdigest() != execution["input_sha256"]:
             raise ProfileError("INPUT_INVALID", "下载文件 SHA-256 与执行记录不符")
         try:
-            probe_image(resp.content, execution["input_content_type"], decode=True)
+            probe_image(resp.content, execution["input_content_type"], decode=False)
         except ValueError as exc:
             raise ProfileError("INPUT_INVALID", "输入文件无法解码") from exc
         target = self.data_dir / "work" / execution["execution_id"] / "input.bin"
@@ -537,12 +577,14 @@ def main() -> None:
     parser.add_argument("--device-id", type=int, default=0, help="CUDA 设备编号")
     parser.add_argument("--threads", type=int, default=0, help="CPU 推理线程预算；0 使用运行时默认")
     parser.add_argument("--slots", type=int, default=1, help="CPU 常驻执行槽数；GPU 仅允许 1")
+    parser.add_argument("--prefetch", type=int, choices=[0, 1], default=None,
+                        help="输入预取；CUDA 默认 1，CPU 默认 0；仅单槽，额外占 1 CPU 线程预算")
     parser.add_argument("--cpu-budget", type=int, help="节点 CPU 总线程预算，不得超过逻辑核心数")
     args = parser.parse_args()
     if args.device_id < 0 or args.threads < 0:
         parser.error("device-id 和 threads 不能为负数")
     agent = Agent(server=args.server, name=args.name, backend=args.backend,
-                  device_id=args.device_id, threads=args.threads, slots=args.slots, cpu_budget=args.cpu_budget)
+                  device_id=args.device_id, threads=args.threads, slots=args.slots, cpu_budget=args.cpu_budget, prefetch=args.prefetch)
     try:
         with lock_node_directory(agent.data_dir):
             if args.interactive:

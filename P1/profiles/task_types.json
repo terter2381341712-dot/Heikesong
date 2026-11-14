@@ -1,5 +1,5 @@
 {
-  "contract_version": "0.3.0",
+  "contract_version": "0.4.0",
   "note": "P1 运行时类型目录副本；来源为共享契约 task-types.json。profile 锁文件发布后由服务自动标 CONFIGURED。",
   "task_types": [
     {

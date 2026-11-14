@@ -48,13 +48,21 @@ class P1Client:
                 raise DependencyUnavailable("P1 返回未约定的 HTTP 状态")
             return validate(schema, response.json())
         except (httpx.HTTPError, ValueError, ValidationError) as exc:
-            raise DependencyUnavailable("P1 网络异常或响应不符合 0.3.0 契约") from exc
+            raise DependencyUnavailable("P1 网络异常或响应不符合 0.4.0 契约") from exc
 
     async def catalog(self):
         return await self.json("GET", "/task-types", "TypeCatalog")
 
     async def resources(self):
         return await self.json("GET", "/resources", "ResourceSnapshot")
+
+    async def prefetch(self, worker_id, request):
+        ack = await self.json("POST", f"/resources/{worker_id}/prefetch", "PrefetchAck", request)
+        if ack["worker_id"] != worker_id or any(
+            ack[k] != request[k] for k in ("worker_session_id", "revision")
+        ):
+            raise DependencyUnavailable("P1 预取确认与节点/会话/修订号不匹配")
+        return ack
 
     async def artifact(self, artifact_id):
         artifact = await self.json("GET", f"/artifacts/{artifact_id}", "Artifact")

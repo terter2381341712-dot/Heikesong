@@ -7,7 +7,7 @@ def test_healthz(client):
     assert resp.status_code == 200
     body = resp.json()
     assert body["service"] == "p1_resource"
-    assert body["contract_version"] == "0.3.0"
+    assert body["contract_version"] == "0.4.0"
     assert body["status"] == "ok"
     assert body["server_time"].endswith("Z")
 
@@ -22,7 +22,7 @@ def test_resources_with_demo_token(client):
     resp = client.get("/api/resource/v1/resources", headers=DEMO)
     assert resp.status_code == 200
     body = resp.json()
-    assert body["contract_version"] == "0.3.0"
+    assert body["contract_version"] == "0.4.0"
     assert len(body["resources"]) == 1
     node = body["resources"][0]
     assert node["connection"] == "ONLINE"

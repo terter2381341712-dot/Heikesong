@@ -780,7 +780,7 @@ def main() -> int:
     if args.evidence:
         args.evidence.parent.mkdir(parents=True, exist_ok=True)
         evidence = {
-            "plan_version": "1.0", "contract_version": "0.3.0",
+            "plan_version": "1.0", "contract_version": "0.4.0",
             "p1_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=REPO, text=True).strip(),
             "p2_commit": None, "mode": "P1_LOCAL_ONLY", "profile_digest": digest,
             "started_at": started_at, "finished_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),

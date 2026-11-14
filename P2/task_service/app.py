@@ -37,7 +37,7 @@ def create_app(settings=None, *, transport=None, background=True, clock=None):
             await client.close()
             store.close()
 
-    app = FastAPI(title="P2 OCR Task Service", version="0.3.0", lifespan=lifespan)
+    app = FastAPI(title="P2 OCR Task Service", version="0.4.0", lifespan=lifespan)
     app.openapi = lambda: {
         **SPEC,
         "paths": {
@@ -99,7 +99,7 @@ def create_app(settings=None, *, transport=None, background=True, clock=None):
             "Health",
             {
                 "service": "p2_task",
-                "contract_version": "0.3.0",
+                "contract_version": "0.4.0",
                 "status": "ok",
                 "server_time": now(),
             },

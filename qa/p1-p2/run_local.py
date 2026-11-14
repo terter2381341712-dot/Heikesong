@@ -115,7 +115,7 @@ class Cluster:
             "status": "RUNNING",
             "mode": "REAL_P1_P2_OCR_SINGLE_MACHINE",
             "started_at": stamp(),
-            "contract_version": "0.3.0",
+            "contract_version": "0.4.0",
             "plan_version": "1.0",
             "p1_source": json.loads((ROOT / "P1/SOURCE.json").read_text())["commit"],
             "p2_service_sha256": hashlib.sha256(

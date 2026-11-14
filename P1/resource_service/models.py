@@ -82,6 +82,7 @@ class RegisterRequest(_Strict):
     name: str = Field(min_length=1, max_length=80)
     hardware: HardwareModel
     capabilities: list[CapabilityModel] = Field(default_factory=list)
+    prefetch_capacity: int = Field(default=0, ge=0, le=1)
     max_slots: int = Field(default=1, ge=1, le=64)
     threads_per_slot: int = Field(default=0, ge=0)
     cpu_thread_budget: int = Field(default=0, ge=0)
@@ -89,11 +90,13 @@ class RegisterRequest(_Strict):
 
     @model_validator(mode="after")
     def validate_budget(self):
+        if self.prefetch_capacity and (self.max_slots != 1 or self.threads_per_slot < 1):
+            raise ValueError("预取需要单槽及显式 CPU 线程预算")
         if self.backend == "cuda" and self.max_slots != 1:
             raise ValueError("GPU 必须单卡单槽")
         if self.max_slots > 1 and (self.backend != "cpu" or self.threads_per_slot < 1):
             raise ValueError("CPU 多槽必须声明后端及每槽线程数")
-        if self.threads_per_slot and self.max_slots * self.threads_per_slot > self.cpu_thread_budget:
+        if self.threads_per_slot and self.max_slots * self.threads_per_slot + self.prefetch_capacity > self.cpu_thread_budget:
             raise ValueError("槽位线程总量超过 CPU 预算")
         if self.hardware.logical_cores and self.cpu_thread_budget > self.hardware.logical_cores:
             raise ValueError("CPU 预算超过检测核心数")
@@ -167,6 +170,10 @@ class ExecutionRequest(_Strict):
 class ExecutionTimings(_Strict):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
 
+    decode_ms: float = Field(default=0, ge=0)
+    prefetch_download_ms: float = Field(default=0, ge=0)
+    prefetch_decode_ms: float = Field(default=0, ge=0)
+    prefetch_hit: bool = False
     download_ms: float = Field(ge=0)
     inference_ms: float = Field(ge=0)
     postprocess_ms: float = Field(ge=0)
