@@ -483,7 +483,15 @@ class Panel:
             with socket.socket() as probe:
                 if os.name == "nt":
                     probe.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
-                probe.bind(("0.0.0.0", port))
+                try:
+                    probe.bind(("0.0.0.0", port))
+                except OSError as exc:
+                    raise ValueError(
+                        f"中心启动失败：端口 {port} 无法使用（可能已被旧服务占用）。"
+                        "请先在旧控制台点击“停止本机服务”，或在旧启动终端按 Ctrl+C，"
+                        "再重试。直接结束 8003 进程可能留下 8001/8002 服务；"
+                        "程序不会自动结束无法确认归属的进程。"
+                    ) from exc
         save(path, config)
         self.config, self.address = config, selected_address
         try:

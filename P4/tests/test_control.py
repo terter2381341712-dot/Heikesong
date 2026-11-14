@@ -186,6 +186,29 @@ def test_compute_request_rejects_conflicting_background_operation(panel, server)
     assert panel.sharing_requested is False
 
 
+def test_occupied_center_port_reports_number_without_starting_services(panel, monkeypatch):
+    panel.mode = "idle"
+    monkeypatch.setattr(panel.runtime, "ensure", lambda *args: None)
+
+    class OccupiedSocket:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            pass
+
+        def setsockopt(self, *args):
+            pass
+
+        def bind(self, address):
+            raise OSError(10048, "address already in use")
+
+    monkeypatch.setattr(control.socket, "socket", OccupiedSocket)
+    with pytest.raises(ValueError, match="8001"):
+        panel.start_center()
+    assert panel.processes == {} and panel.mode == "idle"
+
+
 def test_closed_panel_cannot_start_late_process(panel):
     panel.closed.set()
     with pytest.raises(ValueError, match="关闭"):
