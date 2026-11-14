@@ -190,7 +190,7 @@ def test_claim_run_complete_download(client_with_profile):
     # 节点领取
     claim = client.post(
         f"/api/resource/internal/v1/nodes/{node['worker_id']}/claim",
-        json={"session_id": node["session_id"]},
+        json={"session_id": node["session_id"], "node_secret": node["node_secret"]},
     )
     assert claim.status_code == 200
     execution = claim.json()["execution"]
@@ -200,7 +200,7 @@ def test_claim_run_complete_download(client_with_profile):
     # 节点下载输入（会话凭证）
     download = client.get(
         f"/api/resource/internal/v1/nodes/{node['worker_id']}/artifacts/{artifact['artifact_id']}/content",
-        headers={"Authorization": f"Bearer {node['session_id']}"},
+        headers={"Authorization": f"Bearer {node['node_secret']}"},
     )
     assert download.status_code == 200
     assert download.content == png_bytes()
@@ -221,6 +221,7 @@ def test_claim_run_complete_download(client_with_profile):
         f"/api/resource/internal/v1/nodes/{node['worker_id']}/executions/{body['execution_id']}/complete",
         json={
             "session_id": node["session_id"],
+            "node_secret": node["node_secret"],
             "outcome": "SUCCEEDED",
             "result": result,
             "timings": {
@@ -249,7 +250,7 @@ def test_claim_run_complete_download(client_with_profile):
     # 终态后重复提交 → STALE 拒收
     stale = client.post(
         f"/api/resource/internal/v1/nodes/{node['worker_id']}/executions/{body['execution_id']}/complete",
-        json={"session_id": node["session_id"], "outcome": "SUCCEEDED", "result": result},
+        json={"session_id": node["session_id"], "node_secret": node["node_secret"], "outcome": "SUCCEEDED", "result": result},
     )
     assert stale.status_code == 409
     assert stale.json()["code"] == "STALE_EXECUTION"
@@ -261,7 +262,7 @@ def test_invalid_result_rejected_not_published(client_with_profile):
     client.post("/api/resource/v1/executions", json=body, headers=TASK)
     client.post(
         f"/api/resource/internal/v1/nodes/{node['worker_id']}/claim",
-        json={"session_id": node["session_id"]},
+        json={"session_id": node["session_id"], "node_secret": node["node_secret"]},
     )
     bad_result = {
         "schema_version": "1.0",
@@ -274,7 +275,7 @@ def test_invalid_result_rejected_not_published(client_with_profile):
     }
     complete = client.post(
         f"/api/resource/internal/v1/nodes/{node['worker_id']}/executions/{body['execution_id']}/complete",
-        json={"session_id": node["session_id"], "outcome": "SUCCEEDED", "result": bad_result},
+        json={"session_id": node["session_id"], "node_secret": node["node_secret"], "outcome": "SUCCEEDED", "result": bad_result},
     )
     assert complete.status_code == 409
     assert complete.json()["code"] == "RESULT_INVALID"
@@ -303,14 +304,14 @@ def test_cancel_flow(client_with_profile):
     }
     submit = client.post(
         f"/api/resource/internal/v1/nodes/{node['worker_id']}/executions/{body['execution_id']}/complete",
-        json={"session_id": node["session_id"], "outcome": "SUCCEEDED", "result": result},
+        json={"session_id": node["session_id"], "node_secret": node["node_secret"], "outcome": "SUCCEEDED", "result": result},
     )
     assert submit.status_code == 409
     assert submit.json()["code"] == "STALE_EXECUTION"
     # 节点确认停止 → CANCELLED，槽位释放
     ack = client.post(
         f"/api/resource/internal/v1/nodes/{node['worker_id']}/executions/{body['execution_id']}/cancel_ack",
-        json={"session_id": node["session_id"]},
+        json={"session_id": node["session_id"], "node_secret": node["node_secret"]},
     )
     assert ack.status_code == 200
     assert ack.json()["status"] == "CANCELLED"
@@ -332,7 +333,7 @@ def test_events_record_execution_transitions(client_with_profile):
     client.post("/api/resource/v1/executions", json=body, headers=TASK)
     client.post(
         f"/api/resource/internal/v1/nodes/{node['worker_id']}/claim",
-        json={"session_id": node["session_id"]},
+        json={"session_id": node["session_id"], "node_secret": node["node_secret"]},
     )
     events = client.get("/api/resource/v1/events", headers=DEMO).json()["events"]
     types = [e["type"] for e in events]

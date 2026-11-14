@@ -27,6 +27,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_artifacts_upload ON artifacts(upload_id) W
 CREATE TABLE IF NOT EXISTS nodes (
   worker_id TEXT PRIMARY KEY,
   session_id TEXT NOT NULL,
+  node_secret TEXT NOT NULL,
   name TEXT NOT NULL,
   mode TEXT NOT NULL DEFAULT 'ACTIVE',
   connection TEXT NOT NULL DEFAULT 'ONLINE',
@@ -39,6 +40,7 @@ CREATE TABLE IF NOT EXISTS nodes (
 );
 CREATE TABLE IF NOT EXISTS preparations (
   preparation_id TEXT PRIMARY KEY,
+  request_fingerprint TEXT NOT NULL,
   worker_id TEXT NOT NULL,
   worker_session_id TEXT NOT NULL,
   task_type TEXT NOT NULL,
@@ -109,6 +111,17 @@ class Database:
         self._conn.execute("PRAGMA synchronous=FULL")
         with self._lock:
             self._conn.executescript(_SCHEMA)
+            # 旧库迁移：新增列（演示期数据不迁移内容，仅补结构）
+            cols = {r[1] for r in self._conn.execute("PRAGMA table_info(nodes)")}
+            if "node_secret" not in cols:
+                self._conn.execute(
+                    "ALTER TABLE nodes ADD COLUMN node_secret TEXT NOT NULL DEFAULT ''"
+                )
+            cols = {r[1] for r in self._conn.execute("PRAGMA table_info(preparations)")}
+            if "request_fingerprint" not in cols:
+                self._conn.execute(
+                    "ALTER TABLE preparations ADD COLUMN request_fingerprint TEXT NOT NULL DEFAULT ''"
+                )
             self._conn.commit()
 
     def write(self) -> "_WriteTx":

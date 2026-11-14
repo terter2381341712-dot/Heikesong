@@ -17,6 +17,14 @@ class _Strict(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+# 节点内部凭证：与公开 session_id 分离的秘密（F07）
+NodeSecret = str  # 校验在 Field 中完成
+
+
+def _secret_field() -> Any:
+    return Field(min_length=8, max_length=128)
+
+
 class TaskParameters(_Strict):
     language: Literal["auto", "zh", "en"]
 
@@ -78,16 +86,19 @@ class RegisterRequest(_Strict):
 
 class HeartbeatRequest(_Strict):
     session_id: str = Field(pattern=UUID_PAT)
+    node_secret: str = _secret_field()
     telemetry: Optional[TelemetryModel] = None
     capabilities: list[CapabilityModel] = Field(default_factory=list)
 
 
 class ClaimRequest(_Strict):
     session_id: str = Field(pattern=UUID_PAT)
+    node_secret: str = _secret_field()
 
 
 class PreparationStatusRequest(_Strict):
     session_id: str = Field(pattern=UUID_PAT)
+    node_secret: str = _secret_field()
     status: Literal["DOWNLOADING", "LOADING", "VERIFYING", "READY", "FAILED"]
     progress: Optional[float] = Field(default=None, ge=0, le=1)
     backend: Optional[Literal["cpu", "cuda"]] = None
@@ -126,6 +137,7 @@ class ExecutionRequest(_Strict):
 
 class ExecutionCompleteRequest(_Strict):
     session_id: str = Field(pattern=UUID_PAT)
+    node_secret: str = _secret_field()
     outcome: Literal["SUCCEEDED", "FAILED"]
     result: Optional[dict[str, Any]] = None
     timings: Optional[dict[str, float]] = None
@@ -136,6 +148,7 @@ class ExecutionCompleteRequest(_Strict):
 
 class CancelAckRequest(_Strict):
     session_id: str = Field(pattern=UUID_PAT)
+    node_secret: str = _secret_field()
 
 
 def as_uuid(value: str) -> str:

@@ -54,6 +54,16 @@ OFFLINE_AFTER_SECONDS = 15.0
 SCAN_INTERVAL_SECONDS = 1.0
 PREPARATION_TIMEOUT_SECONDS = 900.0
 
+# MediaInfo 必须是含六字段的对象；JSON 结果无媒体属性，字段值为 null（F01）
+_NULL_MEDIA = {
+    "width": None,
+    "height": None,
+    "duration_ms": None,
+    "sample_rate_hz": None,
+    "channels": None,
+    "audio_encoding": None,
+}
+
 ACTIVE_EXEC_STATUSES = ("ACCEPTED", "RUNNING", "CANCEL_REQUESTED")
 ACTIVE_PREP_STATUSES = ("ACCEPTED", "DOWNLOADING", "LOADING", "VERIFYING")
 TERMINAL_EXEC_STATUSES = ("REJECTED", "SUCCEEDED", "FAILED", "CANCELLED")
@@ -137,9 +147,17 @@ class State:
                     *ACTIVE_PREP_STATUSES,
                 ),
             )
-            conn.execute(
-                "UPDATE nodes SET connection='OFFLINE', session_id='', last_seen_at=NULL"
-            )
+            # F09：旧会话全部撤销——用新的随机 UUID/secret 覆盖（保持公开 schema 合法），
+            # 旧 agent 的凭证因此失效，心跳 409 后自动重注册
+            for node_row in conn.execute("SELECT worker_id FROM nodes").fetchall():
+                conn.execute(
+                    "UPDATE nodes SET connection='OFFLINE', session_id=?, node_secret=?, last_seen_at=NULL WHERE worker_id=?",
+                    (
+                        str(uuid.uuid4()),
+                        secrets.token_hex(16),
+                        node_row["worker_id"],
+                    ),
+                )
             conn.execute(
                 "INSERT INTO events (occurred_at, type, message) VALUES (?,?,?)",
                 (now, "service.restarted", "资源服务重启，未终态执行与旧会话已失效"),
@@ -279,9 +297,38 @@ def _get_node_or_404(state: State, worker_id: str):
     return row
 
 
-def _require_session(node_row, session_id: str) -> None:
-    if node_row["session_id"] != session_id:
-        raise ApiError(409, "SESSION_CHANGED", "节点会话已失效，需重新注册", retryable=True)
+def _require_node_auth(node_row, session_id: str, node_secret: str) -> None:
+    """内部工作接口鉴权：公开会话标识 + 节点秘密凭证双因子（F07）。"""
+    if (
+        node_row["session_id"] != session_id
+        or not node_secret
+        or node_row["node_secret"] != node_secret
+    ):
+        raise ApiError(409, "SESSION_CHANGED", "节点会话或凭证已失效，需重新注册", retryable=True)
+
+
+def _handle_replay(
+    existing_fingerprint: str,
+    incoming_fingerprint: str,
+    status: str,
+    error_raw: Optional[str],
+    id_field: str,
+    id_value: str,
+    snapshot_fn,
+) -> dict:
+    """幂等重放三规则：不同载荷 409；REJECTED 重放仍 409 原拒绝；其余返回当前快照。"""
+    if existing_fingerprint != incoming_fingerprint:
+        raise ApiError(409, "IDEMPOTENCY_CONFLICT", "同幂等 ID 不同载荷")
+    if status == "REJECTED":
+        error = parse_json(error_raw) or {}
+        raise ApiError(
+            409,
+            error.get("code", "INTERNAL_ERROR"),
+            error.get("message", "先前已拒绝"),
+            retryable=bool(error.get("retryable", False)),
+            details=ensure_details_keys(error.get("details") or {id_field: id_value}),
+        )
+    return snapshot_fn()
 
 
 def create_app(config: Optional[Config] = None) -> FastAPI:
@@ -488,48 +535,51 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
         preparation_id = as_uuid(body.preparation_id)
         fingerprint = canonical_json(body.model_dump())
 
-        existing = s.db.query_one(
-            "SELECT * FROM preparations WHERE preparation_id=?", (preparation_id,)
-        )
-        if existing is not None:
-            if existing["status"] == "REJECTED":
-                error = parse_json(existing["error"]) or {}
-                raise ApiError(
-                    409,
-                    error.get("code", "INTERNAL_ERROR"),
-                    error.get("message", "先前已拒绝"),
-                    retryable=bool(error.get("retryable", False)),
-                    details=ensure_details_keys({"preparation_id": preparation_id}),
+        # F03/F08：幂等查重、资源检查与接纳/拒绝落库在同一临界区
+        with s.db.write() as conn:
+            existing = conn.execute(
+                "SELECT * FROM preparations WHERE preparation_id=?", (preparation_id,)
+            ).fetchone()
+            if existing is not None:
+                return _handle_replay(
+                    existing["request_fingerprint"],
+                    fingerprint,
+                    existing["status"],
+                    existing["error"],
+                    "preparation_id",
+                    preparation_id,
+                    lambda: s.preparation_dict(existing),
                 )
-            return s.preparation_dict(existing)
 
-        node = _get_node_or_404(s, body.worker_id)
-        now_dt = utcnow()
-        now = iso(now_dt)
-        reject = _check_node_for_work(s, node, body.worker_session_id)
-        if reject is None:
-            type_desc = s.catalog.get(body.task_type)
-            if type_desc is None or s.catalog.find_profile(body.profile_id, body.profile_digest) is None:
-                reject = (
-                    503,
-                    "PROFILE_UNCONFIGURED",
-                    "profile 未配置或摘要不匹配",
-                    False,
-                )
-        if reject is not None:
-            status_code, code, message, retryable = reject
-            error = {
-                "code": code,
-                "message": message,
-                "retryable": retryable,
-                "details": {"preparation_id": preparation_id},
-            }
-            with s.db.write() as conn:
+            node = conn.execute(
+                "SELECT * FROM nodes WHERE worker_id=?", (body.worker_id,)
+            ).fetchone()
+            if node is None:
+                raise not_found(f"节点 {body.worker_id} 不存在")
+            now_dt = utcnow()
+            now = iso(now_dt)
+            reject = _check_node_for_work(s, node, body.worker_session_id)
+            if reject is None:
+                type_desc = s.catalog.get(body.task_type)
+                if (
+                    type_desc is None
+                    or s.catalog.find_profile(body.profile_id, body.profile_digest) is None
+                ):
+                    reject = (503, "PROFILE_UNCONFIGURED", "profile 未配置或摘要不匹配", False)
+            if reject is not None:
+                status_code, code, message, retryable = reject
+                error = {
+                    "code": code,
+                    "message": message,
+                    "retryable": retryable,
+                    "details": {"preparation_id": preparation_id},
+                }
                 conn.execute(
-                    "INSERT OR IGNORE INTO preparations (preparation_id, worker_id, worker_session_id, task_type, profile_id, profile_digest, status, created_at, finished_at, progress, error)"
-                    " VALUES (?,?,?,?,?,?, 'REJECTED', ?, ?, NULL, ?)",
+                    "INSERT INTO preparations (preparation_id, request_fingerprint, worker_id, worker_session_id, task_type, profile_id, profile_digest, status, created_at, finished_at, progress, error)"
+                    " VALUES (?,?,?,?,?,?,?, 'REJECTED', ?, ?, NULL, ?)",
                     (
                         preparation_id,
+                        fingerprint,
                         body.worker_id,
                         body.worker_session_id,
                         body.task_type,
@@ -540,42 +590,47 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
                         canonical_json(error),
                     ),
                 )
+                event_payload = (status_code, code, message, retryable, preparation_id, error)
+            else:
+                conn.execute(
+                    "INSERT INTO preparations (preparation_id, request_fingerprint, worker_id, worker_session_id, task_type, profile_id, profile_digest, status, created_at, finished_at, progress, error)"
+                    " VALUES (?,?,?,?,?,?,?, 'ACCEPTED', ?, NULL, NULL, NULL)",
+                    (
+                        preparation_id,
+                        fingerprint,
+                        body.worker_id,
+                        body.worker_session_id,
+                        body.task_type,
+                        body.profile_id,
+                        body.profile_digest,
+                        now,
+                    ),
+                )
+                _upsert_capability(
+                    conn,
+                    body.worker_id,
+                    {
+                        "task_type": body.task_type,
+                        "profile_id": body.profile_id,
+                        "profile_digest": body.profile_digest,
+                        "state": "PREPARING",
+                        "model_cached": False,
+                        "backend": None,
+                        "runtime_provider": None,
+                        "model_sha256": None,
+                        "verified": False,
+                        "calibration": None,
+                        "reason": None,
+                    },
+                )
+                event_payload = None
+
+        if event_payload is not None:
+            status_code, code, message, retryable, preparation_id, error = event_payload
             s.db.insert_event(
                 now, "profile.failed", f"准备被拒绝：{code}", worker_id=body.worker_id, preparation_id=preparation_id
             )
             raise ApiError(status_code, code, message, retryable, {"preparation_id": preparation_id})
-
-        with s.db.write() as conn:
-            conn.execute(
-                "INSERT OR IGNORE INTO preparations (preparation_id, worker_id, worker_session_id, task_type, profile_id, profile_digest, status, created_at, finished_at, progress, error)"
-                " VALUES (?,?,?,?,?,?, 'ACCEPTED', ?, NULL, NULL, NULL)",
-                (
-                    preparation_id,
-                    body.worker_id,
-                    body.worker_session_id,
-                    body.task_type,
-                    body.profile_id,
-                    body.profile_digest,
-                    now,
-                ),
-            )
-            _upsert_capability(
-                conn,
-                body.worker_id,
-                {
-                    "task_type": body.task_type,
-                    "profile_id": body.profile_id,
-                    "profile_digest": body.profile_digest,
-                    "state": "PREPARING",
-                    "model_cached": False,
-                    "backend": None,
-                    "runtime_provider": None,
-                    "model_sha256": None,
-                    "verified": False,
-                    "calibration": None,
-                    "reason": None,
-                },
-            )
         s.db.insert_event(
             now, "profile.preparing", f"节点 {body.worker_id} 开始准备 {body.profile_id}",
             worker_id=body.worker_id, preparation_id=preparation_id,
@@ -607,38 +662,40 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
 
         existing = s.db.query_one("SELECT * FROM executions WHERE execution_id=?", (execution_id,))
         if existing is not None:
-            if existing["request_fingerprint"] != fingerprint:
-                raise ApiError(409, "IDEMPOTENCY_CONFLICT", "同 execution_id 不同载荷")
-            if existing["status"] == "REJECTED":
-                error = parse_json(existing["error"]) or {}
-                raise ApiError(
-                    409,
-                    error.get("code", "INTERNAL_ERROR"),
-                    error.get("message", "先前已拒绝"),
-                    retryable=bool(error.get("retryable", False)),
-                    details=ensure_details_keys(
-                        error.get("details") or {"execution_id": execution_id}
-                    ),
-                )
-            return s.execution_dict(existing)
+            # 幂等重放也需要在临界区内做（F03），这里先读后写场景由下方临界区覆盖
+            return _handle_replay(
+                existing["request_fingerprint"],
+                fingerprint,
+                existing["status"],
+                existing["error"],
+                "execution_id",
+                execution_id,
+                lambda: s.execution_dict(existing),
+            )
 
-        node = _get_node_or_404(s, body.worker_id)
-        now_dt = utcnow()
-        now = iso(now_dt)
-        reject = _check_node_for_work(s, node, body.worker_session_id)
-        if reject is None:
-            reject = _check_execution_business(s, body)
-        if reject is not None:
-            status_code, code, message, retryable = reject
-            error = {
-                "code": code,
-                "message": message,
-                "retryable": retryable,
-                "details": {"execution_id": execution_id},
-            }
-            with s.db.write() as conn:
+        # F03：资源检查与接纳/拒绝落库在同一临界区完成
+        accepted_payload: Optional[dict] = None
+        with s.db.write() as conn:
+            node = conn.execute(
+                "SELECT * FROM nodes WHERE worker_id=?", (body.worker_id,)
+            ).fetchone()
+            if node is None:
+                raise not_found(f"节点 {body.worker_id} 不存在")
+            now_dt = utcnow()
+            now = iso(now_dt)
+            reject = _check_node_for_work(s, node, body.worker_session_id)
+            if reject is None:
+                reject = _check_execution_business(s, body)
+            if reject is not None:
+                status_code, code, message, retryable = reject
+                error = {
+                    "code": code,
+                    "message": message,
+                    "retryable": retryable,
+                    "details": {"execution_id": execution_id},
+                }
                 conn.execute(
-                    "INSERT OR IGNORE INTO executions (execution_id, request_fingerprint, request, job_id, task_id, attempt_no,"
+                    "INSERT INTO executions (execution_id, request_fingerprint, request, job_id, task_id, attempt_no,"
                     " worker_id, worker_session_id, task_type, profile_id, profile_digest, input_artifact_id, parameters,"
                     " timeout_seconds, status, input_sha256, created_at, accepted_at, started_at, finished_at,"
                     " lease_expires_at, hard_deadline_at, result_artifact_id, timings, error)"
@@ -662,52 +719,55 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
                         canonical_json(error),
                     ),
                 )
+                rejected = (status_code, code, message, retryable, error)
+            else:
+                accepted_at = now_dt
+                lease_expires = plus(accepted_at, LEASE_SECONDS)
+                hard_deadline = plus(accepted_at, body.timeout_seconds)
+                input_row = conn.execute(
+                    "SELECT sha256 FROM artifacts WHERE artifact_id=?", (body.input_artifact_id,)
+                ).fetchone()
+                conn.execute(
+                    "INSERT INTO executions (execution_id, request_fingerprint, request, job_id, task_id, attempt_no,"
+                    " worker_id, worker_session_id, task_type, profile_id, profile_digest, input_artifact_id, parameters,"
+                    " timeout_seconds, status, input_sha256, created_at, accepted_at, started_at, finished_at,"
+                    " lease_expires_at, hard_deadline_at, result_artifact_id, timings, error)"
+                    " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?, 'ACCEPTED', ?, ?, ?, NULL, NULL, ?, ?, NULL, NULL, NULL)",
+                    (
+                        execution_id,
+                        fingerprint,
+                        canonical_json(body.model_dump()),
+                        body.job_id,
+                        body.task_id,
+                        body.attempt_no,
+                        body.worker_id,
+                        body.worker_session_id,
+                        body.task_type,
+                        body.profile_id,
+                        body.profile_digest,
+                        body.input_artifact_id,
+                        canonical_json(body.parameters.model_dump()),
+                        body.timeout_seconds,
+                        input_row["sha256"] if input_row else None,
+                        iso(accepted_at),
+                        iso(accepted_at),
+                        iso(lease_expires),
+                        iso(hard_deadline),
+                    ),
+                )
+                s.db.insert_event(
+                    now, "execution.accepted", f"执行已接受：{body.task_type} on {body.worker_id}",
+                    worker_id=body.worker_id, execution_id=execution_id,
+                )
+                rejected = None
+        if rejected is not None:
+            status_code, code, message, retryable, _error = rejected
             s.db.insert_event(
                 now, "execution.rejected", f"执行被拒绝：{code}", worker_id=body.worker_id, execution_id=execution_id
             )
             raise ApiError(
                 status_code, code, message, retryable, {"execution_id": execution_id}
             )
-
-        accepted_at = now_dt
-        lease_expires = plus(accepted_at, LEASE_SECONDS)
-        hard_deadline = plus(accepted_at, body.timeout_seconds)
-        input_row = s.db.query_one(
-            "SELECT sha256 FROM artifacts WHERE artifact_id=?", (body.input_artifact_id,)
-        )
-        with s.db.write() as conn:
-            conn.execute(
-                "INSERT OR IGNORE INTO executions (execution_id, request_fingerprint, request, job_id, task_id, attempt_no,"
-                " worker_id, worker_session_id, task_type, profile_id, profile_digest, input_artifact_id, parameters,"
-                " timeout_seconds, status, input_sha256, created_at, accepted_at, started_at, finished_at,"
-                " lease_expires_at, hard_deadline_at, result_artifact_id, timings, error)"
-                " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?, 'ACCEPTED', ?, ?, ?, NULL, NULL, ?, ?, NULL, NULL, NULL)",
-                (
-                    execution_id,
-                    fingerprint,
-                    canonical_json(body.model_dump()),
-                    body.job_id,
-                    body.task_id,
-                    body.attempt_no,
-                    body.worker_id,
-                    body.worker_session_id,
-                    body.task_type,
-                    body.profile_id,
-                    body.profile_digest,
-                    body.input_artifact_id,
-                    canonical_json(body.parameters.model_dump()),
-                    body.timeout_seconds,
-                    input_row["sha256"] if input_row else None,
-                    iso(accepted_at),
-                    iso(accepted_at),
-                    iso(lease_expires),
-                    iso(hard_deadline),
-                ),
-            )
-        s.db.insert_event(
-            now, "execution.accepted", f"执行已接受：{body.task_type} on {body.worker_id}",
-            worker_id=body.worker_id, execution_id=execution_id,
-        )
         row = s.db.query_one("SELECT * FROM executions WHERE execution_id=?", (execution_id,))
         return JSONResponse(status_code=201, content=s.execution_dict(row))
 
@@ -730,21 +790,47 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
         if row["status"] in TERMINAL_EXEC_STATUSES:
             return s.execution_dict(row)
         now = iso_now()
+        node = s.db.query_one("SELECT * FROM nodes WHERE worker_id=?", (row["worker_id"],))
+        node_online = node is not None and node["connection"] == "ONLINE"
+
         if row["status"] in ("ACCEPTED", "RUNNING", "CANCEL_REQUESTED"):
+            # F04：条件更新——终态由 complete / cancel_ack / 扫描器唯一仲裁
             with s.db.write() as conn:
-                if row["status"] != "CANCEL_REQUESTED":
-                    conn.execute(
-                        "UPDATE executions SET status='CANCEL_REQUESTED' WHERE execution_id=?",
-                        (execution_id,),
+                cur = conn.execute(
+                    "UPDATE executions SET status='CANCEL_REQUESTED' WHERE execution_id=? AND status IN ('ACCEPTED','RUNNING')",
+                    (execution_id,),
+                )
+                requested = cur.rowcount > 0
+                if not node_online:
+                    # 契约：节点失联时可确定 CANCELLED 并撤销会话
+                    cur2 = conn.execute(
+                        "UPDATE executions SET status='CANCELLED', finished_at=? WHERE execution_id=? AND status='CANCEL_REQUESTED'",
+                        (now, execution_id),
                     )
-            if row["status"] != "CANCEL_REQUESTED":
+                    if cur2.rowcount > 0:
+                        conn.execute(
+                            "UPDATE nodes SET session_id=?, node_secret=?, cleanup_pending=1 WHERE worker_id=?",
+                            (str(uuid.uuid4()), secrets.token_hex(16), row["worker_id"]),
+                        )
+                        cancelled_now = True
+                    else:
+                        cancelled_now = False
+                else:
+                    cancelled_now = False
+            if cancelled_now:
+                s.db.insert_event(
+                    now, "execution.cancelled", f"节点离线，执行已取消 {execution_id}",
+                    worker_id=row["worker_id"], execution_id=execution_id,
+                )
+                fresh = s.db.query_one("SELECT * FROM executions WHERE execution_id=?", (execution_id,))
+                return s.execution_dict(fresh)
+            if requested:
                 s.db.insert_event(
                     now, "execution.cancel_requested", f"请求取消执行 {execution_id}",
                     worker_id=row["worker_id"], execution_id=execution_id,
                 )
             fresh = s.db.query_one("SELECT * FROM executions WHERE execution_id=?", (execution_id,))
             return JSONResponse(status_code=202, content=s.execution_dict(fresh))
-        # 终态原样返回
         return s.execution_dict(row)
 
     # ---------------- events ----------------
@@ -769,11 +855,12 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
 
     @app.get("/api/resource/internal/v1/nodes/{worker_id}/artifacts/{artifact_id}/content")
     def node_download_artifact(worker_id: str, artifact_id: str, request: Request):
-        """节点程序用会话凭证（Bearer session_id）下载输入文件。"""
+        """节点程序下载输入文件：Bearer 节点秘密凭证（F07，会话旋转后自动失效）。"""
         s = state()
         node = _get_node_or_404(s, worker_id)
-        session = request.headers.get("Authorization", "").removeprefix("Bearer ").strip()
-        _require_session(node, session)
+        secret = request.headers.get("Authorization", "").removeprefix("Bearer ").strip()
+        if not secret or node["node_secret"] != secret:
+            raise ApiError(409, "SESSION_CHANGED", "节点凭证已失效，需重新注册", retryable=True)
         row = s.db.query_one("SELECT * FROM artifacts WHERE artifact_id=?", (artifact_id,))
         if row is None:
             raise not_found(f"artifact {artifact_id} 不存在")
@@ -792,34 +879,59 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
         worker_id = body.worker_id or ("w" + uuid.uuid4().hex[:16])
         worker_id = _sanitize_worker_id(worker_id)
         session_id = str(uuid.uuid4())
+        node_secret = secrets.token_hex(16)
+        # F02：注册时按目录发布 NOT_PREPARED 能力（agent 提供的条目优先）
+        agent_caps = [c.model_dump() for c in body.capabilities]
+        reported = {c["task_type"] for c in agent_caps}
+        caps_init = [
+            c for c in agent_caps
+        ] + [
+            {
+                "task_type": t["task_type"],
+                "profile_id": t["profile_id"],
+                "profile_digest": None,
+                "state": "NOT_PREPARED",
+                "model_cached": False,
+                "backend": None,
+                "runtime_provider": None,
+                "model_sha256": None,
+                "verified": False,
+                "calibration": None,
+                "reason": "等待准备",
+            }
+            for t in s.catalog.all()
+            if t["task_type"] not in reported
+        ]
         with s.db.write() as conn:
             existing = conn.execute(
                 "SELECT worker_id FROM nodes WHERE worker_id=?", (worker_id,)
             ).fetchone()
             if existing:
                 conn.execute(
-                    "UPDATE nodes SET session_id=?, name=?, hardware=?, capabilities=?, connection='ONLINE',"
+                    "UPDATE nodes SET session_id=?, node_secret=?, name=?, hardware=?, capabilities=?, connection='ONLINE',"
                     " cleanup_pending=0, last_seen_at=?, telemetry=NULL WHERE worker_id=?",
                     (
                         session_id,
+                        node_secret,
                         body.name,
                         canonical_json(body.hardware.model_dump()),
-                        canonical_json([c.model_dump() for c in body.capabilities]),
+                        canonical_json(caps_init),
                         now,
                         worker_id,
                     ),
                 )
             else:
                 conn.execute(
-                    "INSERT INTO nodes (worker_id, session_id, name, mode, connection, hardware, capabilities,"
+                    "INSERT INTO nodes (worker_id, session_id, node_secret, name, mode, connection, hardware, capabilities,"
                     " cleanup_pending, last_seen_at, registered_at, telemetry)"
-                    " VALUES (?,?,?, 'ACTIVE', 'ONLINE', ?, ?, 0, ?, ?, NULL)",
+                    " VALUES (?,?,?,?,'ACTIVE','ONLINE',?,?,0,?,?,NULL)",
                     (
                         worker_id,
                         session_id,
+                        node_secret,
                         body.name,
                         canonical_json(body.hardware.model_dump()),
-                        canonical_json([c.model_dump() for c in body.capabilities]),
+                        canonical_json(caps_init),
                         now,
                         now,
                     ),
@@ -828,6 +940,7 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
         return {
             "worker_id": worker_id,
             "session_id": session_id,
+            "node_secret": node_secret,
             "heartbeat_interval_s": 3,
             "lease_interval_s": LEASE_SECONDS,
         }
@@ -836,15 +949,24 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
     def node_heartbeat(worker_id: str, body: HeartbeatRequest):
         s = state()
         node = _get_node_or_404(s, worker_id)
-        _require_session(node, body.session_id)
+        _require_node_auth(node, body.session_id, body.node_secret)
         now = iso_now()
+        # F02：心跳合并语义——agent 报告的条目覆盖同 task_type，未报告的保留（不视为删除）
+        incoming = [c.model_dump() for c in body.capabilities]
         with s.db.write() as conn:
+            current_row = conn.execute(
+                "SELECT capabilities FROM nodes WHERE worker_id=?", (worker_id,)
+            ).fetchone()
+            caps = parse_json(current_row["capabilities"], []) if current_row else []
+            if incoming:
+                reported = {c["task_type"]: c for c in incoming}
+                caps = [c for c in caps if c.get("task_type") not in reported] + incoming
             conn.execute(
                 "UPDATE nodes SET last_seen_at=?, connection='ONLINE', telemetry=?, capabilities=? WHERE worker_id=?",
                 (
                     now,
                     canonical_json(body.telemetry.model_dump()) if body.telemetry else None,
-                    canonical_json([c.model_dump() for c in body.capabilities]),
+                    canonical_json(caps),
                     worker_id,
                 ),
             )
@@ -867,7 +989,7 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
     def node_claim(worker_id: str, body: ClaimRequest):
         s = state()
         node = _get_node_or_404(s, worker_id)
-        _require_session(node, body.session_id)
+        _require_node_auth(node, body.session_id, body.node_secret)
         if node["connection"] != "ONLINE" or node["mode"] != "ACTIVE":
             return {"execution": None, "preparation": None}
 
@@ -920,7 +1042,7 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
     def preparation_status(worker_id: str, preparation_id: str, body: PreparationStatusRequest):
         s = state()
         node = _get_node_or_404(s, worker_id)
-        _require_session(node, body.session_id)
+        _require_node_auth(node, body.session_id, body.node_secret)
         row = s.db.query_one("SELECT * FROM preparations WHERE preparation_id=?", (preparation_id,))
         if row is None or row["worker_id"] != worker_id:
             raise not_found("preparation 不存在")
@@ -996,7 +1118,7 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
     def execution_complete(worker_id: str, execution_id: str, body: ExecutionCompleteRequest):
         s = state()
         node = _get_node_or_404(s, worker_id)
-        _require_session(node, body.session_id)
+        _require_node_auth(node, body.session_id, body.node_secret)
         row = s.db.query_one("SELECT * FROM executions WHERE execution_id=?", (execution_id,))
         if row is None or row["worker_id"] != worker_id:
             raise not_found("execution 不存在")
@@ -1020,6 +1142,23 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
                 _validate_execution_result(s, row, body.result)
             except ResultInvalid as e:
                 raise ApiError(409, "RESULT_INVALID", f"结果不合规：{e.message}")
+            # F04：硬期限复核——期限已过即丧失提交权（扫描器兜底置 FAILED）
+            hard_deadline = parse_iso(row["hard_deadline_at"])
+            if hard_deadline is not None and utcnow() > hard_deadline:
+                with s.db.write() as conn:
+                    conn.execute(
+                        "UPDATE executions SET status='FAILED', finished_at=?, error=? WHERE execution_id=? AND status IN ('ACCEPTED','RUNNING')",
+                        (
+                            now,
+                            canonical_json(_err("EXECUTION_TIMEOUT", "执行超过硬期限", True)),
+                            execution_id,
+                        ),
+                    )
+                s.db.insert_event(
+                    now, "execution.stale_rejected", f"超期提交被拒收 {execution_id}",
+                    worker_id=worker_id, execution_id=execution_id,
+                )
+                raise ApiError(409, "STALE_EXECUTION", "执行已超过硬期限，提交被拒收")
             result_bytes = canonical_json(body.result).encode("utf-8")
             sha = hashlib.sha256(result_bytes).hexdigest()
             artifact_id = new_artifact_id()
@@ -1031,7 +1170,15 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
                 "download_ms": 0, "inference_ms": 0, "postprocess_ms": 0,
                 "write_output_ms": 0, "total_worker_ms": 0,
             }
+            # F04：条件更新仲裁——仅 RUNNING 可发布成功；取消已获胜则整个事务回滚
             with s.db.write() as conn:
+                cur = conn.execute(
+                    "UPDATE executions SET status='SUCCEEDED', finished_at=?, result_artifact_id=?, timings=?, error=NULL WHERE execution_id=? AND status IN ('ACCEPTED','RUNNING')",
+                    (now, artifact_id, canonical_json(timings), execution_id),
+                )
+                if cur.rowcount == 0:
+                    raise ApiError(409, "STALE_EXECUTION", "执行已被取消，提交权已撤销")
+                # F01：结果 Artifact 的 media_info 是完整六字段对象（字段值可为 null）
                 conn.execute(
                     "INSERT INTO artifacts (artifact_id, upload_id, kind, original_name, content_type, sha256, size_bytes, media_info, created_at)"
                     " VALUES (?,?, 'RESULT', ?, 'application/json', ?, ?, ?, ?)",
@@ -1041,13 +1188,9 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
                         f"execution-{execution_id}.json",
                         sha,
                         len(result_bytes),
-                        "null",
+                        canonical_json(_NULL_MEDIA.copy()),
                         now,
                     ),
-                )
-                conn.execute(
-                    "UPDATE executions SET status='SUCCEEDED', finished_at=?, result_artifact_id=?, timings=?, error=NULL WHERE execution_id=?",
-                    (now, artifact_id, canonical_json(timings), execution_id),
                 )
             s.db.insert_event(
                 now, "execution.succeeded", f"执行成功 {execution_id}",
@@ -1061,10 +1204,12 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
                 "details": {"execution_id": execution_id},
             }
             with s.db.write() as conn:
-                conn.execute(
-                    "UPDATE executions SET status='FAILED', finished_at=?, error=? WHERE execution_id=?",
+                cur = conn.execute(
+                    "UPDATE executions SET status='FAILED', finished_at=?, error=? WHERE execution_id=? AND status IN ('ACCEPTED','RUNNING')",
                     (now, canonical_json(error), execution_id),
                 )
+                if cur.rowcount == 0:
+                    raise ApiError(409, "STALE_EXECUTION", "执行已被取消，报告被拒收")
             s.db.insert_event(
                 now, "execution.failed", f"执行失败 {execution_id}: {error['code']}",
                 worker_id=worker_id, execution_id=execution_id,
@@ -1076,21 +1221,23 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
     def execution_cancel_ack(worker_id: str, execution_id: str, body: CancelAckRequest):
         s = state()
         node = _get_node_or_404(s, worker_id)
-        _require_session(node, body.session_id)
+        _require_node_auth(node, body.session_id, body.node_secret)
         row = s.db.query_one("SELECT * FROM executions WHERE execution_id=?", (execution_id,))
         if row is None or row["worker_id"] != worker_id:
             raise not_found("execution 不存在")
         if row["status"] == "CANCEL_REQUESTED":
+            now = iso_now()
             with s.db.write() as conn:
-                conn.execute(
-                    "UPDATE executions SET status='CANCELLED', finished_at=? WHERE execution_id=?",
-                    (iso_now(), execution_id),
+                cur = conn.execute(
+                    "UPDATE executions SET status='CANCELLED', finished_at=? WHERE execution_id=? AND status='CANCEL_REQUESTED'",
+                    (now, execution_id),
                 )
-                conn.execute(
-                    "UPDATE nodes SET cleanup_pending=0 WHERE worker_id=?", (worker_id,)
-                )
+                if cur.rowcount > 0:
+                    conn.execute(
+                        "UPDATE nodes SET cleanup_pending=0 WHERE worker_id=?", (worker_id,)
+                    )
             s.db.insert_event(
-                iso_now(), "execution.cancelled", f"执行已取消 {execution_id}",
+                now, "execution.cancelled", f"执行已取消 {execution_id}",
                 worker_id=worker_id, execution_id=execution_id,
             )
         fresh = s.db.query_one("SELECT * FROM executions WHERE execution_id=?", (execution_id,))
@@ -1171,10 +1318,15 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
         ):
             with db.write() as conn:
                 conn.execute(
-                    "UPDATE nodes SET connection='OFFLINE', session_id='', cleanup_pending=CASE WHEN EXISTS("
+                    "UPDATE nodes SET connection='OFFLINE', session_id=?, node_secret=?, cleanup_pending=CASE WHEN EXISTS("
                     "SELECT 1 FROM executions WHERE worker_id=? AND status IN ('ACCEPTED','RUNNING','CANCEL_REQUESTED')"
                     ") THEN 1 ELSE cleanup_pending END WHERE worker_id=?",
-                    (row["worker_id"], row["worker_id"]),
+                    (
+                        str(uuid.uuid4()),
+                        secrets.token_hex(16),
+                        row["worker_id"],
+                        row["worker_id"],
+                    ),
                 )
                 for exec_row in conn.execute(
                     "SELECT execution_id FROM executions WHERE worker_id=? AND status IN ('ACCEPTED','RUNNING')",
@@ -1190,7 +1342,7 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
                     )
                 for prep_row in conn.execute(
                     "SELECT preparation_id FROM preparations WHERE worker_id=? AND status IN (?,?,?,?)",
-                    ACTIVE_PREP_STATUSES,
+                    (row["worker_id"], *ACTIVE_PREP_STATUSES),
                 ).fetchall():
                     conn.execute(
                         "UPDATE preparations SET status='FAILED', finished_at=?, error=? WHERE preparation_id=?",

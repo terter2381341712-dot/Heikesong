@@ -13,6 +13,7 @@ import os
 import signal
 import socket
 import sys
+import threading
 import time
 from pathlib import Path
 from typing import Any, Optional
@@ -38,10 +39,13 @@ class Agent:
         self.data_dir.mkdir(parents=True, exist_ok=True)
         self.worker_id: Optional[str] = None
         self.session_id: Optional[str] = None
+        self.node_secret: Optional[str] = None
         self._stop = False
         self._draining = False
         self._current_execution: Optional[str] = None
         self._abort_current = False
+        self._cancel_queue: list[str] = []
+        self._state_lock = threading.Lock()
         self._client = httpx.Client(timeout=10.0)
 
     # ---------- 注册与状态 ----------
@@ -76,8 +80,10 @@ class Agent:
                 )
                 resp.raise_for_status()
                 data = resp.json()
-                self.worker_id = data["worker_id"]
-                self.session_id = data["session_id"]
+                with self._state_lock:
+                    self.worker_id = data["worker_id"]
+                    self.session_id = data["session_id"]
+                    self.node_secret = data["node_secret"]
                 self._save_worker_id(self.worker_id)
                 print(f"[agent] 注册成功 worker_id={self.worker_id}", file=sys.stderr)
                 return
@@ -85,6 +91,9 @@ class Agent:
                 print(f"[agent] 注册失败，{backoff:.0f}s 后重试：{e}", file=sys.stderr)
                 time.sleep(backoff)
                 backoff = min(backoff * 2, 30.0)
+
+    def _auth_payload(self) -> dict:
+        return {"session_id": self.session_id, "node_secret": self.node_secret}
 
     def _internal(self, path: str, payload: dict) -> Optional[dict]:
         try:
@@ -109,44 +118,66 @@ class Agent:
         signal.signal(signal.SIGINT, self._handle_sigint)
         signal.signal(signal.SIGTERM, self._handle_sigint)
         self.register()
-        last_heartbeat = 0.0
-        while not self._stop:
-            now = time.monotonic()
-            if now - last_heartbeat >= self.HEARTBEAT_INTERVAL:
-                self._heartbeat()
-                last_heartbeat = now
-            if self._draining:
-                if self._current_execution is None:
+        # F05：心跳独立线程——长推理期间租约仍能续期，取消通知也能及时收到
+        hb_thread = threading.Thread(target=self._heartbeat_loop, daemon=True)
+        hb_thread.start()
+        try:
+            while not self._stop:
+                if self._draining and self._current_execution is None:
                     time.sleep(0.5)
                     continue
-            self._try_claim_and_work()
-            time.sleep(self.CLAIM_INTERVAL)
+                self._try_claim_and_work()
+                time.sleep(self.CLAIM_INTERVAL)
+        finally:
+            hb_thread.join(timeout=2.0)
 
     def _handle_sigint(self, signum, frame) -> None:
         print("[agent] 收到退出信号：完成当前任务后停止", file=sys.stderr)
         self._stop = True
         self._draining = True
 
+    def _heartbeat_loop(self) -> None:
+        while not self._stop:
+            try:
+                self._heartbeat()
+            except Exception as e:
+                print(f"[agent] 心跳异常：{e}", file=sys.stderr)
+            time.sleep(self.HEARTBEAT_INTERVAL)
+
     def _heartbeat(self) -> None:
+        if not self.worker_id or not self.session_id:
+            return
         data = self._internal(
             f"/api/resource/internal/v1/nodes/{self.worker_id}/heartbeat",
-            {"session_id": self.session_id, "telemetry": sample()},
+            {**self._auth_payload(), "telemetry": sample()},
         )
         if data is None:
             return
-        if data.get("mode") == "DRAINING" or self._draining:
+        if data.get("mode") == "DRAINING":
             self._draining = True
         cancelled = data.get("cancel_requested") or []
-        if self._current_execution in cancelled:
-            print(f"[agent] 执行 {self._current_execution} 被请求取消", file=sys.stderr)
-            self._abort_current = True
+        with self._state_lock:
+            for exec_id in cancelled:
+                if exec_id == self._current_execution:
+                    if not self._abort_current:
+                        print(f"[agent] 执行 {exec_id} 被请求取消", file=sys.stderr)
+                    self._abort_current = True
+                elif exec_id not in self._cancel_queue:
+                    self._cancel_queue.append(exec_id)
+        # F05：未领取的执行被取消——节点主动确认停止，避免 CANCEL_REQUESTED 长期挂起
+        pending = list(self._cancel_queue)
+        for exec_id in pending:
+            self._ack_cancel(exec_id)
+            with self._state_lock:
+                if exec_id in self._cancel_queue:
+                    self._cancel_queue.remove(exec_id)
 
     def _try_claim_and_work(self) -> None:
         if self._current_execution is not None:
             return
         data = self._internal(
             f"/api/resource/internal/v1/nodes/{self.worker_id}/claim",
-            {"session_id": self.session_id},
+            self._auth_payload(),
         )
         if not data:
             return
@@ -163,7 +194,7 @@ class Agent:
     def _prep_status(self, prep_id: str, payload: dict) -> None:
         self._internal(
             f"/api/resource/internal/v1/nodes/{self.worker_id}/preparations/{prep_id}/status",
-            {"session_id": self.session_id, **payload},
+            {**self._auth_payload(), **payload},
         )
 
     def _do_preparation(self, prep: dict) -> None:
@@ -206,6 +237,27 @@ class Agent:
         from datetime import datetime, timezone
 
         now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        # F10：自测未通过不得上报 READY
+        if not calibration["passed"]:
+            self._prep_status(
+                prep_id,
+                {
+                    "status": "FAILED",
+                    "error_code": "MODEL_LOAD_FAILED",
+                    "error_message": (
+                        f"自测未通过：{calibration['sample_count']} 个样本中"
+                        f"仅 {calibration['non_empty']} 个产生识别结果"
+                    ),
+                    "error_retryable": True,
+                    "calibration": {
+                        "sample_count": calibration["sample_count"],
+                        "median_compute_ms": calibration["median_compute_ms"],
+                        "passed": False,
+                        "finished_at": now,
+                    },
+                },
+            )
+            return
         if task_type == "ocr.image.v1":
             from runners.rapidocr_runner import combined_model_sha256
 
@@ -265,6 +317,7 @@ class Agent:
         passed = non_empty >= 1 if task_type == "ocr.image.v1" else True
         return {
             "sample_count": len(samples),
+            "non_empty": non_empty,
             "median_compute_ms": round(statistics.median(durations), 3),
             "passed": passed,
         }
@@ -314,7 +367,7 @@ class Agent:
             data = self._internal(
                 f"/api/resource/internal/v1/nodes/{self.worker_id}/executions/{execution_id}/complete",
                 {
-                    "session_id": self.session_id,
+                    **self._auth_payload(),
                     "outcome": "SUCCEEDED",
                     "result": result,
                     "timings": timings,
@@ -333,7 +386,7 @@ class Agent:
             self._internal(
                 f"/api/resource/internal/v1/nodes/{self.worker_id}/executions/{execution_id}/complete",
                 {
-                    "session_id": self.session_id,
+                    **self._auth_payload(),
                     "outcome": "FAILED",
                     "error_code": "EXECUTION_ERROR",
                     "error_message": str(e)[:500],
@@ -350,7 +403,7 @@ class Agent:
         resp = self._client.get(
             f"{self.server}/api/resource/internal/v1/nodes/{self.worker_id}/artifacts/"
             f"{execution['input_artifact_id']}/content",
-            headers={"Authorization": f"Bearer {self.session_id}"},
+            headers={"Authorization": f"Bearer {self.node_secret}"},
             timeout=60.0,
         )
         resp.raise_for_status()
@@ -373,7 +426,7 @@ class Agent:
     def _ack_cancel(self, execution_id: str) -> None:
         self._internal(
             f"/api/resource/internal/v1/nodes/{self.worker_id}/executions/{execution_id}/cancel_ack",
-            {"session_id": self.session_id},
+            self._auth_payload(),
         )
 
 
