@@ -1,0 +1,7 @@
+{
+  "roles": ["node"],
+  "config": "P4/var/config/node.json",
+  "data_dir": "P4/var/this-machine",
+  "node_name": "PC-01",
+  "interactive": true
+}

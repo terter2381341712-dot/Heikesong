@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="7.098" timestamp="2026-11-14T17:29:29.267253+08:00" hostname="LAPTOP-EBFHU7LG"><testcase classname="tests.tasks.test_http_processes" name="test_real_http_process_start_restart_and_offline_download" time="6.999"><failure message="PermissionError: [WinError 32] 另一个程序正在使用此文件，进程无法访问。: 'E:\\电子书\\物理\\gpt代码\\heikesong_normal\\Heikesong\\P4\\var\\tmp-p2\\p2-smoke-xmikug2a\\p2-data\\p2.lock'">path = 'E:\\电子书\\物理\\gpt代码\\heikesong_normal\\Heikesong\\P4\\var\\tmp-p2\\p2-smoke-xmikug2a'
+onexc = &lt;function TemporaryDirectory._rmtree.&lt;locals&gt;.onexc at 0x000001C5FA68AB60&gt;
+
+    def _rmtree_unsafe(path, onexc):
+        def onerror(err):
+            if not isinstance(err, FileNotFoundError):
+                onexc(os.scandir, err.filename, err)
+        results = os.walk(path, topdown=False, onerror=onerror, followlinks=os._walk_symlinks_as_files)
+        for dirpath, dirnames, filenames in results:
+            for name in dirnames:
+                fullname = os.path.join(dirpath, name)
+                try:
+                    os.rmdir(fullname)
+                except FileNotFoundError:
+                    continue
+                except OSError as err:
+                    onexc(os.rmdir, fullname, err)
+            for name in filenames:
+                fullname = os.path.join(dirpath, name)
+                try:
+&gt;                   os.unlink(fullname)
+E                   PermissionError: [WinError 32] 另一个程序正在使用此文件，进程无法访问。: 'E:\\电子书\\物理\\gpt代码\\heikesong_normal\\Heikesong\\P4\\var\\tmp-p2\\p2-smoke-xmikug2a\\p2-data\\p2.lock'
+
+E:\programing_language\python.3.13.7\Lib\shutil.py:625: PermissionError
+
+During handling of the above exception, another exception occurred:
+
+    def test_real_http_process_start_restart_and_offline_download():
+&gt;       assert run_smoke()["status"] == "PASS"
+               ^^^^^^^^^^^
+
+tests\tasks\test_http_processes.py:5: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\tasks\smoke.py:40: in run_smoke
+    with tempfile.TemporaryDirectory(prefix="p2-smoke-") as temp:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E:\programing_language\python.3.13.7\Lib\tempfile.py:951: in __exit__
+    self.cleanup()
+E:\programing_language\python.3.13.7\Lib\tempfile.py:955: in cleanup
+    self._rmtree(self.name, ignore_errors=self._ignore_cleanup_errors)
+E:\programing_language\python.3.13.7\Lib\tempfile.py:935: in _rmtree
+    _shutil.rmtree(name, onexc=onexc)
+E:\programing_language\python.3.13.7\Lib\shutil.py:790: in rmtree
+    return _rmtree_unsafe(path, onexc)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E:\programing_language\python.3.13.7\Lib\shutil.py:629: in _rmtree_unsafe
+    onexc(os.unlink, fullname, err)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+func = &lt;built-in function unlink&gt;
+path = 'E:\\电子书\\物理\\gpt代码\\heikesong_normal\\Heikesong\\P4\\var\\tmp-p2\\p2-smoke-xmikug2a\\p2-data\\p2.lock'
+exc = PermissionError(13, '另一个程序正在使用此文件，进程无法访问。')
+
+    def onexc(func, path, exc):
+        if isinstance(exc, PermissionError):
+            if repeated and path == name:
+                if ignore_errors:
+                    return
+                raise
+    
+            try:
+                if path != name:
+                    _resetperms(_os.path.dirname(path))
+                _resetperms(path)
+    
+                try:
+&gt;                   _os.unlink(path)
+E                   PermissionError: [WinError 32] 另一个程序正在使用此文件，进程无法访问。: 'E:\\电子书\\物理\\gpt代码\\heikesong_normal\\Heikesong\\P4\\var\\tmp-p2\\p2-smoke-xmikug2a\\p2-data\\p2.lock'
+
+E:\programing_language\python.3.13.7\Lib\tempfile.py:910: PermissionError</failure></testcase></testsuite></testsuites>

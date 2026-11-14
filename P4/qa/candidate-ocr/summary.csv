@@ -1,0 +1,2 @@
+﻿run_id,job_id,status,images,observed_job_seconds,correct_images_per_second,aggregation_efficiency
+candidate-ocr-1,b9b70f87-94ba-4d67-9dd7-c71638b3ed30,SUCCEEDED,2,6.067912900005467,,

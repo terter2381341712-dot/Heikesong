@@ -12,7 +12,6 @@ from io import BytesIO
 from pathlib import Path
 
 import httpx
-
 from task_service.contract import ROOT, validate
 
 
@@ -24,7 +23,16 @@ def free_port():
 
 def stop(process):
     if process.poll() is None:
-        process.terminate()
+        if os.name == "nt":
+            # A Windows venv launcher can leave its Python child holding the data lock.
+            subprocess.run(
+                ["taskkill", "/PID", str(process.pid), "/T", "/F"],
+                capture_output=True,
+                timeout=10,
+                check=False,
+            )
+        else:
+            process.terminate()
         try:
             process.wait(timeout=5)
         except subprocess.TimeoutExpired:

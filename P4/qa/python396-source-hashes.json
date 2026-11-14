@@ -1,0 +1,12 @@
+{
+  "P2/pyproject.toml": "8810610f8f259d0c81b45b2c777e8caab94e8f92e869657566fadad6677c53be",
+  "P2/uv.lock": "a811fc17c6401620eb16bdac74e07ee05fbdfa83fdc51204aa25c5c4859837b6",
+  "P2/task_service/service.py": "af66782a5bec34c6009f12a387111b040ea9a92641c2f78f391e4f6cfbd94e14",
+  "P2/tests/tasks/test_service.py": "05f8e67683ee2911ea5c8a4b0a34a291adb93d878c617654035eb70f198bd640",
+  "P2/tests/tasks/smoke.py": "ca07d61a6eed1f48c0dc573c6a2039737dd3a37d2daee3f3988bdceb123241b2",
+  "P4/scripts/control.py": "dcdc72fd48ef40c4b30ce43ff3fda37bd163818dfc7cad0e5df48386b304a47e",
+  "P4/scripts/cluster.py": "c2cd3878b3548231adf8185c10f3227d340c9e7a4c97e2c282964d1be2ab7742",
+  "P4/scripts/quality.py": "68f070693bc075ee97d48fb7f10826709a22d35c1785671be6197814052927ae",
+  "P4/scripts/check_control.py": "b47850fcccae98b798887959d2148eb2653265eb2018ecf8f1794271b5bd1ddc",
+  "P4/control.html": "d2c026d9428226fdf0c24af9ca34c3b441bdc9a64fc20d5d282df9405080e330"
+}

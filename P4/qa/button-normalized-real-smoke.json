@@ -1,0 +1,42 @@
+{
+  "status": "PASS",
+  "mode": "REAL_SINGLE_MACHINE_BUTTON_HTTP",
+  "checks": [
+    {
+      "name": "initial idle",
+      "status": "PASS"
+    },
+    {
+      "name": "automatic environment detection and center + local node",
+      "status": "PASS"
+    },
+    {
+      "name": "UDP center discovery",
+      "status": "PASS"
+    },
+    {
+      "name": "pairing returns only node credentials",
+      "status": "PASS"
+    },
+    {
+      "name": "sharing off confirmed by P1",
+      "status": "PASS"
+    },
+    {
+      "name": "sharing on confirmed by P1",
+      "status": "PASS"
+    },
+    {
+      "name": "button submits real OCR and verifies result / ZIP",
+      "status": "PASS"
+    },
+    {
+      "name": "button result ZIP download",
+      "status": "PASS"
+    }
+  ],
+  "physical_multinode": "NOT_RUN",
+  "macos_live": "NOT_RUN",
+  "test_message": "真实OCR/结果/ZIP验证通过；贡献节点数 1。证据：E:\\电子书\\物理\\gpt代码\\heikesong_normal\\Heikesong\\P4\\var\\control\\test-d994e29a",
+  "cleanup": "PASS"
+}

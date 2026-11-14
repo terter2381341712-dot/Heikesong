@@ -1,0 +1,12 @@
+{
+  "P1/runners/rapidocr_runner.py": "9d5625e65a30be7b4e63751e1ada72194a53d6fbb4820a4dd12def00a30a8f0f",
+  "P1/tests/resource/test_runner.py": "a1b50f445676cc0f776d6238ed36c4276c20319a45061f7bfb0a8b49a9d6a3f1",
+  "P4/scripts/control.py": "1e0ac702c4b97f56c7a75c11178c77393a0537ba6ff29afb1a60298bae6d6f28",
+  "P4/scripts/cluster.py": "e6bf0bd62936668192091310519a107c8e18237eefa94e853c3e0d24dbcf54fb",
+  "P4/scripts/managed_node.py": "5c9a82dd845001ef0d8e54da998ac4427039123dccbde6583bcda73e93609fa7",
+  "P4/scripts/check_control.py": "8422656709208fe00c9115d4a42aeaed016101b59eeea1e1bc7dee9d79424238",
+  "P4/scripts/verify.py": "da8b0d7a04b74b723ba9b0168cf7244969a415f955ae72677a9d3c20e05f5a25",
+  "P4/control.html": "ebada39c485bc08b496238b71de0dbf8b6f6c456d3c06296d317ef9fbc6e2e86",
+  "P4/start.cmd": "721825c6aa0c634a69334f3c6bcea9a29722dc8f7e1b10924b3bb64e48756c38",
+  "P4/start.command": "49e28501e24c4254103b957a75a6b026b479496ff65840e41a6bacb0e7fe8a58"
+}
