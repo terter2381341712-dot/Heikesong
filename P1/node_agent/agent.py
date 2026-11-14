@@ -1,0 +1,467 @@
+"""节点程序主循环：注册 → 心跳(3s) → 认领 → 执行 → 提交；DRAINING/SIGINT 优雅退出。
+
+用法：
+    python -m node_agent --server http://192.168.x.x:8001 --name M4-MacBook
+
+JOIN_TOKEN 从环境变量读取；日志不打印令牌。
+"""
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+import signal
+import socket
+import sys
+import threading
+import time
+from contextlib import contextmanager
+from pathlib import Path
+from typing import Optional
+
+import httpx
+
+from resource_service.config import REPO_ROOT
+from resource_service.media import probe_image
+from resource_service.resultschema import validate_ocr_result
+from resource_service.timeutil import iso_now
+from runners.profile import ProfileError, load_locked_runner
+
+from .hardware import detect_hardware
+from .telemetry import sample
+
+
+@contextmanager
+def lock_node_directory(data_dir: Path):
+    """同一节点目录只允许一个 Agent 运行，进程退出由系统释放锁。"""
+    with (data_dir / "agent.lock").open("a+b") as lock:
+        if os.name == "nt":
+            import msvcrt
+
+            lock.seek(0)
+            msvcrt.locking(lock.fileno(), msvcrt.LK_NBLCK, 1)
+        else:
+            import fcntl
+
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        yield
+
+
+class Agent:
+    HEARTBEAT_INTERVAL = 3.0
+    CLAIM_INTERVAL = 1.0
+
+    def __init__(self, server: str, name: str) -> None:
+        self.server = server.rstrip("/")
+        self.name = name
+        self.join_token = os.environ.get("JOIN_TOKEN", "")
+        if not self.join_token:
+            print("[agent] 缺少 JOIN_TOKEN 环境变量", file=sys.stderr)
+            sys.exit(2)
+        self.data_dir = Path(os.environ.get("NODE_AGENT_DATA_DIR", "./data/agent")).resolve()
+        self.data_dir.mkdir(parents=True, exist_ok=True)
+        self.worker_id: Optional[str] = None
+        self.session_id: Optional[str] = None
+        self.node_secret: Optional[str] = None
+        self._prepared = None
+        self._sharing_disabled = False
+        self._sharing_request = None
+        self._last_heartbeat = time.monotonic()
+        self._cancel_ids = set()
+        self._stop = False
+        self._session_stale = False
+        self._confirm_idle = False
+        self._state_lock = threading.Lock()
+        self._client = httpx.Client(timeout=10.0)
+
+    # ---------- 注册与状态 ----------
+
+    def _install_file(self) -> Path:
+        return self.data_dir / f"install-{self.name}.json"
+
+    def _load_worker_id(self) -> Optional[str]:
+        f = self._install_file()
+        if f.exists():
+            try:
+                return json.loads(f.read_text()).get("worker_id")
+            except (OSError, json.JSONDecodeError):
+                return None
+        return None
+
+    def _save_worker_id(self, worker_id: str) -> None:
+        self._install_file().write_text(json.dumps({"worker_id": worker_id}))
+
+    def register(self) -> None:
+        backoff = 1.0
+        while not self._stop:
+            try:
+                resp = self._client.post(
+                    f"{self.server}/api/resource/internal/v1/nodes/register",
+                    headers={"Authorization": f"Bearer {self.join_token}"},
+                    json={
+                        "worker_id": self._load_worker_id(),
+                        "name": self.name,
+                        "hardware": detect_hardware(),
+                    },
+                )
+                resp.raise_for_status()
+                data = resp.json()
+                with self._state_lock:
+                    self.worker_id = data["worker_id"]
+                    self.session_id = data["session_id"]
+                    self.node_secret = data["node_secret"]
+                    self._session_stale = False
+                    self._confirm_idle = data["confirm_idle"]
+                self._prepared = None
+                self._last_heartbeat = time.monotonic()
+                self._save_worker_id(self.worker_id)
+                print(f"[agent] 注册成功 worker_id={self.worker_id}", file=sys.stderr)
+                return
+            except (httpx.HTTPError, ValueError, KeyError) as e:
+                print(f"[agent] 注册失败，{backoff:.0f}s 后重试：{e}", file=sys.stderr)
+                time.sleep(backoff)
+                backoff = min(backoff * 2, 30.0)
+
+    def _auth_payload(self) -> dict:
+        with self._state_lock:
+            return {"session_id": self.session_id, "node_secret": self.node_secret}
+
+    def _internal(self, path: str, payload: dict) -> Optional[dict]:
+        try:
+            resp = self._client.post(
+                f"{self.server}{path}", json=payload, timeout=10.0
+            )
+            if resp.status_code == 409:
+                detail = resp.json()
+                if detail.get("code") == "SESSION_CHANGED":
+                    with self._state_lock:
+                        if payload["session_id"] == self.session_id:
+                            self._session_stale = True
+                return None
+            resp.raise_for_status()
+            return resp.json()
+        except (httpx.HTTPError, ValueError) as e:
+            print(f"[agent] 请求失败 {path}: {e}", file=sys.stderr)
+            return None
+
+    # ---------- 主循环 ----------
+
+    def run(self) -> None:
+        signal.signal(signal.SIGINT, self._handle_sigint)
+        signal.signal(signal.SIGTERM, self._handle_sigint)
+        while self._sharing_disabled and not self._stop:
+            time.sleep(.1)
+        if self._stop:
+            return
+        self.register()
+        # 心跳独立续租，停止确认由主线程在计算返回后发送。
+        hb_thread = threading.Thread(target=self._heartbeat_loop, daemon=True)
+        hb_thread.start()
+        try:
+            while not self._stop:
+                if self._session_stale:
+                    # 仅在主线程空闲时重新注册，旧推理尚未结束时不释放槽位。
+                    self.register()
+                elif self._confirm_idle:
+                    self._confirm_idle = self._internal(
+                        f"/api/resource/internal/v1/nodes/{self.worker_id}/confirm_idle",
+                        self._auth_payload(),
+                    ) is None
+                elif self._sharing_disabled:
+                    # No compute child is alive here: the supervisor joins before returning.
+                    self._try_claim_and_work()
+                    self._internal(f"/api/resource/internal/v1/nodes/{self.worker_id}/confirm_idle", self._auth_payload())
+                else:
+                    self._try_claim_and_work()
+                time.sleep(self.CLAIM_INTERVAL)
+        finally:
+            hb_thread.join(timeout=2.0)
+
+    def _handle_sigint(self, signum, frame) -> None:
+        print("[agent] 收到退出信号：完成当前任务后停止", file=sys.stderr)
+        self._stop = True
+
+    def _heartbeat_loop(self) -> None:
+        while not self._stop:
+            try:
+                self._heartbeat()
+            except Exception as e:
+                print(f"[agent] 心跳异常：{e}", file=sys.stderr)
+            time.sleep(self.HEARTBEAT_INTERVAL)
+
+    def set_sharing(self, enabled: bool) -> bool:
+        # Local stop is immediate even when the centre is unreachable.
+        if not enabled:
+            self._sharing_disabled = True
+        self._sharing_request = enabled
+        if not self.worker_id:
+            self._sharing_disabled = not enabled
+            return True
+        response = self._internal(
+            f"/api/resource/internal/v1/nodes/{self.worker_id}/sharing",
+            {**self._auth_payload(), "enabled": enabled},
+        )
+        if response:
+            self._sharing_request = None
+            if enabled:
+                self._sharing_disabled = False
+            return True
+        return False
+
+    def _heartbeat(self) -> None:
+        if not self.worker_id or not self.session_id:
+            return
+        if self._sharing_request is not None:
+            self.set_sharing(self._sharing_request)
+        response = self._internal(
+            f"/api/resource/internal/v1/nodes/{self.worker_id}/heartbeat",
+            {**self._auth_payload(), "telemetry": sample()},
+        )
+        if response:
+            self._last_heartbeat = time.monotonic()
+            disabled = self._sharing_request is False or not response.get("sharing_enabled", True)
+            self._sharing_disabled = disabled
+            self._cancel_ids = set(response.get("cancel_requested", []))
+
+
+    def _try_claim_and_work(self) -> None:
+        data = self._internal(
+            f"/api/resource/internal/v1/nodes/{self.worker_id}/claim",
+            self._auth_payload(),
+        )
+        if not data:
+            return
+        # 认领、运行和确认停止均由主线程串行执行。
+        for execution_id in data.get("stop_ack_required", []):
+            self._ack_cancel(execution_id)
+        prep = data.get("preparation")
+        if prep:
+            from .compute import supervise
+            supervise(self, "preparation", prep)
+            return
+        execution = data.get("execution")
+        if execution:
+            from .compute import supervise
+            supervise(self, "execution", execution)
+
+    # ---------- 模型准备 ----------
+
+    def _prep_status(self, prep_id: str, payload: dict) -> None:
+        self._internal(
+            f"/api/resource/internal/v1/nodes/{self.worker_id}/preparations/{prep_id}/status",
+            {**self._auth_payload(), **payload},
+        )
+
+    def _do_preparation(self, prep: dict) -> None:
+        """模型准备：加载执行器并对固定样本真实试跑；通过才上报 READY。"""
+        prep_id = prep["preparation_id"]
+        profile_key = (prep["task_type"], prep["profile_id"], prep["profile_digest"])
+        profiles_dir = Path(os.environ.get("NODE_PROFILES_DIR", REPO_ROOT / "profiles"))
+        self._prepared = None
+        self._prep_status(prep_id, {"status": "LOADING", "progress": 0.2})
+        try:
+            raw = (profiles_dir / f"{prep['profile_id']}.lock.json").read_bytes()
+            runner, model_sha, provider = load_locked_runner(raw, *profile_key)
+            self._prep_status(prep_id, {"status": "VERIFYING", "progress": 0.6})
+            calibration = self._self_test(prep["task_type"], runner)
+            if not calibration["passed"]:
+                raise ProfileError("MODEL_LOAD_FAILED", "OCR 校准样本未达到要求")
+        except Exception as exc:
+            print(f"[agent] 准备失败：{exc}", file=sys.stderr)
+            code = exc.code if isinstance(exc, ProfileError) else "MODEL_LOAD_FAILED"
+            self._prep_status(prep_id, {
+                "status": "FAILED",
+                "error_code": code,
+                "error_message": str(exc) if isinstance(exc, ProfileError) else "节点无法加载或自测模型，详见节点日志",
+                "error_retryable": False,
+            })
+            return
+
+        # 先保留已核验的 runner，READY 回包丢失时仍可履行已接纳的执行。
+        self._prepared = (profile_key, runner)
+        self._prep_status(prep_id, {
+            "status": "READY",
+            "progress": 1.0,
+            "backend": "cpu",
+            "runtime_provider": provider,
+            "model_sha256": model_sha,
+            "model_cached": True,
+            "calibration": {
+                "sample_count": calibration["sample_count"],
+                "median_compute_ms": calibration["median_compute_ms"],
+                "passed": True,
+                "finished_at": iso_now(),
+            },
+        })
+
+    def _self_test(self, task_type: str, runner) -> dict:
+        """固定合成样本真实试跑：3 张样本，逐张核对文本及结果结构。"""
+        import statistics
+
+        from PIL import Image, ImageDraw, ImageFont
+
+        samples = []
+        for i, (size, label) in enumerate(
+            [((480, 160), "HELLO OCR TEST 123"), ((640, 240), "APPROVED 456"), ((360, 200), "SAMPLE 789")]
+        ):
+            img = Image.new("RGB", size, "white")
+            draw = ImageDraw.Draw(img)
+            try:
+                font = ImageFont.load_default(size=44)
+            except TypeError:
+                font = ImageFont.load_default()
+            draw.text((30, size[1] // 2 - 20), label, fill="black", font=font)
+            path = self.data_dir / "calibration" / f"sample-{i}.png"
+            path.parent.mkdir(parents=True, exist_ok=True)
+            img.save(path, format="PNG")
+            samples.append((path, label))
+
+        durations, non_empty, matches = [], 0, 0
+        for path, label in samples:
+            t0 = time.monotonic()
+            result = runner.execute(path, {"width": None, "height": None}, {}, path.parent)
+            durations.append((time.monotonic() - t0) * 1000)
+            if task_type == "ocr.image.v1" and result.get("blocks"):
+                non_empty += 1
+                result["input_artifact_id"] = "calibration"
+                validate_ocr_result(result, "calibration")
+                if " ".join(result["text"].upper().split()) == label:
+                    matches += 1
+        passed = matches == len(samples)
+        return {
+            "sample_count": len(samples),
+            "non_empty": non_empty,
+            "median_compute_ms": round(statistics.median(durations), 3),
+            "passed": passed,
+        }
+
+    # ---------- 单次执行 ----------
+
+    def _do_execution(self, execution: dict) -> None:
+        execution_id = execution["execution_id"]
+        timings: dict[str, float] = {
+            "download_ms": 0.0,
+            "inference_ms": 0.0,
+            "postprocess_ms": 0.0,
+            "write_output_ms": 0.0,
+            "total_worker_ms": 0.0,
+        }
+        workdir = self.data_dir / "work" / execution_id
+        workdir.mkdir(parents=True, exist_ok=True)
+        try:
+            t0 = time.monotonic()
+            input_path = self._download_input(execution)
+            timings["download_ms"] = (time.monotonic() - t0) * 1000
+
+            t0 = time.monotonic()
+            key = (execution["task_type"], execution["profile_id"], execution["profile_digest"])
+            if self._prepared is None or self._prepared[0] != key:
+                raise ProfileError("PROFILE_MISMATCH", "节点缺少本会话核验过的 profile")
+            runner = self._prepared[1]
+            media_info = execution["input_media_info"]
+            result = runner.execute(
+                Path(input_path), media_info, execution.get("parameters", {}), workdir
+            )
+            timings["inference_ms"] = (time.monotonic() - t0) * 1000
+
+            result["input_artifact_id"] = execution["input_artifact_id"]
+
+            t0 = time.monotonic()
+            out_file = workdir / "result.json"
+            out_file.write_text(json.dumps(result, ensure_ascii=False), encoding="utf-8")
+            timings["write_output_ms"] = (time.monotonic() - t0) * 1000
+            timings["postprocess_ms"] = 0.0
+            timings["total_worker_ms"] = sum(v for k, v in timings.items() if k != "total_worker_ms")
+
+            data = self._internal(
+                f"/api/resource/internal/v1/nodes/{self.worker_id}/executions/{execution_id}/complete",
+                {
+                    **self._auth_payload(),
+                    "outcome": "SUCCEEDED",
+                    "result": result,
+                    "timings": timings,
+                },
+            )
+            if data is not None:
+                print(
+                    f"[agent] 执行 {execution_id} 完成 status={data.get('status')}",
+                    file=sys.stderr,
+                )
+        except Exception as e:
+            print(f"[agent] 执行 {execution_id} 失败：{e}", file=sys.stderr)
+            code = e.code if isinstance(e, ProfileError) else "EXECUTION_ERROR"
+            self._internal(
+                f"/api/resource/internal/v1/nodes/{self.worker_id}/executions/{execution_id}/complete",
+                {
+                    **self._auth_payload(),
+                    "outcome": "FAILED",
+                    "error_code": code,
+                    "error_message": "节点执行失败，详见节点日志",
+                    "error_retryable": code == "EXECUTION_ERROR",
+                },
+            )
+
+    def _download_input(self, execution: dict) -> str:
+        path = execution.get("input_download_path")
+        if not path:
+            raise RuntimeError("执行缺少输入下载路径")
+        resp = self._client.get(
+            f"{self.server}/api/resource/internal/v1/nodes/{self.worker_id}/artifacts/"
+            f"{execution['input_artifact_id']}/content",
+            headers={"Authorization": f"Bearer {self.node_secret}"},
+            timeout=60.0,
+        )
+        resp.raise_for_status()
+        if hashlib.sha256(resp.content).hexdigest() != execution["input_sha256"]:
+            raise ProfileError("INPUT_INVALID", "下载文件 SHA-256 与执行记录不符")
+        try:
+            probe_image(resp.content, execution["input_content_type"], decode=True)
+        except ValueError as exc:
+            raise ProfileError("INPUT_INVALID", "输入文件无法解码") from exc
+        target = self.data_dir / "work" / execution["execution_id"] / "input.bin"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(resp.content)
+        return str(target)
+
+    def _ack_cancel(self, execution_id: str) -> None:
+        self._internal(
+            f"/api/resource/internal/v1/nodes/{self.worker_id}/executions/{execution_id}/cancel_ack",
+            self._auth_payload(),
+        )
+
+
+def control_sharing(agent: Agent, commands) -> None:
+    for line in commands:
+        command = line.strip()
+        if command in {"on", "off"}:
+            agent.set_sharing(command == "on")
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="节点程序：接入 P1 资源服务")
+    parser.add_argument("--server", default=os.environ.get("RESOURCE_BASE_URL", "http://127.0.0.1:8001"))
+    parser.add_argument("--name", default=socket.gethostname()[:80])
+    parser.add_argument("--interactive", action="store_true", help="默认不注册；输入 on/off 开关共享")
+    args = parser.parse_args()
+    agent = Agent(server=args.server, name=args.name)
+    try:
+        with lock_node_directory(agent.data_dir):
+            if args.interactive:
+                agent._sharing_disabled = True
+                commands = sys.stdin
+                if os.name == "nt" and not commands.isatty():
+                    # Spawned Python processes must not inherit a pipe while this thread reads it.
+                    # https://github.com/python/cpython/issues/78961
+                    stdin_fd = commands.fileno()
+                    commands = os.fdopen(os.dup(stdin_fd), "r", encoding=commands.encoding, errors=commands.errors)
+                    with open(os.devnull, "r") as null:
+                        os.dup2(null.fileno(), stdin_fd)
+                threading.Thread(target=control_sharing, args=(agent, commands), daemon=True).start()
+            agent.run()
+    except BlockingIOError:
+        parser.exit(2, "节点数据目录已被另一个 Agent 占用\n")
+
+
+if __name__ == "__main__":
+    main()

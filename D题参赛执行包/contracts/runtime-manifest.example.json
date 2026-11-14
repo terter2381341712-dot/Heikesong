@@ -1,0 +1,55 @@
+{
+  "contract_version": "0.2.0",
+  "status": "UNVERIFIED_TEMPLATE",
+  "note": "P1实测模型/依赖/预后处理并核实来源许可后，发布逐profile锁文件及其原字节SHA256。null不能作为READY配置。",
+  "profiles": [
+    {
+      "task_type": "ocr.image.v1",
+      "profile_id": "ocr.default.v1",
+      "configuration_state": "UNCONFIGURED",
+      "profile_digest": null,
+      "model_id": null,
+      "model_source": null,
+      "model_sha256": null,
+      "weights_license_verified": false,
+      "dependencies": {
+        "python": null,
+        "model_runtime": null
+      },
+      "preprocessing": null,
+      "postprocessing": null,
+      "minimum_ram_bytes": null,
+      "supported_languages": [
+        "auto",
+        "zh",
+        "en"
+      ],
+      "verified_devices": [],
+      "frozen_at": null
+    },
+    {
+      "task_type": "asr.file.v1",
+      "profile_id": "asr.default.v1",
+      "configuration_state": "UNCONFIGURED",
+      "profile_digest": null,
+      "model_id": null,
+      "model_source": null,
+      "model_sha256": null,
+      "weights_license_verified": false,
+      "dependencies": {
+        "python": null,
+        "model_runtime": null
+      },
+      "preprocessing": null,
+      "postprocessing": null,
+      "minimum_ram_bytes": null,
+      "supported_languages": [
+        "auto",
+        "zh",
+        "en"
+      ],
+      "verified_devices": [],
+      "frozen_at": null
+    }
+  ]
+}
