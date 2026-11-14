@@ -34,6 +34,7 @@
               <img src="/assets/ether-node.png" width="1440" height="810" fetchpriority="high" alt="">
             </picture>
             <video id="workflow-video" data-src="/assets/ether-node.mp4" width="1280" height="720" muted loop playsinline preload="none" aria-hidden="true"></video>
+            <div class="workflow-atmosphere" aria-hidden="true"></div>
             <svg class="workflow-branches" viewBox="0 0 1280 720" width="1280" height="720" focusable="false">
               <defs>
                 <path id="thread-upload" pathLength="100" d="M267 208 C323 241 404 273 492 288"></path>
@@ -143,12 +144,18 @@
         <div id="job-detail" role="region" tabindex="-1" aria-label="任务详情" data-en-label="Job details"></div>
       </div>
       <div id="view-resources" hidden>
-        <p id="node-sharing-hint" class="field-hint" hidden data-en="Enter on or off in the Node app on a device to control whether it shares resources.">在设备上的 Node 程序中输入 on 或 off，可开启或关闭本机共享。</p>
         <div class="resource-heading">
           <p id="resource-counts" hidden></p>
-          <p id="snapshot-time" class="field-hint">正在读取资源快照…</p>
         </div>
-        <div id="resource-detail"></div>
+        <div id="resource-alert"></div>
+        <div id="resource-empty"></div>
+        <div id="resource-layout" class="resource-layout" hidden>
+          <div id="resource-grid" class="resource-grid"></div>
+          <div id="resource-inspector" class="resource-inspector">
+            <p id="resource-instruction" class="resource-instruction" data-en="Hover to preview. Click a device to pin or hide its details.">悬停预览，点击设备可固定或收起详情。</p>
+            <div id="resource-detail" hidden></div>
+          </div>
+        </div>
       </div>
     </div>
     <div id="workflow-toast" class="toast" role="status" hidden></div>
@@ -168,6 +175,14 @@
         <label for="workflow-playback" data-en="Play homepage animations">播放首页动效</label>
         <input id="workflow-playback" type="checkbox" role="switch" aria-describedby="motion-preference">
         <p id="motion-preference" class="field-hint" hidden data-en="Reduced motion is enabled on this device.">系统已开启减少动态效果。</p>
+      </div>
+      <div class="weather-settings">
+        <label for="scene-weather" data-en="Background weather">背景天气</label>
+        <select id="scene-weather">
+          <option value="clear" data-en="Clear">晴朗</option>
+          <option value="mist" data-en="Light mist" selected>薄雾</option>
+          <option value="overcast" data-en="Overcast">阴云</option>
+        </select>
       </div>
       <div id="mock-settings" class="dialog-fields" hidden>
         <label for="scenario" class="field-title" data-en="Demo scenario">模拟场景</label>

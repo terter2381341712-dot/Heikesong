@@ -11,7 +11,6 @@ const statusInfo = {
 export const terminal = new Set(['SUCCEEDED', 'PARTIAL_FAILED', 'FAILED', 'CANCELLED']);
 const languageLabels = { auto: ['自动识别', 'Auto-detect'], zh: ['中文', 'Chinese'], en: ['英语', 'English'] };
 const typeLabels = { 'ocr.image.v1': ['图片文字识别', 'Image OCR'], 'asr.file.v1': ['短录音文字识别', 'Short audio transcription'] };
-const sourceLabels = { detected: ['自动检测', 'Auto-detected'], unavailable: ['N/A', 'N/A'], 'nvidia-smi': ['nvidia-smi', 'nvidia-smi'] };
 const dateOptions = {
   timeZone: 'Asia/Shanghai', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
 };
@@ -24,7 +23,6 @@ export const escape = (value) => String(value ?? '').replace(/[&<>"']/g, (char) 
 })[char]);
 export const typeName = (type, fallback = type) => Object.hasOwn(typeLabels, type) ? t(...typeLabels[type]) : fallback;
 export const languageName = (language) => Object.hasOwn(languageLabels, language) ? t(...languageLabels[language]) : language;
-const sourceName = (source) => Object.hasOwn(sourceLabels, source) ? t(...sourceLabels[source]) : 'N/A';
 export const isConfigured = (type) => type?.configuration_state === 'CONFIGURED' && Boolean(type.profile_digest);
 export const tag = (status) => {
   const [chinese, english, tone = ''] = Object.hasOwn(statusInfo, status) ? statusInfo[status] : [status, status];
@@ -183,43 +181,43 @@ function percent(value) {
 function nodeFacts(node) {
   const { hardware, telemetry } = node;
   const facts = [
-    [t('系统 / 架构', 'OS / architecture'), `${hardware.os} / ${hardware.arch}`],
-    [t('CPU（自动检测）', 'CPU (auto-detected)'), `${hardware.cpu_name ?? 'N/A'} · ${hardware.logical_cores ?? 'N/A'} ${t('线程', 'threads')}`],
-    [t('GPU（检测来源）', 'GPU (detection source)'), `${hardware.gpu_name ?? 'N/A'} · ${sourceName(hardware.gpu_info_source)}`],
-    [t('GPU 显存', 'GPU memory'), bytes(hardware.gpu_vram_bytes)],
-    [t('CPU / GPU 利用率', 'CPU / GPU usage'), `${percent(telemetry?.cpu_percent)} / ${percent(telemetry?.gpu_percent)}`],
-    [t('内存已用 / 总量', 'Memory used / total'), `${bytes(telemetry?.ram_used_bytes)} / ${bytes(hardware.ram_total_bytes)}`],
-    [t('GPU 显存已用 / 采样来源', 'GPU memory used / data source'), `${bytes(telemetry?.gpu_memory_used_bytes)} · ${sourceName(telemetry?.gpu_metric_source)}`],
-    [t('槽位（占用 / 可用 / 总量）', 'Slots (used / available / total)'), `${node.reserved_slots} / ${node.available_slots} / ${node.max_slots}`],
+    [t('接单槽位', 'Job slots'), t(`${node.reserved_slots} 占用 / ${node.max_slots} 总量`, `${node.reserved_slots} of ${node.max_slots} in use`)],
+    [t('空闲槽位', 'Available slots'), node.available_slots],
+    ['CPU', [hardware.cpu_name, telemetry?.cpu_percent == null ? '' : percent(telemetry.cpu_percent)].filter(Boolean).join(' · ')],
+    [t('内存', 'Memory'), hardware.ram_total_bytes == null ? '' : `${bytes(telemetry?.ram_used_bytes)} / ${bytes(hardware.ram_total_bytes)}`],
+    ['GPU', [hardware.gpu_name, telemetry?.gpu_percent == null ? '' : percent(telemetry.gpu_percent), hardware.gpu_vram_bytes == null ? '' : bytes(hardware.gpu_vram_bytes)].filter(Boolean).join(' · ')],
+    [t('系统', 'System'), [hardware.os, hardware.arch].filter(Boolean).join(' / ')],
   ];
-  return facts.map(([label, value]) => `<div><dt>${escape(label)}</dt><dd>${escape(value)}</dd></div>`).join('');
+  return facts.filter(([, value]) => value !== '').map(([label, value]) => `<div><dt>${escape(label)}</dt><dd>${escape(value)}</dd></div>`).join('');
 }
 
-function capabilityRows(capabilities) {
-  if (!capabilities.length) return `<p class="field-hint">${t('服务尚未报告能力。', 'The service has not reported any capabilities.')}</p>`;
-  return `<ul>${capabilities.map((capability) => `
-    <li class="capability"><div><strong>${escape(typeName(capability.task_type))}</strong>
-      <p class="field-hint">${t('后端', 'Backend')} ${escape(capability.backend ?? 'N/A')} · ${escape(capability.runtime_provider ?? 'N/A')}</p>
-      <p class="field-hint">${t('模型', 'Model ')}${capability.model_cached ? t('已缓存', 'cached') : t('未缓存', 'not cached')} · ${capability.verified ? t('自测已通过', 'Self-test passed') : t('自测未通过或未验证', 'Self-test failed or unverified')}</p>
-      ${capability.reason ? `<p class="field-hint">${escape(capability.reason)}</p>` : ''}</div>${tag(capability.state)}</li>`).join('')}</ul>`;
-}
-
-export function resourceCard(node, { stale, changing, mock }) {
-  const { hardware } = node;
+export function resourceTile(node) {
   const id = escape(node.worker_id);
-  const manual = Object.entries(hardware.manual_labels).map(([key, value]) => `${key} = ${value}`).join(' · ');
+  const tone = node.connection !== 'ONLINE' ? 'offline' : node.mode === 'ACTIVE' ? 'active' : 'paused';
+  return `<button type="button" class="resource-tile" data-device="${id}" data-tone="${tone}" data-focus-key="device-${id}" aria-controls="resource-detail" aria-expanded="false">
+    <span class="device-model" aria-hidden="true">
+      <span class="device-computer">
+        <span class="device-back"></span><span class="device-side"></span>
+        <span class="device-screen"><span class="device-display"><i></i><i></i><i></i><i></i></span></span>
+        <span class="device-stand"></span><span class="device-base"></span>
+      </span>
+    </span>
+    <span class="device-name">${escape(node.name)}</span>
+    ${tag(node.connection === 'ONLINE' ? node.mode : node.connection)}
+  </button>`;
+}
+
+export function resourceCard(node, { stale, changing, mock, pinned }) {
+  const id = escape(node.worker_id);
   const action = node.mode === 'ACTIVE' ? 'DRAINING' : 'ACTIVE';
   const label = action === 'DRAINING' ? (mock ? t('退出接单', 'Stop accepting jobs') : t('暂停接新任务', 'Pause new jobs')) : t('恢复接单', 'Resume accepting jobs');
   return `<article class="panel compact resource-card">
-    <div class="panel-heading"><h3>${escape(node.name)}</h3><div class="node-tags">${tag(node.connection)}${tag(node.mode)}</div></div>
-    <p class="mono">${id}</p>
+    <div class="panel-heading"><h3>${escape(node.name)}</h3>${pinned ? `<span class="device-pin">${t('已固定', 'Pinned')}</span>` : ''}</div>
+    <div class="node-tags">${tag(node.connection)}${tag(node.mode)}</div>
     <dl class="node-facts">${nodeFacts(node)}</dl>
-    ${manual ? `<p class="field-hint">${t('手动标注', 'Manual labels')} · ${escape(manual)}</p>` : ''}
-    ${hardware.detection_errors.map((error) => message(t(`检测异常 · ${error}`, `Detection error · ${error}`), 'warn')).join('')}
-    ${message(node.mode === 'DRAINING' ? t('现有工作完成后暂停接单。', 'New jobs will be paused once active work finishes.') : '', 'warn')}
     ${message(node.cleanup_pending ? t('正在等待设备确认停止。', 'Waiting for the device to confirm that work has stopped.') : '', 'warn')}
-    <h4 class="node-subtitle">${t('执行能力', 'Capabilities')}</h4>${capabilityRows(node.capabilities)}
-    <div class="node-footer"><p class="field-hint">${t('采样于', 'Sampled')} ${escape(date(node.telemetry?.sampled_at))}<br>${t('心跳于', 'Last heartbeat')} ${escape(date(node.last_seen_at))}</p>
+    ${node.capabilities.length ? `<ul class="device-capabilities">${node.capabilities.map((item) => `<li><strong>${escape(typeName(item.task_type))}</strong>${tag(item.state)}</li>`).join('')}</ul>` : ''}
+    <div class="node-footer">
       <button class="button secondary" type="button" data-action="node-mode" data-id="${id}" data-mode="${action}" data-focus-key="mode-${id}"${stale || changing || node.cleanup_pending || node.connection === 'OFFLINE' ? ' disabled' : ''}>${changing ? t('请求中…', 'Requesting…') : label}</button></div>
   </article>`;
 }

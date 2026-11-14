@@ -3,7 +3,7 @@ import { describeError, demoFiles, getScenario, readConfig, resourceApi, setDemo
 import { getInputMime, inspectInput, mimeLabels } from './media.js';
 import {
   bytes, date, empty, escape, historyRows, isConfigured, jobPanel, languageName, message,
-  resourceCard, terminal, typeName, updateHtml,
+  resourceCard, resourceTile, terminal, typeName, updateHtml,
 } from './render.js';
 import { syncPlayback } from './workflow.js';
 
@@ -34,6 +34,7 @@ const panelTitles = {
 const isJobView = (view) => view === 'progress' || view === 'results';
 const workflowDialog = $('workflow-dialog');
 const workflowBody = $('workflow-body');
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
 const state = {
   mode: '', view: 'home', jobId: null, history: [], connections: { P1: 'pending', P2: 'pending' }, resources: null,
   resourceError: '', resourceChecked: 0, nodeModeBusy: new Set(), catalog: [], catalogError: '', catalogChecked: false, selected: '', language: '',
@@ -44,7 +45,15 @@ let activePoll;
 let toastTimer;
 let storageAvailable = true;
 let workflowOpener;
+let workflowMotion;
 let returningHome = false;
+let pinnedDevice = null;
+let previewDevice = null;
+let previewDismissed = null;
+let displayedDevice = null;
+let displayedPin = null;
+let deviceDetailMotion;
+let settingsMotion;
 
 function storageKey(part) {
   return `edge-fabric:0.2:${state.mode}:${part}`;
@@ -170,23 +179,137 @@ function renderResources() {
   if (state.view !== 'resources') return;
   const { resources, resourceError } = state;
   const reason = resourceError && `${resources ? t('资源快照已过期', 'Resource snapshot is out of date') : t('资源未接通', 'Resource service unavailable')} · ${resourceError}`;
-  let detail = message(reason, 'error');
-  let counts = '';
-  if (resources) {
-    const devices = resources.resources;
-    const slots = devices.reduce((total, node) => total + node.available_slots, 0);
-    const online = devices.filter((node) => node.connection === 'ONLINE').length;
-    counts = t(`在线设备 ${online} 台 · 可用槽位 ${slots} 个`, `Online devices: ${online} · Available slots: ${slots}`);
-    detail += devices.length ? `<div class="resource-grid">${devices.map((node) => resourceCard(node, {
-      stale: Boolean(resourceError), changing: state.nodeModeBusy.has(node.worker_id), mock: state.mode === 'mock',
-    })).join('')}</div>` :
-      empty(t('暂无设备', 'No devices'), t('P1 当前未报告已注册设备。', 'P1 has not reported any registered devices.'));
-  } else if (!reason) {
-    detail = empty(t('正在读取资源', 'Loading resources'), t('等待 P1 返回快照。', 'Waiting for a snapshot from P1.'));
+  const devices = resources?.resources ?? [];
+  const slots = devices.reduce((total, node) => total + node.available_slots, 0);
+  const online = devices.filter((node) => node.connection === 'ONLINE').length;
+  setNotice($('resource-counts'), resources ?
+    t(`在线设备 ${online} 台 · 可用槽位 ${slots} 个`, `Online devices: ${online} · Available slots: ${slots}`) : '');
+  updateHtml($('resource-alert'), message(reason, 'error'));
+  updateHtml($('resource-empty'), devices.length || reason ? '' : empty(
+    resources ? t('暂无设备', 'No devices') : t('正在读取资源', 'Loading resources'), '',
+  ));
+  $('resource-layout').hidden = !devices.length;
+  updateHtml($('resource-grid'), devices.map(resourceTile).join(''), $('close-workflow'));
+  if (!devices.some((node) => node.worker_id === pinnedDevice)) pinnedDevice = null;
+  if (!devices.some((node) => node.worker_id === previewDevice)) previewDevice = null;
+  renderDeviceDetails();
+}
+
+function renderDeviceDetails() {
+  const selected = pinnedDevice ?? previewDevice;
+  const devices = state.resources?.resources ?? [];
+  const node = devices.find((entry) => entry.worker_id === selected);
+  for (const tile of $('resource-grid').querySelectorAll('[data-device]')) {
+    tile.setAttribute('aria-expanded', String(tile.dataset.device === selected));
+    tile.toggleAttribute('data-pinned', tile.dataset.device === pinnedDevice);
   }
-  setNotice($('resource-counts'), counts);
-  updateHtml($('resource-detail'), detail, $('close-workflow'));
-  $('snapshot-time').textContent = resources ? t(`快照时间 ${date(resources.server_time)}`, `Snapshot taken ${date(resources.server_time)}`) : reason ? t('等待 P1 资源服务连接', 'Waiting for the P1 resource service') : t('正在读取资源快照…', 'Loading resource snapshot…');
+  const details = $('resource-detail');
+  if (!node) {
+    if (displayedDevice === null) return;
+    displayedDevice = displayedPin = null;
+    details.inert = true;
+    animateDeviceDetails(details, 'hide', () => {
+      details.hidden = true;
+      $('resource-instruction').hidden = false;
+      updateHtml(details, '');
+    });
+    return;
+  }
+  const pinned = selected === pinnedDevice;
+  const phase = selected !== displayedDevice ? (pinned ? 'pin' : 'show') : pinned && !displayedPin ? 'pin' : '';
+  displayedDevice = selected;
+  displayedPin = pinned;
+  details.hidden = details.inert = false;
+  $('resource-instruction').hidden = true;
+  updateHtml(details, resourceCard(node, {
+    stale: Boolean(state.resourceError),
+    changing: state.nodeModeBusy.has(selected),
+    mock: state.mode === 'mock',
+    pinned,
+  }), $('resource-grid').querySelector('[aria-expanded="true"]') ?? $('close-workflow'));
+  if (phase) animateDeviceDetails(details, phase);
+}
+
+function animateDeviceDetails(details, phase, onFinish) {
+  const inspector = $('resource-inspector');
+  const current = deviceDetailMotion && getComputedStyle(inspector);
+  const interrupted = current && { transform: current.transform, opacity: current.opacity };
+  deviceDetailMotion?.cancel();
+  deviceDetailMotion = null;
+  if (reduceMotion.matches || document.hidden || details.closest('[hidden]')) {
+    onFinish?.();
+    return;
+  }
+  const narrow = matchMedia('(max-width: 660px)').matches;
+  const beside = { transform: narrow ? 'translateY(-8px)' : 'translateX(-18px)', opacity: 0 };
+  const resting = { transform: 'none', opacity: 1 };
+  const keyframes = phase === 'hide' ? [interrupted ?? resting, beside] :
+    phase === 'pin' && !interrupted ? [{ transform: 'translateY(4px) scale(.975)', opacity: .68 }, resting] :
+      [interrupted ?? beside, resting];
+  const animation = inspector.animate(keyframes, {
+    duration: phase === 'hide' ? 150 : 255,
+    easing: phase === 'hide' ? 'ease-in' : 'cubic-bezier(.2, .75, .25, 1)',
+    fill: 'both',
+  });
+  deviceDetailMotion = animation;
+  animation.onfinish = () => {
+    if (deviceDetailMotion !== animation) return;
+    deviceDetailMotion = null;
+    animation.cancel();
+    onFinish?.();
+  };
+}
+
+function bindDeviceTiles() {
+  const grid = $('resource-grid');
+  let tilted;
+  let bounds;
+  function resetTilt() {
+    tilted?.style.removeProperty('--device-tilt-x');
+    tilted?.style.removeProperty('--device-tilt-y');
+    tilted = bounds = null;
+  }
+  grid.addEventListener('pointermove', (event) => {
+    if (event.pointerType !== 'mouse' || reduceMotion.matches) return;
+    const tile = event.target.closest('[data-device]');
+    if (!tile) return;
+    const computer = tile.querySelector('.device-computer');
+    if (tilted !== computer) {
+      resetTilt();
+      tilted = computer;
+      bounds = tile.getBoundingClientRect();
+    }
+    const x = (event.clientX - bounds.left) / bounds.width - .5;
+    const y = (event.clientY - bounds.top) / bounds.height - .5;
+    computer.style.setProperty('--device-tilt-x', `${6 - y * 12}deg`);
+    computer.style.setProperty('--device-tilt-y', `${-15 + x * 16}deg`);
+  }, { passive: true });
+  grid.addEventListener('pointerover', (event) => {
+    if (event.pointerType !== 'mouse') return;
+    const tile = event.target.closest('[data-device]');
+    if (!tile || tile.contains(event.relatedTarget)) return;
+    const id = tile.dataset.device;
+    if (pinnedDevice || id === previewDismissed) return;
+    previewDevice = id;
+    renderDeviceDetails();
+  });
+  grid.addEventListener('pointerout', (event) => {
+    if (event.pointerType !== 'mouse') return;
+    const tile = event.target.closest('[data-device]');
+    if (!tile || tile.contains(event.relatedTarget) || !grid.contains(tile)) return;
+    resetTilt();
+    previewDevice = previewDismissed = null;
+    if (!pinnedDevice) renderDeviceDetails();
+  });
+  grid.addEventListener('click', (event) => {
+    const tile = event.target.closest('[data-device]');
+    if (!tile) return;
+    const id = tile.dataset.device;
+    pinnedDevice = pinnedDevice === id ? null : id;
+    previewDevice = null;
+    previewDismissed = !pinnedDevice && tile.matches(':hover') ? id : null;
+    renderDeviceDetails();
+  });
 }
 
 function renderJobs() {
@@ -366,11 +489,62 @@ function markStale() {
   }
 }
 
+function animateWorkflow(closing, onFinish) {
+  const current = workflowMotion && getComputedStyle(workflowDialog);
+  const interrupted = current && { transform: current.transform, opacity: current.opacity };
+  workflowMotion?.cancel();
+  workflowMotion = null;
+  delete workflowDialog.dataset.motion;
+
+  if (reduceMotion.matches || document.hidden) {
+    onFinish?.();
+    return;
+  }
+
+  const anchor = workflowOpener.querySelector('.workflow-node-name').getBoundingClientRect();
+  const panel = workflowDialog.getBoundingClientRect();
+  const compact = matchMedia('(max-width: 660px)').matches;
+  const drift = (from, to, limit) => Math.max(-limit, Math.min(limit, (from - to) * .24));
+  const x = compact ? 0 : drift(anchor.x + anchor.width / 2, panel.x + panel.width / 2, 112);
+  const y = compact ? 18 : drift(anchor.y + anchor.height / 2, panel.y + panel.height / 2, 72);
+  const resting = { transform: 'none', opacity: 1 };
+  const nearOpener = {
+    transform: `translate(${x}px, ${y}px) scale(${compact ? .985 : .91})`,
+    opacity: closing ? 0 : .18,
+  };
+
+  workflowDialog.dataset.motion = closing ? 'closing' : 'opening';
+  const animation = workflowDialog.animate(
+    closing ? [interrupted ?? resting, nearOpener] : [interrupted ?? nearOpener, resting],
+    {
+      duration: closing ? 170 : 330,
+      easing: closing ? 'cubic-bezier(.42, 0, 1, 1)' : 'cubic-bezier(.2, .85, .28, 1)',
+      fill: 'both',
+    },
+  );
+  workflowMotion = animation;
+  animation.onfinish = () => {
+    if (workflowMotion !== animation) return;
+    workflowMotion = null;
+    animation.cancel();
+    delete workflowDialog.dataset.motion;
+    onFinish?.();
+  };
+}
+
 function route() {
   returningHome = false;
   const { view, jobId } = readRoute();
   const changedView = state.view !== view;
   const changedJob = isJobView(view) && state.jobId !== jobId;
+  if (state.view === 'resources' && changedView) {
+    pinnedDevice = previewDevice = previewDismissed = null;
+    deviceDetailMotion?.cancel();
+    deviceDetailMotion = null;
+    displayedDevice = displayedPin = null;
+    $('resource-detail').hidden = true;
+    $('resource-instruction').hidden = false;
+  }
   state.view = view;
   if (changedJob) {
     state.jobId = jobId;
@@ -379,10 +553,14 @@ function route() {
     state.jobChecked = 0;
   }
   if (view === 'home') {
-    if (workflowDialog.open) {
-      workflowDialog.close();
-      syncPlayback();
-      workflowOpener.focus({ preventScroll: true });
+    if (workflowDialog.open && workflowDialog.dataset.motion !== 'closing') {
+      workflowDialog.inert = true;
+      animateWorkflow(true, () => {
+        workflowDialog.inert = false;
+        workflowDialog.close();
+        syncPlayback();
+        workflowOpener.focus({ preventScroll: true });
+      });
     }
   } else {
     workflowDialog.dataset.panel = view;
@@ -394,11 +572,14 @@ function route() {
     renderForm();
     renderJobs();
     renderResources();
-    if (!workflowDialog.open) {
+    const opening = !workflowDialog.open;
+    const reopening = workflowDialog.dataset.motion === 'closing';
+    if (opening) {
       workflowOpener = $('workflow-graph').querySelector(`[data-workflow-node="${view}"]`);
       workflowDialog.showModal();
       syncPlayback();
     }
+    if (reopening) workflowDialog.inert = false;
     if (changedView) {
       workflowBody.scrollTop = 0;
       $('workflow-title').focus({ preventScroll: true });
@@ -406,6 +587,7 @@ function route() {
       $('job-detail').focus({ preventScroll: true });
       $('job-detail').scrollIntoView({ block: 'start' });
     }
+    if (opening || reopening) animateWorkflow(false);
   }
   restartPoll();
 }
@@ -419,7 +601,7 @@ function navigate(hash) {
 }
 
 function closeWorkflow() {
-  if (returningHome) return;
+  if (returningHome || state.view === 'home') return;
   // Only go back if this entry was opened from our workflow home.
   if (history.state?.workflow) {
     returningHome = true;
@@ -643,9 +825,22 @@ async function changeMode(event) {
   }
 }
 
-async function openSettings() {
+async function openSettings(event) {
   setNotice($('settings-error'), '');
-  $('settings-dialog').showModal();
+  const dialog = $('settings-dialog');
+  const opener = event.currentTarget.getBoundingClientRect();
+  dialog.showModal();
+  if (!reduceMotion.matches) {
+    const panel = dialog.getBoundingClientRect();
+    const nudge = (from, to) => Math.max(-48, Math.min(48, (from - to) * .13));
+    const x = nudge(opener.x + opener.width / 2, panel.x + panel.width / 2);
+    const y = nudge(opener.y + opener.height / 2, panel.y + panel.height / 2);
+    settingsMotion?.cancel();
+    settingsMotion = dialog.animate([
+      { transform: `translate(${x}px, ${y}px) scale(.94)`, opacity: .15 },
+      { transform: 'none', opacity: 1 },
+    ], { duration: 270, easing: 'cubic-bezier(.2, .8, .25, 1)' });
+  }
   syncPlayback();
   if (state.mode !== 'mock') return;
   $('scenario').value = state.scenario;
@@ -663,6 +858,13 @@ async function openSettings() {
 
 function bind() {
   window.addEventListener('hashchange', route);
+  reduceMotion.addEventListener('change', () => {
+    if (reduceMotion.matches) {
+      workflowMotion?.finish();
+      deviceDetailMotion?.finish();
+      settingsMotion?.finish();
+    }
+  });
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) {
       markStale();
@@ -757,6 +959,7 @@ function bind() {
   });
   $('job-detail').addEventListener('click', jobAction);
   $('resource-detail').addEventListener('click', changeMode);
+  bindDeviceTiles();
   $('open-settings').addEventListener('click', openSettings);
   $('workflow-settings').addEventListener('click', openSettings);
   $('ui-language').addEventListener('change', (event) => {
@@ -770,6 +973,8 @@ function bind() {
   });
   $('close-settings').addEventListener('click', () => $('settings-dialog').close());
   $('settings-dialog').addEventListener('close', () => {
+    settingsMotion?.cancel();
+    settingsMotion = null;
     $('token').value = '';
     syncPlayback();
   });
@@ -813,7 +1018,6 @@ async function boot() {
   $('open-settings').hidden = false;
   $('mock-settings').hidden = !mock;
   $('live-settings').hidden = mock;
-  $('node-sharing-hint').hidden = mock;
   $('hub-address').textContent = location.origin;
   bind();
   route();
