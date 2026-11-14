@@ -108,7 +108,8 @@ def test_real_http_pair_and_automatic_node_configuration(panel, server, tmp_path
         node.processes[role] = SimpleNamespace(stdin=None, poll=lambda: None)
 
     monkeypatch.setattr(node, "spawn", spawn)
-    node.join(f"127.0.0.1:{server.server_port}", panel.code)
+    connection_code = control.encode_connection_code("127.0.0.1", server.server_port, panel.code)
+    node.join_connection(connection_code)
     stored = control.read_json(node.directory / "node.json")
     assert stored["tokens"] == {"JOIN_TOKEN": "join-private"}
     assert node.mode == "node" and commands == ["node"]
@@ -118,10 +119,48 @@ def test_real_http_pair_and_automatic_node_configuration(panel, server, tmp_path
         control, "request_json", lambda *args, **kwargs: {"contract_version": "0.2.0"}
     )
     node.processes.clear()
+
     node.mode = "idle"
     node.reconnect()
     assert commands == ["node", "node"]
     node.processes.clear()
+
+
+def test_connection_code_roundtrip_and_typo_rejected():
+    code = control.encode_connection_code("10.4.142.66", 8003, "000042")
+    assert control.decode_connection_code("  " + code.lower() + "  ") == (
+        "10.4.142.66:8003",
+        "000042",
+    )
+    wrong = code[:8] + ("A" if code[8] != "A" else "B") + code[9:]
+    for invalid in (wrong, code[:-1], "123456", "P4-2-" + code[5:], None):
+        with pytest.raises(ValueError, match="连接码"):
+            control.decode_connection_code(invalid)
+
+
+def test_connection_code_expires_and_refresh_invalidates_old_code(panel, monkeypatch):
+    connection = control.encode_connection_code("10.4.142.66", 8003, panel.code)
+    _, secret = control.decode_connection_code(connection)
+    body = {"code": secret, "protocol": control.PROTOCOL, "fingerprint": control.fingerprint()}
+    assert panel.pair(body)["tokens"] == {"JOIN_TOKEN": "join-private"}
+    panel.code_until = time.monotonic() - 1
+    with pytest.raises(ValueError, match="失效"):
+        panel.pair(body)
+    # Even a random collision must not leave the previous connection code valid.
+    monkeypatch.setattr(control.secrets, "randbelow", lambda _: int(secret))
+    panel.new_code()
+    with pytest.raises(ValueError, match="不正确"):
+        panel.pair(body)
+
+
+def test_connect_endpoint_accepts_code_without_address_or_discovery(panel, server, monkeypatch):
+    received = []
+    monkeypatch.setattr(panel, "join_connection", received.append)
+    connection = control.encode_connection_code("10.4.142.66", 8003, panel.code)
+    headers = {"X-P4-Session": panel.session}
+    assert call(server, "/api/connect", {"connection_code": connection}, headers)[0] == 202
+    panel.worker.join(2)
+    assert received == [connection]
 
 
 def test_sharing_buttons_send_requests_without_claiming_confirmation(panel):

@@ -13,13 +13,17 @@
 <label><input type="checkbox" id="localNode" checked> 本机也提供计算</label>
 <details><summary>网络选项</summary><label>中心使用的局域网地址 <select id="network"></select></label></details>
 <button data-action id="startCenter">启动中心 P1 + P2</button>
-<div id="pairBox" hidden><div class="sub">中心地址：<strong id="centerAddress"></strong><br>在另一台电脑输入这个配对码，有效期 10 分钟</div><div id="pairCode" class="code"></div><button class="secondary" data-action id="newCode">刷新配对码</button></div>
+<div id="pairBox" hidden><p class="sub">复制连接码，在另一台电脑粘贴即可连接，有效期 10 分钟。仅发送给允许加入的设备。</p><input id="connectionCode" readonly aria-label="中心连接码" style="width:100%;font-family:monospace"><button class="secondary" id="copyCode">复制连接码</button><button class="secondary" data-action id="newCode">刷新连接码</button><details><summary>兼容旧版配对</summary><div class="sub">中心地址：<strong id="centerAddress"></strong></div><div id="pairCode" class="code"></div></details></div>
 </section>
-<section class="card"><h2>这台只提供 P1 计算</h2><p class="sub">适合另一台 Mac、Windows 或 Linux。自动查找中心，输入配对码后连接。</p>
+<section class="card"><h2>这台只提供 P1 计算</h2><p class="sub">粘贴中心生成的完整连接码即可连接，无需查找中心或填写地址。</p>
+<label>连接码 <input id="joinCode" placeholder="粘贴 P4-1- 开头的连接码" autocomplete="off" spellcheck="false" style="width:100%"></label>
+<button data-action id="connect">连接并开启计算</button>
+<details><summary>兼容旧版：地址和六位配对码</summary>
 <button class="secondary" data-action id="find">查找中心</button><select id="centers" aria-label="已发现中心"><option value="">尚未发现中心</option></select>
 <label>配对码 <input id="code" inputmode="numeric" maxlength="6" placeholder="六位数字" autocomplete="off"></label>
 <details><summary>未发现中心？手动输入地址</summary><label><input id="manual" placeholder="例如 10.4.142.66 或 10.4.142.66:8003"></label><p class="sub">访客Wi-Fi、学校网络或防火墙可能拦截自动发现。请确认设备可互通，中心允许8001–8003及UDP37043。</p></details>
 <button data-action id="join">连接中心并开启共享</button>
+</details>
 <button data-action class="secondary" id="reconnect" hidden>重新连接已配对中心</button>
 </section></div>
 <section class="card"><h2>本机状态</h2><div id="status" class="status" aria-live="polite"></div>
@@ -43,6 +47,7 @@ async function refresh(){if(refreshing)return;refreshing=true;try{let d=await ap
 if(d.busy)$('status').textContent+='\n操作进行中：已等待 '+d.operation_seconds+' 秒';$('localNode').disabled=d.busy||d.mode==='node';if(d.mode==='center')$('localNode').checked=d.sharing_requested;for(let b of document.querySelectorAll('[data-action]'))b.disabled=d.busy;
 $('startCenter').disabled=d.busy||d.mode!=='idle';$('join').disabled=d.busy||d.mode!=='idle';$('test').disabled=d.busy||d.mode!=='center';$('on').disabled=d.busy||d.mode==='idle';$('off').disabled=d.busy||!d.processes.node;$('stop').disabled=d.busy||d.mode==='idle';$('reconnect').hidden=!d.saved_pair;$('reconnect').disabled=d.busy||d.mode!=='idle';
 $('pairBox').hidden=d.mode!=='center';$('pairCode').textContent=d.code||'已过期';
+$('connectionCode').value=d.connection_code||'';$('copyCode').disabled=!d.connection_code;$('connect').disabled=d.busy||d.mode!=='idle';
 $('centerAddress').textContent=d.address+':'+(d.control_port||8003);
 $('download').hidden=!d.has_result;
 let ns=JSON.stringify(d.addresses);if(ns!==networks){networks=ns;$('network').replaceChildren();for(let a of d.addresses)$('network').add(new Option(a,a));$('network').value=d.address}
@@ -51,6 +56,8 @@ $('nodes').replaceChildren();for(let n of d.nodes||[]){let row=document.createEl
 renderLogs(d.logs,d.node_name);lastMode=d.mode;
 }catch(e){$('error').textContent='控制台暂不可达：'+e.message}finally{refreshing=false}}
 $('localNode').onchange=()=>{if(lastMode==='center')action($('localNode').checked?'/api/on':'/api/off')};
+$('connect').onclick=()=>{let value=$('joinCode').value.trim();if(!value){$('error').textContent='请粘贴中心显示的连接码。';return}action('/api/connect',{connection_code:value})};
+$('copyCode').onclick=async()=>{let input=$('connectionCode');try{await navigator.clipboard.writeText(input.value);$('error').textContent='连接码已复制，请在另一台电脑粘贴。'}catch(e){input.focus();input.select();$('error').textContent='请按 Ctrl+C（Mac 用 Command+C）复制选中的连接码。'}};
 $('startCenter').onclick=()=>action('/api/center',{local_node:$('localNode').checked,address:$('network').value});$('newCode').onclick=()=>action('/api/code');$('find').onclick=find;
 $('join').onclick=async()=>{let address=$('manual').value.trim()||$('centers').value;let code=$('code').value.trim();if(!/^\d{6}$/.test(code)){$('error').textContent='请填写中心显示的六位配对码。';return}if(!address){await find();address=$('centers').value}if(!address){$('error').textContent='未发现中心，请确认中心已启动；也可展开输入中心地址。';return}action('/api/join',{address,code})};
 for(let key of ['on','off','test','stop'])$(key).onclick=()=>action('/api/'+key);

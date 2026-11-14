@@ -5,6 +5,8 @@ Only the pairing endpoint is exposed to LAN clients. Product services keep their
 
 import argparse
 import ast
+import base64
+import binascii
 import hashlib
 import ipaddress
 import json
@@ -16,6 +18,7 @@ import select
 import shutil
 import signal
 import socket
+import struct
 import subprocess
 import sys
 import threading
@@ -34,6 +37,30 @@ import cluster  # noqa: E402
 ROOT = cluster.ROOT
 DISCOVERY_PORT = 37043
 PROTOCOL = "P4-PAIR-2"
+
+
+def encode_connection_code(address, port, code):
+    payload = struct.pack("!4sHI", ipaddress.IPv4Address(address).packed, port, int(code))
+    raw = payload + hashlib.sha256(payload).digest()[:4]
+    return "P4-1-" + base64.b32encode(raw).decode("ascii").rstrip("=")
+
+
+def decode_connection_code(value):
+    try:
+        value = value.strip().upper()
+        if not value.startswith("P4-1-") or len(value) != 28:
+            raise ValueError()
+        raw = base64.b32decode(value[5:] + "=")
+        payload, checksum = raw[:10], raw[10:]
+        if not secrets.compare_digest(checksum, hashlib.sha256(payload).digest()[:4]):
+            raise ValueError()
+        packed, port, code = struct.unpack("!4sHI", payload)
+        address = ipaddress.IPv4Address(packed)
+        if not port or code > 999999 or address.is_unspecified or address.is_multicast:
+            raise ValueError()
+        return f"{address}:{port}", f"{code:06d}"
+    except (ValueError, TypeError, AttributeError, binascii.Error, struct.error):
+        raise ValueError("连接码无效或不完整，请从中心重新复制完整连接码。") from None
 
 
 class ControlHTTPServer(ThreadingHTTPServer):
@@ -452,7 +479,10 @@ class Panel:
         with self.lock:
             if self.mode != "center":
                 raise ValueError("请先启动中心。")
-            self.code = f"{secrets.randbelow(1000000):06d}"
+            candidate = f"{secrets.randbelow(1000000):06d}"
+            self.code = (
+                candidate if candidate != self.code else f"{(int(candidate) + 1) % 1000000:06d}"
+            )
             self.code_until, self.bad_codes = time.monotonic() + 600, 0
 
     def start_center(self, local_node=True, address=None):
@@ -555,6 +585,10 @@ class Panel:
         save(self.directory / "last-center.json", {"address": address})
         self.start_node()
         self.progress("已发送共享开启请求。注册、准备与计算状态请查看节点日志和中心资源列表。")
+
+    def join_connection(self, connection_code):
+        address, code = decode_connection_code(connection_code)
+        self.join(address, code)
 
     def start_node(self):
         try:
@@ -740,6 +774,11 @@ class Panel:
                 "processes": {k: p.poll() is None for k, p in self.processes.items()},
                 "python_paths": dict(self.runtime.selected),
             }
+        state["connection_code"] = (
+            encode_connection_code(state["address"], state["control_port"], state["code"])
+            if state["code"]
+            else ""
+        )
         state["logs"] = {"操作记录": "\n".join(self.events)}
         for role in ("resource", "task", "node", "test", "env/setup"):
             path = self.directory / (role + ".log")
@@ -962,6 +1001,9 @@ def handler_for(panel):
                 actions = {
                     "/api/center": lambda: panel.start_center(
                         bool(body.get("local_node", True)), body.get("address")
+                    ),
+                    "/api/connect": lambda: panel.join_connection(
+                        str(body.get("connection_code", ""))
                     ),
                     "/api/join": lambda: panel.join(
                         str(body.get("address", "")), str(body.get("code", ""))
