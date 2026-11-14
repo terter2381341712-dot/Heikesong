@@ -12,6 +12,33 @@ import compute_config
 import control
 
 
+@pytest.mark.parametrize("component,relative", [
+    ("P1", "P1/requirements.txt"),
+    ("CUDA", "P1/requirements-gpu.txt"),
+    ("P2", "P2/pyproject.toml"),
+])
+def test_dependency_lists_are_utf8_even_with_windows_gbk_default(tmp_path, monkeypatch, component, relative):
+    expected = runtime.requirements(component)
+    source = (runtime.ROOT / relative).read_text(encoding="utf-8")
+    # Reproduce Windows checkout line endings, plus non-ASCII comments for P2.
+    raw = ("# OCR 执行器（版本已在 profiles/ocr.default.v1.lock.json 冻结）\n" + source).replace("\r\n", "\n").replace("\n", "\r\n").encode("utf-8")
+    with pytest.raises(UnicodeDecodeError):
+        raw.decode("gbk")
+    target = tmp_path / relative
+    target.parent.mkdir(parents=True)
+    target.write_bytes(raw)
+    original_open = Path.open
+
+    def gbk_default(path, mode="r", buffering=-1, encoding=None, errors=None, newline=None):
+        if "b" not in mode and encoding is None:
+            encoding = "gbk"
+        return original_open(path, mode, buffering, encoding, errors, newline)
+
+    monkeypatch.setattr(Path, "open", gbk_default)
+    monkeypatch.setattr(runtime, "ROOT", tmp_path)
+    assert runtime.requirements(component) == expected
+
+
 def test_default_never_shortcuts_to_developer_python(tmp_path, monkeypatch):
     local = control.Runtime(tmp_path)
     monkeypatch.delenv("P4_P1_PYTHON", raising=False)

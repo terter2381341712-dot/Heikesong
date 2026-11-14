@@ -69,9 +69,9 @@ def preparation_lock(directory):
 def requirements(component):
     if component in {"P1", "CUDA"}:
         name = "requirements-gpu.txt" if component == "CUDA" else "requirements.txt"
-        return [line.strip() for line in (ROOT / "P1" / name).read_text().splitlines()
+        return [line.strip() for line in (ROOT / "P1" / name).read_text(encoding="utf-8").splitlines()
                 if line.strip() and not line.lstrip().startswith("#")]
-    text = (ROOT / "P2/pyproject.toml").read_text()
+    text = (ROOT / "P2/pyproject.toml").read_text(encoding="utf-8")
     return ast.literal_eval(re.search(r"dependencies\s*=\s*(\[[\s\S]*?\])", text).group(1))
 
 
@@ -88,7 +88,7 @@ class Manager:
                            env=process_environment(argv[0]))
 
     def installer(self, progress):
-        with (ROOT / "P4/runtime/installers.tsv").open() as handle:
+        with (ROOT / "P4/runtime/installers.tsv").open(encoding="utf-8") as handle:
             item = next(row for row in csv.DictReader(handle, delimiter="\t") if row["platform"] == platform_key())
         target = self.directory / ("micromamba.exe" if os.name == "nt" else "micromamba")
         if target.is_file() and hashlib.sha256(target.read_bytes()).hexdigest() == item["sha256"]:
