@@ -1,0 +1,303 @@
+{
+  "mode": "MOCK_P1_ASGI",
+  "notice": "从本次 pytest 完成后的 P2 临时 SQLite 只读导出；为最终持久化快照，不是逐事件日志。所有节点、输入、模型、自测与 OCR 均为合成数据，不证明真实 P1 或物理设备联调。ZIP 与 results 一致性由对应测试断言验证。",
+  "plan_version": "1.0",
+  "contract_version": "0.2.0",
+  "pytest_evidence": "p2-plan-pytest.xml",
+  "cases": [
+    {
+      "test": "test_L03_cold_node_prepares_frozen_target_then_executes_and_downloads[not_prepared_null]",
+      "initial_capability_sample": "not_prepared_null",
+      "create_job_request": {
+        "client_request_id": "ab8ab358-feea-4d5b-9d89-fb0bd893ba9b",
+        "input_artifact_ids": [
+          "mock_image_1"
+        ],
+        "parameters": {
+          "language": "auto"
+        },
+        "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "profile_id": "ocr.default.v1",
+        "task_type": "ocr.image.v1"
+      },
+      "preparation_request": {
+        "preparation_id": "13b2f78b-f57a-4117-8535-7f1347de8da3",
+        "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "profile_id": "ocr.default.v1",
+        "task_type": "ocr.image.v1",
+        "worker_id": "mock_worker_1",
+        "worker_session_id": "5fdcbe3f-9363-4741-a46e-f61b7546e626"
+      },
+      "last_preparation_status": "READY",
+      "execution_request": {
+        "attempt_no": 1,
+        "execution_id": "c4aaa88b-eac6-47c9-88a4-7485e6ed2aae",
+        "input_artifact_id": "mock_image_1",
+        "job_id": "4771dc9a-5d3d-45d2-82d3-c2179d8eb868",
+        "parameters": {
+          "language": "auto"
+        },
+        "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "profile_id": "ocr.default.v1",
+        "task_id": "e3cf3624-8b0b-49f3-90e8-e864449621cb",
+        "task_type": "ocr.image.v1",
+        "timeout_seconds": 120,
+        "worker_id": "mock_worker_1",
+        "worker_session_id": "5fdcbe3f-9363-4741-a46e-f61b7546e626"
+      },
+      "final_job": {
+        "cancel_requested": false,
+        "client_request_id": "ab8ab358-feea-4d5b-9d89-fb0bd893ba9b",
+        "counts": {
+          "cancelled": 0,
+          "cancelling": 0,
+          "dispatching": 0,
+          "failed": 0,
+          "queued": 0,
+          "running": 0,
+          "succeeded": 1,
+          "total": 1,
+          "waiting_for_resources": 0
+        },
+        "created_at": "2026-11-14T07:45:57.426Z",
+        "dependency_status": "AVAILABLE",
+        "download_path": "/api/task/v1/jobs/4771dc9a-5d3d-45d2-82d3-c2179d8eb868/download",
+        "finished_at": "2026-11-14T07:45:57.447Z",
+        "job_id": "4771dc9a-5d3d-45d2-82d3-c2179d8eb868",
+        "parameters": {
+          "language": "auto"
+        },
+        "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "profile_id": "ocr.default.v1",
+        "started_at": "2026-11-14T07:45:57.440Z",
+        "status": "SUCCEEDED",
+        "task_type": "ocr.image.v1",
+        "tasks": [
+          {
+            "attempts_used": 1,
+            "current_execution_id": "c4aaa88b-eac6-47c9-88a4-7485e6ed2aae",
+            "dispatches": [
+              {
+                "accepted_at": "2026-11-14T07:45:57.442Z",
+                "attempt_no": 1,
+                "error": null,
+                "execution_id": "c4aaa88b-eac6-47c9-88a4-7485e6ed2aae",
+                "finished_at": "2026-11-14T07:45:57.446Z",
+                "status": "SUCCEEDED",
+                "worker_id": "mock_worker_1"
+              }
+            ],
+            "error": null,
+            "input": {
+              "artifact_id": "mock_image_1",
+              "content_type": "image/png",
+              "created_at": "2026-11-14T07:45:57.421Z",
+              "download_path": "/api/resource/v1/artifacts/mock_image_1/content",
+              "kind": "INPUT",
+              "media_info": {
+                "audio_encoding": null,
+                "channels": null,
+                "duration_ms": null,
+                "height": 20,
+                "sample_rate_hz": null,
+                "width": 20
+              },
+              "original_name": "mock_image_1.png",
+              "sha256": "e52e8d0f800d79721f1bab6f049d901cea21a6120f072b2c0ff3ae7d768f2f7a",
+              "size_bytes": 83
+            },
+            "input_index": 0,
+            "result_artifact": {
+              "artifact_id": "result_c4aaa88b-eac6-47c9-88a4-7485e6ed2aae",
+              "content_type": "application/json",
+              "created_at": "2026-11-14T07:45:57.446Z",
+              "download_path": "/api/resource/v1/artifacts/result_c4aaa88b-eac6-47c9-88a4-7485e6ed2aae/content",
+              "kind": "RESULT",
+              "media_info": {
+                "audio_encoding": null,
+                "channels": null,
+                "duration_ms": null,
+                "height": null,
+                "sample_rate_hz": null,
+                "width": null
+              },
+              "original_name": "result_c4aaa88b-eac6-47c9-88a4-7485e6ed2aae.json",
+              "sha256": "f0b84e8541c88810d534dc73e9c7fd3492ac2ac2862f773df7d44855a3b5af82",
+              "size_bytes": 234
+            },
+            "status": "SUCCEEDED",
+            "task_id": "e3cf3624-8b0b-49f3-90e8-e864449621cb",
+            "waiting_reason": null
+          }
+        ]
+      },
+      "ocr_result": {
+        "blocks": [
+          {
+            "bbox": [
+              1,
+              1,
+              19,
+              19
+            ],
+            "confidence": 0.9,
+            "text": "MOCK OCR: mock_image_1"
+          }
+        ],
+        "image_height": 20,
+        "image_width": 20,
+        "input_artifact_id": "mock_image_1",
+        "schema_version": "1.0",
+        "task_type": "ocr.image.v1",
+        "text": "MOCK OCR: mock_image_1"
+      }
+    },
+    {
+      "test": "test_L03_cold_node_prepares_frozen_target_then_executes_and_downloads[not_prepared_matching]",
+      "initial_capability_sample": "not_prepared_matching",
+      "create_job_request": {
+        "client_request_id": "f271c9b9-219b-4151-9716-72609db3e059",
+        "input_artifact_ids": [
+          "mock_image_1"
+        ],
+        "parameters": {
+          "language": "auto"
+        },
+        "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "profile_id": "ocr.default.v1",
+        "task_type": "ocr.image.v1"
+      },
+      "preparation_request": {
+        "preparation_id": "3edbea7d-6b06-4f90-9fbe-41afe30a3009",
+        "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "profile_id": "ocr.default.v1",
+        "task_type": "ocr.image.v1",
+        "worker_id": "mock_worker_1",
+        "worker_session_id": "ee9852f7-d1ea-478c-8561-a1082660360f"
+      },
+      "last_preparation_status": "READY",
+      "execution_request": {
+        "attempt_no": 1,
+        "execution_id": "56da6e5f-13e8-45bf-b6bd-371c2ab2aaea",
+        "input_artifact_id": "mock_image_1",
+        "job_id": "44b14db9-6050-4d22-b66a-91dd79e435fc",
+        "parameters": {
+          "language": "auto"
+        },
+        "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "profile_id": "ocr.default.v1",
+        "task_id": "dfb76c65-2774-42a4-9759-4597c26356a4",
+        "task_type": "ocr.image.v1",
+        "timeout_seconds": 120,
+        "worker_id": "mock_worker_1",
+        "worker_session_id": "ee9852f7-d1ea-478c-8561-a1082660360f"
+      },
+      "final_job": {
+        "cancel_requested": false,
+        "client_request_id": "f271c9b9-219b-4151-9716-72609db3e059",
+        "counts": {
+          "cancelled": 0,
+          "cancelling": 0,
+          "dispatching": 0,
+          "failed": 0,
+          "queued": 0,
+          "running": 0,
+          "succeeded": 1,
+          "total": 1,
+          "waiting_for_resources": 0
+        },
+        "created_at": "2026-11-14T07:45:57.455Z",
+        "dependency_status": "AVAILABLE",
+        "download_path": "/api/task/v1/jobs/44b14db9-6050-4d22-b66a-91dd79e435fc/download",
+        "finished_at": "2026-11-14T07:45:57.474Z",
+        "job_id": "44b14db9-6050-4d22-b66a-91dd79e435fc",
+        "parameters": {
+          "language": "auto"
+        },
+        "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "profile_id": "ocr.default.v1",
+        "started_at": "2026-11-14T07:45:57.468Z",
+        "status": "SUCCEEDED",
+        "task_type": "ocr.image.v1",
+        "tasks": [
+          {
+            "attempts_used": 1,
+            "current_execution_id": "56da6e5f-13e8-45bf-b6bd-371c2ab2aaea",
+            "dispatches": [
+              {
+                "accepted_at": "2026-11-14T07:45:57.469Z",
+                "attempt_no": 1,
+                "error": null,
+                "execution_id": "56da6e5f-13e8-45bf-b6bd-371c2ab2aaea",
+                "finished_at": "2026-11-14T07:45:57.473Z",
+                "status": "SUCCEEDED",
+                "worker_id": "mock_worker_1"
+              }
+            ],
+            "error": null,
+            "input": {
+              "artifact_id": "mock_image_1",
+              "content_type": "image/png",
+              "created_at": "2026-11-14T07:45:57.452Z",
+              "download_path": "/api/resource/v1/artifacts/mock_image_1/content",
+              "kind": "INPUT",
+              "media_info": {
+                "audio_encoding": null,
+                "channels": null,
+                "duration_ms": null,
+                "height": 20,
+                "sample_rate_hz": null,
+                "width": 20
+              },
+              "original_name": "mock_image_1.png",
+              "sha256": "e52e8d0f800d79721f1bab6f049d901cea21a6120f072b2c0ff3ae7d768f2f7a",
+              "size_bytes": 83
+            },
+            "input_index": 0,
+            "result_artifact": {
+              "artifact_id": "result_56da6e5f-13e8-45bf-b6bd-371c2ab2aaea",
+              "content_type": "application/json",
+              "created_at": "2026-11-14T07:45:57.473Z",
+              "download_path": "/api/resource/v1/artifacts/result_56da6e5f-13e8-45bf-b6bd-371c2ab2aaea/content",
+              "kind": "RESULT",
+              "media_info": {
+                "audio_encoding": null,
+                "channels": null,
+                "duration_ms": null,
+                "height": null,
+                "sample_rate_hz": null,
+                "width": null
+              },
+              "original_name": "result_56da6e5f-13e8-45bf-b6bd-371c2ab2aaea.json",
+              "sha256": "f0b84e8541c88810d534dc73e9c7fd3492ac2ac2862f773df7d44855a3b5af82",
+              "size_bytes": 234
+            },
+            "status": "SUCCEEDED",
+            "task_id": "dfb76c65-2774-42a4-9759-4597c26356a4",
+            "waiting_reason": null
+          }
+        ]
+      },
+      "ocr_result": {
+        "blocks": [
+          {
+            "bbox": [
+              1,
+              1,
+              19,
+              19
+            ],
+            "confidence": 0.9,
+            "text": "MOCK OCR: mock_image_1"
+          }
+        ],
+        "image_height": 20,
+        "image_width": 20,
+        "input_artifact_id": "mock_image_1",
+        "schema_version": "1.0",
+        "task_type": "ocr.image.v1",
+        "text": "MOCK OCR: mock_image_1"
+      }
+    }
+  ]
+}

@@ -1,0 +1,93 @@
+{
+  "_notice": "统一计划 1.0 / 契约 0.2.0 的合成 Capability 样例；不是完整 ResourceSnapshot，不是真实模型或设备证据。digest、模型 SHA、自测和 provider 均为 MOCK。",
+  "capabilities": {
+    "not_prepared_null": {
+      "task_type": "ocr.image.v1",
+      "profile_id": "ocr.default.v1",
+      "profile_digest": null,
+      "state": "NOT_PREPARED",
+      "model_cached": false,
+      "backend": null,
+      "runtime_provider": null,
+      "model_sha256": null,
+      "verified": false,
+      "calibration": null,
+      "reason": "等待准备"
+    },
+    "not_prepared_matching": {
+      "task_type": "ocr.image.v1",
+      "profile_id": "ocr.default.v1",
+      "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "state": "NOT_PREPARED",
+      "model_cached": true,
+      "backend": null,
+      "runtime_provider": null,
+      "model_sha256": null,
+      "verified": false,
+      "calibration": null,
+      "reason": "MOCK 缓存存在，当前会话尚未验证"
+    },
+    "preparing": {
+      "task_type": "ocr.image.v1",
+      "profile_id": "ocr.default.v1",
+      "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "state": "PREPARING",
+      "model_cached": false,
+      "backend": null,
+      "runtime_provider": null,
+      "model_sha256": null,
+      "verified": false,
+      "calibration": null,
+      "reason": "MOCK 正在准备"
+    },
+    "ready": {
+      "task_type": "ocr.image.v1",
+      "profile_id": "ocr.default.v1",
+      "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "state": "READY",
+      "model_cached": true,
+      "backend": "cpu",
+      "runtime_provider": "MOCK_CPU_PROVIDER",
+      "model_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "verified": true,
+      "calibration": {
+        "sample_count": 3,
+        "median_compute_ms": 1000,
+        "passed": true,
+        "finished_at": "2026-11-14T04:00:00Z"
+      },
+      "reason": null
+    },
+    "error": {
+      "task_type": "ocr.image.v1",
+      "profile_id": "ocr.default.v1",
+      "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "state": "ERROR",
+      "model_cached": true,
+      "backend": "cpu",
+      "runtime_provider": "MOCK_CPU_PROVIDER",
+      "model_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "verified": false,
+      "calibration": {
+        "sample_count": 3,
+        "median_compute_ms": 1000,
+        "passed": false,
+        "finished_at": "2026-11-14T04:00:00Z"
+      },
+      "reason": "MOCK 自测失败"
+    },
+    "unavailable": {
+      "task_type": "ocr.image.v1",
+      "profile_id": "ocr.default.v1",
+      "profile_digest": null,
+      "state": "UNAVAILABLE",
+      "model_cached": false,
+      "backend": null,
+      "runtime_provider": null,
+      "model_sha256": null,
+      "verified": false,
+      "calibration": null,
+      "reason": "MOCK 执行器不兼容"
+    }
+  }
+}

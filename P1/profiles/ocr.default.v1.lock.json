@@ -1,0 +1,22 @@
+{
+  "task_type": "ocr.image.v1",
+  "profile_id": "ocr.default.v1",
+  "model_id": "rapidocr-ppocrv6-small-bundled",
+  "model_source": "rapidocr==3.10.0 内置权重：PP-OCRv6_det_small.onnx + ch_ppocr_mobile_v2.0_cls_mobile.onnx + PP-OCRv6_rec_small.onnx（site-packages/rapidocr/models/，组合 SHA256 按文件名序拼接字节计算）",
+  "model_sha256": "3358ac6b2a0919cf5c72159265440ba62fb496b504d1fc6fb92a4ffc4fc0edc5",
+  "weights_license_verified": true,
+  "dependencies": {
+    "python": "3.9.6",
+    "rapidocr": "3.10.0",
+    "onnxruntime": "1.19.2",
+    "pillow": "11.3.0",
+    "license_note": "RapidOCR Apache-2.0；PP-OCR 权重 Apache-2.0（PaddleOCR）。来源与许可核对记录见 profiles/SELFTEST.md"
+  },
+  "preprocessing": "PIL 打开 -> ImageOps.exif_transpose -> convert RGB -> numpy uint8；不做缩放/二值化",
+  "postprocessing": "四点多边形取轴对齐外接矩形并裁剪到图像边界；块按 y0 分行(12px 行距)、行内按 x0 排序；text 为块文本换行拼接；confidence 保留 6 位小数",
+  "minimum_ram_bytes": 1073741824,
+  "supported_languages": ["auto", "zh", "en"],
+  "allowed_backends": ["cpu"],
+  "output_schema": "OCRResult",
+  "frozen_at": "2026-11-14T04:30:00Z"
+}

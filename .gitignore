@@ -6,3 +6,6 @@ __pycache__/
 .env
 var/
 .DS_Store
+# Temporary compatibility symlinks for demo processes started before the P2 move.
+/.venv
+/var
