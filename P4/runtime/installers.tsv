@@ -1,0 +1,6 @@
+platform	url	sha256
+osx-arm64	https://github.com/mamba-org/micromamba-releases/releases/download/2.3.3-0/micromamba-osx-arm64	aa23d0e01d6f492f43aa86720c0f4c8db91978b81f8af46a852f6c4fcf6737d5
+osx-64	https://github.com/mamba-org/micromamba-releases/releases/download/2.3.3-0/micromamba-osx-64	d61b4b752be3464e7162688f568327888cd826c5ec14462e44f42816660e77fd
+win-64	https://github.com/mamba-org/micromamba-releases/releases/download/2.3.3-0/micromamba-win-64	90085767d811e08a0fe240f7cb7a713915e1e5f24e3b0acfad9b37daa64c98fe
+linux-64	https://github.com/mamba-org/micromamba-releases/releases/download/2.3.3-0/micromamba-linux-64	9496f94a8b78c536573c93d946ec9bba74bd9ff79ee55aaa4b546e30db8f511b
+linux-aarch64	https://github.com/mamba-org/micromamba-releases/releases/download/2.3.3-0/micromamba-linux-aarch64	0289350c2c89f7410554041e25b444cce30df326b227e70ead3e4a1e0b316286

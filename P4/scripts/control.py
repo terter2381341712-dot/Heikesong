@@ -35,6 +35,7 @@ from urllib.parse import urlsplit
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import cluster  # noqa: E402
 import compute_config
+import managed_runtime
 
 ROOT = cluster.ROOT
 DISCOVERY_PORT = 37043
@@ -191,6 +192,7 @@ class Runtime:
     def setup_command(self, command, output):
         self.active = subprocess.Popen(
             command,
+            env=managed_runtime.process_environment(command[0]),
             stdout=output,
             stderr=output,
             start_new_session=os.name != "nt",
@@ -295,6 +297,10 @@ class Runtime:
 
     def ensure(self, component, progress):
         override = os.environ.get(f"P4_{component}_PYTHON")
+        if not override:
+            executable = managed_runtime.Manager(runner=self.setup_command).ensure(component, progress)
+            self.selected[component] = executable
+            return executable
         compatible = []
         progress(f"检测 {component} 的本机解释器和依赖…")
         candidates = [Path(override)] if override else self.candidates(component)
@@ -402,7 +408,8 @@ class Panel:
             )
             for key in ("TASK_TOKEN", "JOIN_TOKEN"):
                 env.pop(key, None)
-            self.launch(role, [self.node_executable, "server.js"], ROOT / "web", env)
+            self.launch(role, [self.node_executable, "server.js"], ROOT / "web",
+                        managed_runtime.process_environment(self.node_executable, env))
             return
         component = "P2" if role == "task" else "P1"
         executable = self.runtime.selected.get("node", self.runtime.selected.get(component)) if role == "node" else self.runtime.selected[component]
@@ -437,7 +444,7 @@ class Panel:
             materialize_profiles(compute_config.profiles(self.compute), self.profile_dir)
             env["RESOURCE_PROFILES_DIR"] = str(self.profile_dir)
             env["NODE_PROFILES_DIR"] = str(self.profile_dir)
-        self.launch(role, argv, ROOT / component, env)
+        self.launch(role, argv, ROOT / component, managed_runtime.process_environment(executable, env))
 
     def launch(self, role, argv, cwd, env):
         self.logs[role] = (self.directory / f"{role}.log").open("ab")
@@ -556,15 +563,7 @@ class Panel:
         log = self.logs.pop("web", None)
         if log:
             log.close()
-        self.node_executable = shutil.which("node")
-        try:
-            version = subprocess.check_output(
-                [self.node_executable or "node", "--version"], text=True, timeout=5
-            )
-            if int(version.lstrip("v").split(".")[0]) < 22:
-                raise ValueError
-        except (OSError, ValueError, subprocess.SubprocessError) as exc:
-            raise ValueError("启动工作台需要 Node.js 22 或以上，请安装后重试。") from exc
+        self.node_executable = managed_runtime.Manager(runner=self.runtime.setup_command).ensure("web", self.progress)
         try:
             self.spawn("web")
             self.wait_health("web")
@@ -647,6 +646,10 @@ class Panel:
             executable = compute_config.node_interpreter(self.compute, node["python"])
             compute_config.validate_node_runtime(self.compute, executable)
             self.runtime.selected["node"] = str(executable)
+        elif node["backend"] == "cuda":
+            executable = managed_runtime.Manager(runner=self.runtime.setup_command).ensure("CUDA", self.progress)
+            compute_config.validate_node_runtime(self.compute, executable)
+            self.runtime.selected["node"] = executable
         else:
             executable = self.runtime.ensure("P1", self.progress)
             if executable:
@@ -799,6 +802,7 @@ class Panel:
         if not prepared:
             subprocess.run(
                 [self.runtime.selected["P1"], "-c", generator, str(image_dir)],
+                env=managed_runtime.process_environment(self.runtime.selected["P1"]),
                 check=True,
                 timeout=15,
             )
@@ -825,6 +829,7 @@ class Panel:
                 ],
                 stdout=log,
                 stderr=log,
+                env=managed_runtime.process_environment(self.runtime.selected["P2"]),
                 timeout=210,
             )
         if result.returncode:

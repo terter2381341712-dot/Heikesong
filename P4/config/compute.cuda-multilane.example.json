@@ -2,7 +2,6 @@
   "profile_set": "heterogeneous",
   "node": {
     "backend": "cuda",
-    "python": "../../P1/.venv-gpu/Scripts/python.exe",
     "slots": 2,
     "threads": 2,
     "cpu_budget": 4,

@@ -14,6 +14,7 @@ from urllib.parse import urlsplit
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import compute_config
+import managed_runtime
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -217,12 +218,19 @@ def run(args):
         raise ValueError("节点名仅可含 ASCII 字母、数字、下划线、短横线")
     # Validate every role before starting anything. --plan never opens a port or starts a service.
     plan = []
+    selected = {}
     for role in roles:
-        executable = interpreter_for(role, args.p1_python, args.p2_python)
+        explicit = args.p2_python if role == "task" else (compute["node"]["python"] or args.p1_python) if role == "node" else args.p1_python
+        if explicit or args.plan:
+            executable = interpreter_for(role, args.p1_python, args.p2_python)
+        else:
+            component = "P2" if role == "task" else "CUDA" if role == "node" and compute["node"]["backend"] == "cuda" else "P1"
+            executable = Path(managed_runtime.Manager().ensure(component))
         if role == "node":
             executable = compute_config.node_interpreter(compute, executable)
             if not args.plan:
                 compute_config.validate_node_runtime(compute, executable)
+        selected[role] = executable
         if not executable.is_file():
             raise ValueError(f"解释器不存在：{executable}；先按 README 安装本角色环境")
         environment(
@@ -261,9 +269,7 @@ def run(args):
 
                 fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
             component = "P2" if role == "task" else "P1"
-            interpreter = interpreter_for(role, args.p1_python, args.p2_python)
-            if role == "node":
-                interpreter = compute_config.node_interpreter(compute, interpreter)
+            interpreter = selected[role]
             # Bind check never kills an existing service.
             if role != "node":
                 with socket.socket() as probe:
@@ -287,7 +293,7 @@ def run(args):
                 subprocess.Popen(
                     argv,
                     cwd=ROOT / component,
-                    env={**environment(
+                    env=managed_runtime.process_environment(interpreter, {**environment(
                         config,
                         role,
                         directory,
@@ -295,7 +301,7 @@ def run(args):
                         args.resource_port,
                         args.task_port,
                         args.node_name,
-                    ), **compute_config.environment(compute)},
+                    ), **compute_config.environment(compute)}),
                     stdout=log,
                     stderr=subprocess.STDOUT,
                     start_new_session=(os.name != "nt"),

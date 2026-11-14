@@ -32,6 +32,8 @@ def linked_python(tmp_path, monkeypatch):
 
 
 def test_selected_ready_venv_does_not_turn_into_system_python(linked_python, monkeypatch):
+    monkeypatch.setenv("P4_P1_PYTHON", str(linked_python.entry))
+    monkeypatch.setenv("P4_P2_PYTHON", str(linked_python.base))
     runtime = control.Runtime(linked_python.root / "runtime")
     monkeypatch.setattr(runtime, "candidates", lambda component: [linked_python.entry])
     monkeypatch.setattr(runtime, "probe", lambda *args: {"ready": True, "compatible": True})
@@ -40,6 +42,8 @@ def test_selected_ready_venv_does_not_turn_into_system_python(linked_python, mon
 
 
 def test_p2_installs_and_checks_in_the_selected_venv(linked_python, monkeypatch):
+    monkeypatch.setenv("P4_P1_PYTHON", str(linked_python.entry))
+    monkeypatch.setenv("P4_P2_PYTHON", str(linked_python.base))
     runtime = control.Runtime(linked_python.root / "runtime")
     suffix = "Scripts/python.exe" if os.name == "nt" else "bin/python"
     expected = runtime.directory / "P2" / suffix
@@ -64,6 +68,8 @@ def test_p2_installs_and_checks_in_the_selected_venv(linked_python, monkeypatch)
 
 
 def test_newly_prepared_venv_path_is_preserved(linked_python, monkeypatch):
+    monkeypatch.setenv("P4_P1_PYTHON", str(linked_python.entry))
+    monkeypatch.setenv("P4_P2_PYTHON", str(linked_python.base))
     runtime = control.Runtime(linked_python.root / "runtime")
     suffix = "Scripts/python.exe" if os.name == "nt" else "bin/python"
     expected = runtime.directory / "P1" / suffix

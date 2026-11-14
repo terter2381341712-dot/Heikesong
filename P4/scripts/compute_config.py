@@ -6,6 +6,8 @@ import os
 import subprocess
 from pathlib import Path
 
+import managed_runtime
+
 ROOT = Path(__file__).resolve().parents[2]
 CONTRACT_VERSION = "0.4.0"
 DEFAULT_PATH = ROOT / "P4/var/compute.json"
@@ -65,8 +67,6 @@ def load(path=None):
     if n["backend"] == "cuda":
         if result["profile_set"] != "heterogeneous":
             raise ValueError("CUDA 节点须选择 heterogeneous profile")
-        if not n["python"]:
-            raise ValueError("CUDA 节点必须显式配置独立的 node.python")
         if n["slots"] > 1 and not n["gpu_lane_vram_bytes"]:
             raise ValueError("GPU 多路必须配置实测 gpu_lane_vram_bytes")
     if n["python"] is not None:
@@ -111,7 +111,8 @@ print(json.dumps({'python':platform.python_version(),'dependencies':installed,'m
 """
     try:
         p = subprocess.run([str(executable), "-c", code, json.dumps(expected), opposite],
-                           capture_output=True, text=True, timeout=20, check=True)
+                           capture_output=True, text=True, timeout=20, check=True,
+                           env=managed_runtime.process_environment(executable))
         actual = json.loads(p.stdout)
         valid = actual["python"] == deps["python"] and actual["dependencies"] == expected and not actual["mixed"]
     except (OSError, subprocess.SubprocessError, ValueError, KeyError):

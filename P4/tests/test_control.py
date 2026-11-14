@@ -294,14 +294,14 @@ def test_runtime_detects_version_without_installing(tmp_path):
 
 def test_missing_runtime_does_not_silently_change_profile(tmp_path, monkeypatch):
     runtime = control.Runtime(tmp_path)
-    monkeypatch.setattr(runtime, "candidates", lambda component: [])
+    monkeypatch.setenv("P4_P1_PYTHON", str(tmp_path / "missing-python"))
     with pytest.raises(ValueError, match="3.9.6"):
         runtime.ensure("P1", lambda msg: None)
 
 
 def test_ready_runtime_selected_automatically(tmp_path, monkeypatch):
     runtime = control.Runtime(tmp_path)
-    monkeypatch.setattr(runtime, "candidates", lambda component: [Path(sys.executable)])
+    monkeypatch.setenv("P4_P1_PYTHON", str(Path(sys.executable)))
     monkeypatch.setattr(runtime, "probe", lambda *args: {"compatible": True, "ready": True})
     assert runtime.ensure("P1", lambda msg: None) == str(Path(sys.executable).absolute())
 
@@ -442,6 +442,7 @@ def test_p2_rejects_python_396_even_with_dependencies(tmp_path, monkeypatch):
     runtime = control.Runtime(tmp_path)
     executable = Path(sys.executable).absolute()
     runtime.selected["P1"] = str(executable)
+    monkeypatch.setenv("P4_P2_PYTHON", str(executable))
     monkeypatch.setattr(
         control.subprocess,
         "run",
