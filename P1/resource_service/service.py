@@ -418,9 +418,11 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
         s = state()
         if role != ROLE_DEMO:
             raise forbidden()
-        _get_node_or_404(s, worker_id)
         now = iso_now()
         with s.db.write() as conn:
+            node = _get_node_or_404(s, worker_id)
+            if not node["sharing_enabled"]:
+                raise ApiError(409, "NODE_UNAVAILABLE", "设备已关闭资源共享，请在该设备的 Node 程序中开启共享")
             conn.execute(
                 "UPDATE nodes SET mode=? WHERE worker_id=?", (body.mode, worker_id)
             )

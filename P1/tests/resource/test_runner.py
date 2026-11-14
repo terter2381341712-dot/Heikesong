@@ -33,10 +33,9 @@ def runner(tmp_path_factory):
     return r
 
 
-def test_combined_model_sha(runner):
-    sha = combined_model_sha256()
-    assert len(sha) == 64
-    int(sha, 16)  # 合法 hex
+def test_combined_model_sha():
+    profile = json.loads(Path("profiles/ocr.default.v1.lock.json").read_bytes())
+    assert combined_model_sha256() == profile["model_sha256"]
 
 
 @pytest.mark.parametrize(
