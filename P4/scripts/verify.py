@@ -239,6 +239,10 @@ class Probe:
         dump(self.output / "job-request.json", request)  # Keep ID even if response is lost.
         begin = time.monotonic()
         job = self.call("task", "POST", "/jobs", "Job", status=201, json=request)
+        reference = self.output / "job-reference.json"
+        temporary = reference.with_suffix(".tmp")
+        dump(temporary, {"job_id": job["job_id"]})
+        temporary.replace(reference)
         dump(self.output / "job.json", job)
         replay = self.call("task", "POST", "/jobs", "Job", json=request)
         require(replay["job_id"] == job["job_id"], "Job 重放创建新批次")

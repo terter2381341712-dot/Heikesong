@@ -6,6 +6,7 @@ import {
   resourceCard, resourceTile, terminal, typeName, updateHtml,
 } from './render.js';
 import { syncPlayback } from './workflow.js';
+import { setupDeviceControl } from './device-control.js';
 
 const $ = (id) => document.getElementById(id);
 const icons = {
@@ -54,6 +55,7 @@ let displayedDevice = null;
 let displayedPin = null;
 let deviceDetailMotion;
 let settingsMotion;
+let deviceControl;
 
 function storageKey(part) {
   return `edge-fabric:0.2:${state.mode}:${part}`;
@@ -538,6 +540,7 @@ function route() {
   const changedView = state.view !== view;
   const changedJob = isJobView(view) && state.jobId !== jobId;
   if (state.view === 'resources' && changedView) {
+    deviceControl.reset();
     pinnedDevice = previewDevice = previewDismissed = null;
     deviceDetailMotion?.cancel();
     deviceDetailMotion = null;
@@ -856,7 +859,26 @@ async function openSettings(event) {
   }
 }
 
+function applyCredential(token) {
+  setDemoToken(token);
+  for (const service of ['P1', 'P2']) {
+    if (state.connections[service] === 'auth') state.connections[service] = 'pending';
+  }
+  updateConnections();
+}
+
 function bind() {
+  deviceControl = setupDeviceControl({
+    navigate,
+    authenticate(token) {
+      applyCredential(token);
+      restartPoll();
+    },
+    unauthenticate() {
+      applyCredential('');
+      restartPoll();
+    },
+  });
   window.addEventListener('hashchange', route);
   reduceMotion.addEventListener('change', () => {
     if (reduceMotion.matches) {
@@ -970,6 +992,7 @@ function bind() {
     renderForm();
     renderJobs();
     renderResources();
+    deviceControl.render();
   });
   $('close-settings').addEventListener('click', () => $('settings-dialog').close());
   $('settings-dialog').addEventListener('close', () => {
@@ -985,11 +1008,8 @@ function bind() {
       if (state.mode === 'mock') {
         state.scenario = (await setScenario($('scenario').value)).scenario;
       } else {
-        setDemoToken($('token').value);
-        for (const service of ['P1', 'P2']) {
-          if (state.connections[service] === 'auth') state.connections[service] = 'pending';
-        }
-        updateConnections();
+        deviceControl.manualCredential();
+        applyCredential($('token').value);
       }
       $('settings-dialog').close();
       restartPoll();

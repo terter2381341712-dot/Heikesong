@@ -37,6 +37,12 @@ import cluster  # noqa: E402
 ROOT = cluster.ROOT
 DISCOVERY_PORT = 37043
 PROTOCOL = "P4-PAIR-2"
+CONTROL_ASSETS = {
+    "/assets/anthropic-sans-normal.woff2": "font/woff2",
+    "/assets/anthropic-mono-normal.woff2": "font/woff2",
+    "/assets/noto-sans-sc-home.woff2": "font/woff2",
+    "/styles.css": "text/css; charset=utf-8",
+}
 
 
 def encode_connection_code(address, port, code):
@@ -215,7 +221,7 @@ class Runtime:
         ]
         if component == "P1":
             values += [ROOT / "P4/var/mac-p1" / suffix, ROOT / "P4/var/python39/python.exe"]
-        for name in ("python3.9", "python3.11", "python3.12", "python3.13", "python3", "python"):
+        for name in ("python3.9", "python3.11", "python3.12", "python3.13", "python3.14", "python3", "python"):
             found = shutil.which(name)
             if found:
                 values.append(Path(found))
@@ -354,6 +360,7 @@ class Panel:
         self.closed = threading.Event()
         self.worker = None
         self.last_result = None
+        self.test_run = None
         self.profile_dir = self.directory / "profiles"
         self.operation_started = None
         self.events = []
@@ -368,14 +375,13 @@ class Panel:
     def spawn(self, role):
         if self.closed.is_set():
             raise ValueError("控制台已关闭。")
-        bind = "127.0.0.1" if self.address == "127.0.0.1" else "0.0.0.0"
         if role == "web":
             env = dict(os.environ)
             env.update(
-                WEB_HOST=bind,
+                WEB_HOST="0.0.0.0",
                 WEB_PORT=str(self.web_port),
-                RESOURCE_BASE_URL=self.config["resource_url"],
-                TASK_BASE_URL=self.config["task_url"],
+                P4_CONTROL_PORT=str(self.port),
+                P4_MANAGED_WORKBENCH="1",
                 DEMO_TOKEN="",  # Prevent fallback authentication, including from web/.env.
             )
             for key in ("TASK_TOKEN", "JOIN_TOKEN"):
@@ -389,6 +395,7 @@ class Panel:
         ]
         argv = cluster.module_command(executable, component, module)
         if role == "node":
+            (self.directory / "node-status.json").unlink(missing_ok=True)
             save(
                 self.directory / "node-control.json",
                 {"enabled": False, "revision": uuid.uuid4().hex},
@@ -406,6 +413,8 @@ class Panel:
             self.config, role, self.directory / "data", self.address, 8001, 8002, self.name
         )
         env["PYTHONUNBUFFERED"] = "1"
+        if os.name == "nt" and role in {"resource", "task"}:
+            env["UVICORN_LOOP"] = "asyncio:SelectorEventLoop"
         if role in {"resource", "node"}:
             materialize_profiles(ROOT / "P1/profiles", self.profile_dir)
             env["RESOURCE_PROFILES_DIR"] = str(self.profile_dir)
@@ -426,19 +435,21 @@ class Panel:
         )
 
     def wait_health(self, role):
-        resource_path = "/api/resource/v1/healthz"
-        task_path = "/api/task/v1/healthz"
-        web_base = f"http://127.0.0.1:{self.web_port}"
-        urls = {
-            "resource": [self.config["resource_url"] + resource_path],
-            "task": [self.config["task_url"] + task_path],
-            "web": [web_base + resource_path, web_base + task_path],
-        }[role]
-        for _ in range(60):
+        url = (
+            f"http://127.0.0.1:{self.web_port}/config" if role == "web"
+            else self.config[f"{role}_url"] + f"/api/{role}/v1/healthz"
+        )
+        deadline = time.monotonic() + 18
+        while time.monotonic() < deadline:
             if self.processes[role].poll() is not None:
                 raise ValueError(f"{role} 启动失败，查看本页日志。")
             try:
-                if all(request_json(url, timeout=1)["contract_version"] == "0.2.0" for url in urls):
+                data = request_json(url, timeout=1)
+                ready = (
+                    data.get("managed") is True if role == "web"
+                    else data.get("contract_version") == "0.2.0"
+                )
+                if ready:
                     return
             except (OSError, ValueError, KeyError):
                 pass
@@ -474,13 +485,12 @@ class Panel:
             resource_url=f"http://{selected_address}:8001",
             task_url=f"http://{selected_address}:8002",
         )
-        bind = "127.0.0.1" if selected_address == "127.0.0.1" else "0.0.0.0"
-        for host, port in ((selected_address, 8001), (selected_address, 8002), (bind, self.web_port)):
+        for port in (8001, 8002):
             with socket.socket() as probe:
                 if os.name == "nt":
                     probe.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
                 try:
-                    probe.bind((host, port))
+                    probe.bind((selected_address, port))
                 except OSError as exc:
                     raise ValueError(
                         f"中心启动失败：端口 {port} 无法使用（可能已被旧服务占用）。"
@@ -488,15 +498,7 @@ class Panel:
                         "再重试。直接结束控制台进程可能留下服务；"
                         "程序不会自动结束无法确认归属的进程。"
                     ) from exc
-        self.node_executable = shutil.which("node")
-        try:
-            version = subprocess.check_output(
-                [self.node_executable or "node", "--version"], text=True, timeout=5
-            )
-            if int(version.lstrip("v").split(".")[0]) < 22:
-                raise ValueError
-        except (OSError, ValueError, subprocess.SubprocessError) as exc:
-            raise ValueError("启动工作台需要 Node.js 22 或以上，请安装后重试。") from exc
+        self.ensure_workbench()
         self.runtime.ensure("P1", self.progress)
         self.runtime.ensure("P2", self.progress)
         save(path, config)
@@ -506,8 +508,6 @@ class Panel:
             self.wait_health("resource")
             self.spawn("task")
             self.wait_health("task")
-            self.spawn("web")
-            self.wait_health("web")
             if local_node:
                 self.spawn("node")
                 self.sharing(True)
@@ -521,6 +521,34 @@ class Panel:
             )
         except Exception:
             self.stop()
+            raise
+
+    def ensure_workbench(self):
+        process = self.processes.get("web")
+        if process and process.poll() is None:
+            return
+        if process:
+            self.processes.pop("web")
+        log = self.logs.pop("web", None)
+        if log:
+            log.close()
+        self.node_executable = shutil.which("node")
+        try:
+            version = subprocess.check_output(
+                [self.node_executable or "node", "--version"], text=True, timeout=5
+            )
+            if int(version.lstrip("v").split(".")[0]) < 22:
+                raise ValueError
+        except (OSError, ValueError, subprocess.SubprocessError) as exc:
+            raise ValueError("启动工作台需要 Node.js 22 或以上，请安装后重试。") from exc
+        try:
+            self.spawn("web")
+            self.wait_health("web")
+        except (OSError, ValueError):
+            if "web" in self.processes:
+                self.stop(close_workbench=True)
+            elif log := self.logs.pop("web", None):
+                log.close()
             raise
 
     def pair(self, body):
@@ -541,7 +569,6 @@ class Panel:
     def join(self, address, code):
         if self.mode != "idle":
             raise ValueError("请先停止当前角色，再切换。")
-        self.runtime.ensure("P1", self.progress)
         parsed = urlsplit(address if "://" in address else "http://" + address)
         if (
             parsed.scheme != "http"
@@ -554,6 +581,8 @@ class Panel:
             raise ValueError("中心地址应为局域网IP，或 http://IP:控制台端口。")
         host = parsed.hostname
         port = parsed.port or 8003
+        if host in {self.address, "127.0.0.1", "localhost"} and port == self.port:
+            raise ValueError("请选择另一台电脑的中心控制台。")
         config = request_json(
             f"http://{host}:{port}/api/pair",
             {"protocol": PROTOCOL, "code": code, "fingerprint": fingerprint()},
@@ -562,6 +591,7 @@ class Panel:
         if config.get("protocol") != PROTOCOL or set(config.get("tokens", {})) != {"JOIN_TOKEN"}:
             raise ValueError("配对响应不符合协议。")
         cluster.base_url(config["resource_url"])
+        self.runtime.ensure("P1", self.progress)
         config["local_fingerprint"] = fingerprint()
         config["paired_device_id"] = self.identity
         self.config = config
@@ -617,14 +647,18 @@ class Panel:
         self.sharing_requested = enabled
         self.progress("已请求开启共享。" if enabled else "已请求关闭共享，等待节点确认停止。")
 
-    def stop(self):
+    def stop(self, close_workbench=False):
         self.code_until = 0
         if "node" in self.processes and self.processes["node"].poll() is None:
             try:
                 self.sharing(False)
             except OSError:
                 pass
-        for role, process in reversed(list(self.processes.items())):
+        roles = [role for role in reversed(self.processes) if role != "web"]
+        if close_workbench and "web" in self.processes:
+            roles.append("web")
+        for role in roles:
+            process = self.processes[role]
             self.progress(
                 f"正在停止 {dict(node='本机计算', task='任务分配服务', resource='设备管理服务', web='工作台').get(role, role)}…"
             )
@@ -648,23 +682,33 @@ class Panel:
                     process.wait(timeout=5)
             if process.stdin:
                 process.stdin.close()
-        self.processes.clear()
-        for log in self.logs.values():
-            log.close()
-        self.logs.clear()
+            self.processes.pop(role)
+            log = self.logs.pop(role, None)
+            if log:
+                log.close()
         self.mode, self.sharing_requested = "idle", False
-        self.progress("本次启动的服务已停止，配置与任务数据保留。")
+        self.progress("本机计算与后端服务已停止，配置与任务数据保留。")
 
     def test_job(self):
         if self.mode != "center":
             raise ValueError("请先启动中心。")
+        self.last_result = None
+        output = self.directory / ("test-" + uuid.uuid4().hex[:8])
+        self.test_run = (output, "running")
+        try:
+            self.verify_test_job(output)
+        except Exception:
+            self.test_run = (output, "failed")
+            raise
+        self.test_run = (output, "passed")
+
+    def verify_test_job(self, output):
         image_dir = self.directory / "test-inputs"
         image_dir.mkdir(exist_ok=True)
         generator = "from PIL import Image,ImageDraw,ImageFont; from pathlib import Path; import sys\nfor i,text in enumerate(('HELLO OCR 123','APPROVED 456')):\n im=Image.new('RGB',(640,220),'white'); ImageDraw.Draw(im).text((30,70),text,font=ImageFont.load_default(size=44),fill='black'); im.save(Path(sys.argv[1])/f'input-{i}.png')"
         subprocess.run(
             [self.runtime.selected["P1"], "-c", generator, str(image_dir)], check=True, timeout=15
         )
-        output = self.directory / ("test-" + uuid.uuid4().hex[:8])
         self.progress("正在提交两张新测试图，等待真实OCR与结果下载核验…")
         with (self.directory / "test.log").open("wb") as log:
             result = subprocess.run(
@@ -704,6 +748,28 @@ class Panel:
         self.progress(
             f"真实OCR/结果/ZIP验证通过；贡献节点数 {len(report.get('successful_workers', []))}。证据：{output}"
         )
+
+    def test_status(self):
+        run = self.test_run
+        if run is None:
+            return None
+        output, outcome = run
+        reference = {}
+        try:
+            reference = read_json(output / "job-reference.json")
+        except (OSError, ValueError):
+            # The verifier may still be uploading inputs or publishing the reference.
+            pass
+        return {"state": outcome, "job_id": reference.get("job_id")}
+
+    def node_status(self):
+        try:
+            node = read_json(self.directory / "node-status.json")
+            if time.time() - node["received_at"] <= 12:
+                return {"connection": "ONLINE", "mode": node["mode"], "worker_id": node["worker_id"]}
+            return {"connection": "STALE", "mode": None, "worker_id": node["worker_id"]}
+        except (OSError, ValueError, KeyError):
+            return {"connection": "PENDING", "mode": None, "worker_id": None}
 
     def background(self, function):
         with self.lock:
@@ -759,11 +825,11 @@ class Panel:
                 "processes": {k: p.poll() is None for k, p in self.processes.items()},
                 "python_paths": dict(self.runtime.selected),
             }
-        if state["mode"] == "center" and state["processes"].get("web"):
+        if state["processes"].get("web"):
             state["workbench"] = {
                 "local_url": f"http://127.0.0.1:{self.web_port}/",
                 "lan_url": f"http://{state['address']}:{self.web_port}/"
-                if state["address"] != "127.0.0.1"
+                if state["mode"] == "center" and state["address"] != "127.0.0.1"
                 else "",
             }
         state["connection_code"] = (
@@ -786,6 +852,8 @@ class Panel:
                 read_json(self.directory / "node.json").get("paired_device_id") == self.identity
             )
         state["has_result"] = self.last_result is not None and self.last_result.exists()
+        state["ocr_test"] = self.test_status() if state["mode"] == "center" else None
+        state["local_node"] = self.node_status() if state["processes"].get("node") else None
         if any(not running for running in state["processes"].values()):
             state["message"] = (
                 "有服务已退出，请查看下方日志。点击“停止本机服务”后可以重试。\n" + state["message"]
@@ -916,7 +984,7 @@ def handler_for(panel):
         def log_message(self, *args):
             pass  # Never log pairing codes or payloads.
 
-        def send(self, status, body, content_type="application/json; charset=utf-8"):
+        def send(self, status, body, content_type="application/json; charset=utf-8", cache="no-store"):
             raw = (
                 body
                 if isinstance(body, bytes)
@@ -929,12 +997,12 @@ def handler_for(panel):
             self.send_response(status)
             self.send_header("Content-Type", content_type)
             self.send_header("Content-Length", str(len(raw)))
-            self.send_header("Cache-Control", "no-store")
+            self.send_header("Cache-Control", cache)
             self.send_header("X-P4-Control", PROTOCOL)
             self.send_header("X-Content-Type-Options", "nosniff")
             self.send_header(
                 "Content-Security-Policy",
-                "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; frame-ancestors 'none'; base-uri 'none'",
+                "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
             )
             self.end_headers()
             self.wfile.write(raw)
@@ -949,6 +1017,20 @@ def handler_for(panel):
         def do_GET(self):
             if not self.local():
                 return self.send(403, {"error": "控制页面仅允许本机访问"})
+            if self.path in CONTROL_ASSETS:
+                asset = ROOT / "web/public" / self.path.lstrip("/")
+                return self.send(200, asset.read_bytes(), CONTROL_ASSETS[self.path], "no-cache")
+            if self.path == "/api/bridge-session" and self.headers.get("X-P4-Bridge") == "1":
+                return self.send(200, {"session": panel.session})
+            if self.path == "/api/bridge-upstreams" and self.headers.get("X-P4-Bridge") == "1":
+                with panel.lock:
+                    if panel.mode == "center" and panel.config:
+                        return self.send(200, {
+                            "resource": panel.config["resource_url"],
+                            "task": panel.config["task_url"],
+                            "lan": panel.address != "127.0.0.1",
+                        })
+                return self.send(503, {"error": "中心服务未连接"})
             if self.path == "/":
                 html = (
                     (ROOT / "P4/control.html")
@@ -1054,8 +1136,16 @@ def main():
     threading.Thread(target=discovery_server, args=(panel,), daemon=True).start()
     url = f"http://127.0.0.1:{panel.port}"
     print("控制台：" + url, flush=True)
+    open_url = url
+    if shutil.which("node"):
+        try:
+            panel.ensure_workbench()
+            open_url = f"http://127.0.0.1:{panel.web_port}/"
+            print("工作台：" + open_url, flush=True)
+        except (ValueError, OSError) as exc:
+            panel.progress(str(exc))
     if not args.no_browser:
-        webbrowser.open(url)
+        webbrowser.open(open_url)
     try:
         server.serve_forever(poll_interval=0.3)
     except KeyboardInterrupt:
@@ -1065,7 +1155,7 @@ def main():
         panel.runtime.cancelled.set()
         if panel.worker:
             panel.worker.join(timeout=12)
-        panel.stop()
+        panel.stop(close_workbench=True)
         server.server_close()
     return 0
 

@@ -87,6 +87,12 @@ def test_pair_guess_limit_and_refresh(panel):
 def test_http_panel_locality_session_and_origin(panel, server):
     assert call(server, "/")[0] == 200
     assert call(server, "/", headers={"Host": "evil.example"})[0] == 403
+    status, css = call(server, "/styles.css")
+    assert status == 200 and b"--device-glass" in css
+    assert call(server, "/api/bridge-session")[0] == 404
+    assert call(server, "/api/bridge-session", headers={"Host": "evil.example", "X-P4-Bridge": "1"})[0] == 403
+    status, body = call(server, "/api/bridge-session", headers={"X-P4-Bridge": "1"})
+    assert status == 200 and json.loads(body) == {"session": panel.session}
     assert call(server, "/api/status")[0] != 200
     headers = {"X-P4-Session": panel.session}
     status, body = call(server, "/api/status", headers=headers)
@@ -267,6 +273,23 @@ def test_copied_identity_is_replaced_on_another_machine(tmp_path, monkeypatch):
     data["machine_marker"] = "another-computer"
     control.save(tmp_path / "identity.json", data)
     assert control.Panel(tmp_path).identity != original
+
+
+def test_control_status_exposes_p4_job_reference_and_confirmed_heartbeat(panel, monkeypatch):
+    monkeypatch.setattr(control, "request_json", lambda *args, **kwargs: {"resources": []})
+    output = panel.directory / "test"
+    panel.test_run = (output, "running")
+    panel.processes["node"] = SimpleNamespace(poll=lambda: None)
+    assert panel.status()["ocr_test"] == {"state": "running", "job_id": None}
+    assert panel.status()["local_node"]["connection"] == "PENDING"
+    control.save(output / "job-reference.json", {"job_id": "test-job"})
+    status_file = panel.directory / "node-status.json"
+    control.save(status_file, {"worker_id": "worker", "mode": "PAUSED", "received_at": time.time()})
+    status = panel.status()
+    assert status["ocr_test"] == {"state": "running", "job_id": "test-job"}
+    assert status["local_node"] == {"worker_id": "worker", "mode": "PAUSED", "connection": "ONLINE"}
+    control.save(status_file, {"worker_id": "worker", "mode": "PAUSED", "received_at": time.time() - 30})
+    assert panel.status()["local_node"] == {"worker_id": "worker", "mode": None, "connection": "STALE"}
 
 
 def test_zip_requires_local_session(panel, server, tmp_path):

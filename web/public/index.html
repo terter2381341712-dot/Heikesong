@@ -144,18 +144,126 @@
         <div id="job-detail" role="region" tabindex="-1" aria-label="任务详情" data-en-label="Job details"></div>
       </div>
       <div id="view-resources" hidden>
-        <div class="resource-heading">
-          <p id="resource-counts" hidden></p>
-        </div>
-        <div id="resource-alert"></div>
-        <div id="resource-empty"></div>
-        <div id="resource-layout" class="resource-layout" hidden>
-          <div id="resource-grid" class="resource-grid"></div>
-          <div id="resource-inspector" class="resource-inspector">
-            <p id="resource-instruction" class="resource-instruction" data-en="Hover to preview. Click a device to pin or hide its details.">悬停预览，点击设备可固定或收起详情。</p>
-            <div id="resource-detail" hidden></div>
+        <nav class="device-switch" aria-label="设备面板" data-en-label="Device views">
+          <button id="show-devices" class="button secondary" type="button" aria-pressed="true" aria-controls="device-inventory" data-en="Devices">设备列表</button>
+          <button id="show-device-control" class="button secondary" type="button" aria-pressed="false" aria-controls="device-control" data-en="Local controls">本机控制</button>
+        </nav>
+        <div id="device-inventory">
+          <div class="resource-heading">
+            <p id="resource-counts" hidden></p>
+          </div>
+          <div id="resource-alert"></div>
+          <div id="resource-empty"></div>
+          <div id="resource-layout" class="resource-layout" hidden>
+            <div id="resource-grid" class="resource-grid"></div>
+            <div id="resource-inspector" class="resource-inspector">
+              <p id="resource-instruction" class="resource-instruction" data-en="Hover to preview. Click a device to pin or hide its details.">悬停预览，点击设备可固定或收起详情。</p>
+              <div id="resource-detail" hidden></div>
+            </div>
           </div>
         </div>
+        <section id="device-control" class="device-control" aria-label="P4 本机控制" data-en-label="P4 local controls" hidden>
+          <p id="p4-notice" class="device-control-notice" role="status" hidden></p>
+          <a id="p4-launcher" class="button secondary" target="_blank" rel="noopener noreferrer" hidden data-en="Open local launcher">打开本机启动器</a>
+          <div id="p4-content" hidden>
+            <header class="device-control-header">
+              <div><h3 id="p4-node"></h3><p id="p4-role" class="muted"></p></div>
+              <span id="p4-state" class="connection"></span>
+            </header>
+            <div id="p4-setup" class="device-control-grid">
+              <form id="p4-center" class="device-glass-card">
+                <h3 data-en="Start a center">启动中心</h3>
+                <label for="p4-network" class="field-title" data-en="Network address">网络地址</label>
+                <select id="p4-network"></select>
+                <label class="device-control-check"><input id="p4-local-node" type="checkbox" checked><span data-en="Share this computer’s compute">同时共享本机算力</span></label>
+                <button class="button primary" type="submit" data-en="Start center">启动中心</button>
+              </form>
+              <form id="p4-join" class="device-glass-card">
+                <h3 data-en="Join a center">加入中心</h3>
+                <label for="p4-join-code" class="field-title" data-en="Connection code">连接码</label>
+                <input id="p4-join-code" type="text" autocomplete="off" spellcheck="false" placeholder="P4-1-…" required>
+                <div class="device-control-actions">
+                  <button class="button primary" type="submit" data-en="Join and share">加入并共享</button>
+                  <button id="p4-reconnect" class="button secondary" type="button" data-p4-action="reconnect" data-en="Reconnect" hidden>重新连接</button>
+                </div>
+              </form>
+              <form id="p4-legacy" class="device-glass-card" hidden>
+                <h3 data-en="Pair by address">按地址配对</h3>
+                <label for="p4-address" class="field-title" data-en="Center address">中心地址</label>
+                <input id="p4-address" type="text" autocomplete="off" placeholder="192.168.1.10:8003">
+                <label for="p4-discovery" class="field-title" data-en="Discovered centers">已发现的中心</label>
+                <div class="device-control-actions">
+                  <select id="p4-discovery"></select>
+                  <button id="p4-find" class="button secondary" type="button" data-en="Find centers">查找中心</button>
+                </div>
+                <label for="p4-pin" class="field-title" data-en="Six-digit pairing code">六位配对码</label>
+                <input id="p4-pin" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="off" required>
+                <button class="button primary" type="submit" data-en="Pair and share">配对并共享</button>
+              </form>
+            </div>
+            <button id="p4-toggle-legacy" class="button subtle" type="button" aria-expanded="false" aria-controls="p4-legacy" data-en="Pair by address" hidden>按地址配对</button>
+            <div id="p4-running" class="device-control-grid device-constellation" hidden>
+              <canvas id="device-constellation" aria-hidden="true"></canvas>
+              <div class="device-core" aria-hidden="true">
+                <svg class="device-core-filter" width="0" height="0" focusable="false">
+                  <defs><filter id="device-core-blue-gold" color-interpolation-filters="sRGB">
+                    <feColorMatrix type="matrix" values="-.55 2.2 -.65 0 0  .13 .94 -.07 0 0  .65 -.5 .85 0 0  0 0 0 1 0"/>
+                  </filter></defs>
+                </svg>
+                <div class="device-core-media">
+                  <img alt="" width="1440" height="810" data-src="/assets/ether-node.png">
+                  <video width="1280" height="720" muted loop playsinline preload="none" data-src="/assets/ether-node.mp4"></video>
+                </div>
+              </div>
+              <section id="p4-compute" class="device-glass-card">
+                <h3 data-en="Local compute">本机计算</h3>
+                <p id="p4-sharing" class="muted"></p>
+                <small id="p4-worker-id" class="mono muted" hidden></small>
+                <div class="device-control-actions">
+                  <button id="p4-on" type="button" class="button secondary" data-p4-action="on" data-en="Enable compute">开启计算</button>
+                  <button id="p4-off" type="button" class="button secondary" data-p4-action="off" data-en="Pause compute">暂停计算</button>
+                  <button id="p4-stop" type="button" class="button danger" data-p4-action="stop" data-en="Stop local services">停止本机服务</button>
+                </div>
+              </section>
+              <section id="p4-pair" class="device-glass-card" hidden>
+                <h3 data-en="Invite a device">邀请设备</h3>
+                <p id="p4-pair-local" class="muted" data-en="This center uses 127.0.0.1. To get a connection code, stop the local services and start the center with a Wi-Fi or Ethernet address." hidden>当前中心使用 127.0.0.1。要生成连接码，请先停止本机服务，再选择 Wi-Fi 或网线的局域网地址启动中心。</p>
+                <div id="p4-pair-fields" hidden>
+                <label for="p4-code" class="field-title" data-en="Connection code · valid for 10 min">连接码 · 10 分钟有效</label>
+                <input id="p4-code" class="mono" type="text" readonly>
+                <div class="device-control-actions">
+                  <button id="p4-copy-code" type="button" class="button secondary" data-en="Copy code">复制连接码</button>
+                  <button type="button" class="button secondary" data-p4-action="code" data-en="Refresh code">刷新连接码</button>
+                </div>
+                <details><summary data-en="Address and six-digit code">地址和六位配对码</summary><p id="p4-short-code" class="mono"></p></details>
+                </div>
+              </section>
+              <section id="p4-test-panel" class="device-glass-card" hidden>
+                <h3 data-en="OCR test">OCR 测试</h3>
+                <p id="p4-test-state" class="muted" hidden></p>
+                <div class="device-control-actions">
+                  <button type="button" class="button secondary" data-p4-action="test" data-en="Test two images">测试两张图片</button>
+                  <button id="p4-test-job" class="button secondary" type="button" data-en="View test progress" hidden>查看测试进度</button>
+                  <button id="p4-test-outputs" class="button secondary" type="button" data-en="View test results" hidden>查看测试结果</button>
+                  <a id="p4-zip" class="button secondary" href="/api/p4/result.zip" download="p4-results.zip" data-en="Download test ZIP" hidden>下载测试 ZIP</a>
+                </div>
+              </section>
+              <section id="p4-workbench-panel" class="device-glass-card" hidden>
+                <h3 data-en="Live workbench">真实工作台</h3>
+                <div class="device-control-actions">
+                  <button id="p4-use-token" class="button secondary" type="button" data-en="Connect this workbench">连接此工作台</button>
+                  <button id="p4-upload" class="button primary" type="button" data-en="Upload images" hidden>上传图片</button>
+                  <a id="p4-workbench-link" class="button secondary" target="_blank" rel="noopener noreferrer" data-en="Open center workbench" hidden>打开中心工作台</a>
+                </div>
+                <small id="p4-lan" class="mono muted" hidden></small>
+              </section>
+            </div>
+            <details id="p4-logs" class="device-control-logs">
+              <summary data-en="Service logs">服务日志</summary>
+              <div id="p4-log-list"></div>
+            </details>
+          </div>
+        </section>
       </div>
     </div>
     <div id="workflow-toast" class="toast" role="status" hidden></div>

@@ -36,7 +36,7 @@ test('workbench is linked while running and clears the revealed token when stopp
   const {context,elements}=setup();
   vm.runInContext("renderWorkbench({local_url:'http://127.0.0.1:5173/',lan_url:'http://192.168.1.10:5173/'})",context);
   assert.equal(elements.get('workbenchBox').hidden,false);
-  assert.equal(elements.get('workbench').href,'http://127.0.0.1:5173/');
+  assert.equal(elements.get('workbench').href,'http://127.0.0.1:5173/#resources');
   assert.match(elements.get('workbenchLan').textContent,/192\.168\.1\.10:5173/);
   vm.runInContext("$('tokenValue').value='example'; $('tokenFallback').hidden=false; renderWorkbench()",context);
   assert.equal(elements.get('workbenchBox').hidden,true);

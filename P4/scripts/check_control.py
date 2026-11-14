@@ -6,6 +6,7 @@ import json
 import subprocess
 import sys
 import time
+import urllib.error
 import urllib.request
 import zipfile
 from pathlib import Path
@@ -60,6 +61,7 @@ def main():
         print("PASS", name, flush=True)
 
     started = False
+    workbench = None
     try:
         checked(call("/api/status")["mode"] == "idle", "initial idle")
         call("/api/center", {"local_node": True, "address": args.address})
@@ -153,6 +155,16 @@ def main():
         call("/api/test", {})
         state = wait_done()
         checked("验证通过" in state["message"], "button submits real OCR and verifies result / ZIP")
+        job_id = state["ocr_test"]["job_id"]
+        checked(state["ocr_test"]["state"] == "passed", "controller publishes the verifier state")
+        for suffix in ("", "/results"):
+            request = urllib.request.Request(
+                workbench + f"api/task/v1/jobs/{job_id}{suffix}",
+                headers={"Authorization": f"Bearer {token}"},
+            )
+            with opener.open(request, timeout=5) as response:
+                checked(json.load(response)["job_id"] == job_id, f"workbench reads test job{suffix}")
+        report["test_job_id"] = job_id
         report["test_message"] = state["message"]
         request = urllib.request.Request(
             args.url + "/api/result.zip", headers={"X-P4-Session": session}
@@ -171,10 +183,23 @@ def main():
         if started:
             call("/api/stop", {})
             state = wait_done()
-            if state["mode"] != "idle" or state["processes"]:
+            if state["mode"] != "idle" or state["processes"] != {"web": True}:
                 report.update(status="FAIL", cleanup="FAIL")
             else:
-                report["cleanup"] = "PASS"
+                try:
+                    if not workbench:
+                        raise ValueError("Workbench URL was unavailable")
+                    with opener.open(workbench, timeout=5) as response:
+                        checked(response.status == 200, "workbench stays open after stopping services")
+                    try:
+                        opener.open(workbench + "api/task/v1/healthz", timeout=5).close()
+                    except urllib.error.HTTPError as exc:
+                        checked(exc.code == 503, "workbench reports the stopped backend")
+                    else:
+                        raise ValueError("Stopped backend still reports healthy")
+                    report["cleanup"] = "PASS"
+                except (OSError, ValueError) as exc:
+                    report.update(status="FAIL", cleanup="FAIL", cleanup_error=str(exc))
         args.out.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     return 0 if report["status"] == "PASS" else 1
 

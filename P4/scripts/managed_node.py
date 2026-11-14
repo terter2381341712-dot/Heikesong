@@ -7,12 +7,33 @@ import threading
 import time
 from pathlib import Path
 
+from control import save
+
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "P1"))
 from node_agent.agent import Agent, lock_node_directory  # noqa: E402
 
 
 class LoggedAgent(Agent):
+    def __init__(self, server, name, status_file):
+        super().__init__(server, name)
+        self.display_name = name
+        self.status_file = status_file
+
+    def _internal(self, path, payload):
+        response = super()._internal(path, payload)
+        if path.endswith("/heartbeat") and response:
+            try:
+                save(self.status_file, {
+                    "worker_id": self.worker_id,
+                    "mode": response.get("mode"),
+                    "received_at": time.time(),
+                })
+            except OSError:
+                # The next heartbeat can refresh the panel snapshot.
+                pass
+        return response
+
     def _do_execution(self, execution):
         print(
             f"{time.strftime('%H:%M:%S')} [设备 {self.display_name}] 开始计算 execution={execution['execution_id']} input={execution.get('input_artifact_id', '')} sha256={execution.get('input_sha256', '')[:12]}",
@@ -33,8 +54,7 @@ def main():
     parser.add_argument("--name", required=True)
     parser.add_argument("--control-file", type=Path, required=True)
     args = parser.parse_args()
-    agent = LoggedAgent(args.server, args.name)
-    agent.display_name = args.name
+    agent = LoggedAgent(args.server, args.name, args.control_file.with_name("node-status.json"))
     agent._sharing_disabled = True
     finished = threading.Event()
 

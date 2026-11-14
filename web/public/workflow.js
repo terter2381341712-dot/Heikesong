@@ -78,6 +78,147 @@ for (let i = 1; i <= 108; i++) {
   });
 }
 
+export function createDeviceConstellation(canvas) {
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return { show() {} };
+  const stage = canvas.parentElement;
+  const cards = [...stage.querySelectorAll('.device-glass-card')];
+  const core = stage.querySelector('.device-core');
+  const poster = core.querySelector('img');
+  const motion = core.querySelector('video');
+  const blue = '#477eb3';
+  const gold = '#be943e';
+  let visible = false;
+  let frame = 0;
+  let width = 0;
+  let height = 0;
+  let branches = [];
+
+  function measure() {
+    if (!visible) return;
+    const box = canvas.getBoundingClientRect();
+    width = box.width;
+    height = box.height;
+    if (!width || !height) {
+      branches = [];
+      return;
+    }
+    const scale = Math.min(devicePixelRatio || 1, 1.75);
+    canvas.width = Math.round(width * scale);
+    canvas.height = Math.round(height * scale);
+    ctx.setTransform(scale, 0, 0, scale, 0, 0);
+    branches = cards.filter(card => !card.hidden).map(card => {
+      const rect = card.getBoundingClientRect();
+      const left = rect.left + rect.width / 2 < box.left + width / 2;
+      const x = (left ? rect.right : rect.left) - box.left;
+      const y = rect.top - box.top + rect.height * .5;
+      return { x, y };
+    });
+  }
+
+  function paint(time) {
+    ctx.clearRect(0, 0, width, height);
+    const cx = width / 2;
+    const cy = height / 2;
+    for (const [index, { x, y }] of branches.entries()) {
+      const side = Math.sign(x - cx);
+      const row = Math.sign(y - cy);
+      const startX = cx + side * 64;
+      const startY = cy + row * 25;
+      const run = x - startX;
+      const a = [startX + run * .38, startY + (y - startY) * .12];
+      const b = [x - run * .34, y];
+      ctx.beginPath();
+      ctx.moveTo(startX, startY);
+      ctx.bezierCurveTo(...a, ...b, x, y);
+      const trace = ctx.createLinearGradient(startX, startY, x, y);
+      trace.addColorStop(0, '#729ec319');
+      trace.addColorStop(.65, '#729ec367');
+      trace.addColorStop(1, '#88a8c298');
+      ctx.strokeStyle = trace;
+      ctx.globalAlpha = 1;
+      ctx.stroke();
+      for (let i = 0; i < 11; i++) {
+        const p = (time * .24 + i / 11 + index * .14) % 1;
+        const u = 1 - p;
+        const middle = 3 * u * p;
+        const px = u ** 3 * startX + middle * (u * a[0] + p * b[0]) + p ** 3 * x;
+        const py = u ** 3 * startY + middle * (u * a[1] + p * b[1]) + p ** 3 * y;
+        ctx.fillStyle = i % 5 === 0 ? gold : blue;
+        ctx.globalAlpha = Math.sin(Math.PI * p) * (.32 + (i % 4) * .11);
+        ctx.beginPath();
+        ctx.arc(px, py, i % 4 === 0 ? 1.38 : .85, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      const beat = (time * .32 + index * .23) % 1;
+      const pulse = Math.max(0, 1 - beat * 2.6);
+      const outlet = ctx.createRadialGradient(x - side * 2, y, 0, x - side * 2, y, 24);
+      outlet.addColorStop(0, '#97c8eeaa');
+      outlet.addColorStop(1, '#97c8ee00');
+      ctx.fillStyle = outlet;
+      ctx.globalAlpha = .28 + pulse * .55;
+      ctx.fillRect(x - 24, y - 24, 48, 48);
+      for (let i = 0; i < 15; i++) {
+        const age = (time * .32 + index * .23 - i * .015 + 1) % 1;
+        if (age > .46) continue;
+        const life = age / .46;
+        const drift = 1 - (1 - life) ** 2;
+        const spread = ((i * .618) % 1 - .5) * (24 + 31 * life);
+        ctx.globalAlpha = Math.min(1, life * 10) * (1 - life) ** 2 * .72;
+        ctx.fillStyle = i % 4 === 0 ? gold : blue;
+        ctx.beginPath();
+        ctx.arc(x - side * (3 + drift * (17 + i % 6 * 5)), y + spread * drift, 1.15 - life * .55, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function tick(now) {
+    frame = 0;
+    if (!visible || document.hidden || !width || !height) return;
+    const animated = !reducedMotion.matches && !pausedByUser;
+    paint(animated ? now / 1000 : 0);
+    if (animated) frame = requestAnimationFrame(tick);
+  }
+
+  function sync() {
+    cancelAnimationFrame(frame);
+    frame = 0;
+    const onScreen = visible && width > 0 && !document.hidden;
+    if (onScreen && !poster.getAttribute('src')) poster.src = poster.dataset.src;
+    if (onScreen && !reducedMotion.matches && !pausedByUser) {
+      if (!motion.getAttribute('src')) motion.src = motion.dataset.src;
+      motion.play().catch(() => {});
+    } else {
+      motion.pause();
+    }
+    core.toggleAttribute('data-motion', onScreen && !motion.paused && !reducedMotion.matches && !pausedByUser);
+    if (onScreen) frame = requestAnimationFrame(tick);
+  }
+  motion.addEventListener('playing', () => core.setAttribute('data-motion', ''));
+  motion.addEventListener('error', () => core.removeAttribute('data-motion'));
+
+  const observer = new ResizeObserver(() => {
+    measure();
+    sync();
+  });
+  observer.observe(stage);
+  for (const card of cards) observer.observe(card);
+  playback.addEventListener('change', sync);
+  reducedMotion.addEventListener('change', sync);
+  document.addEventListener('visibilitychange', sync);
+
+  return {
+    show(next) {
+      if (visible === next) return;
+      visible = next;
+      measure();
+      sync();
+    },
+  };
+}
+
 const canvases = [...graph.querySelectorAll('.workflow-node-orb')];
 let orbs = [];
 let desktop = false;
