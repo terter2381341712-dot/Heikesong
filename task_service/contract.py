@@ -11,7 +11,7 @@ from jsonschema import Draft202012Validator, FormatChecker
 from jsonschema.exceptions import ValidationError
 
 ROOT = Path(__file__).resolve().parent.parent
-CONTRACT_PATH = ROOT / "D题参赛执行包/contracts/openapi.yaml"
+CONTRACT_PATH = ROOT / "contracts/openapi.yaml"
 SPEC = yaml.safe_load(CONTRACT_PATH.read_text(encoding="utf-8"))
 TASK_TERMINAL = frozenset({"SUCCEEDED", "FAILED", "CANCELLED"})
 JOB_TERMINAL = TASK_TERMINAL | {"PARTIAL_FAILED"}
@@ -27,7 +27,9 @@ def uid():
 
 
 def canonical(value):
-    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False)
+    return json.dumps(
+        value, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False
+    )
 
 
 @lru_cache(maxsize=None)
@@ -44,8 +46,13 @@ def validate(name, value):
 
 
 def error(code, message, retryable=False, **details):
-    return {"code": code, "message": message, "retryable": retryable,
-            "request_id": uid(), "details": details}
+    return {
+        "code": code,
+        "message": message,
+        "retryable": retryable,
+        "request_id": uid(),
+        "details": details,
+    }
 
 
 class APIError(Exception):

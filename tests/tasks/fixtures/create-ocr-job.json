@@ -1,0 +1,8 @@
+{
+  "client_request_id": "00000000-0000-4000-8000-000000000100",
+  "task_type": "ocr.image.v1",
+  "profile_id": "ocr.default.v1",
+  "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "input_artifact_ids": ["mock_image_1", "mock_image_2", "mock_image_3"],
+  "parameters": {"language": "auto"}
+}

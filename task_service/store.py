@@ -8,15 +8,25 @@ import json
 import os
 import sqlite3
 
-from task_service.contract import APIError, JOB_TERMINAL, TASK_TERMINAL, canonical, now
+from task_service.contract import JOB_TERMINAL, TASK_TERMINAL, APIError, canonical, now
 
 
 def refresh(state):
     job = state["job"]
     statuses = [t["status"] for t in job["tasks"]]
-    job["counts"] = {s.lower(): statuses.count(s) for s in (
-        "QUEUED", "WAITING_FOR_RESOURCES", "DISPATCHING", "RUNNING", "CANCELLING",
-        "SUCCEEDED", "FAILED", "CANCELLED")}
+    job["counts"] = {
+        s.lower(): statuses.count(s)
+        for s in (
+            "QUEUED",
+            "WAITING_FOR_RESOURCES",
+            "DISPATCHING",
+            "RUNNING",
+            "CANCELLING",
+            "SUCCEEDED",
+            "FAILED",
+            "CANCELLED",
+        )
+    }
     job["counts"]["total"] = len(statuses)
     if job["status"] in JOB_TERMINAL:
         return
@@ -48,12 +58,14 @@ class Store:
         try:
             if os.name == "nt":
                 import msvcrt
+
                 self.lock.write(b"0")
                 self.lock.flush()
                 self.lock.seek(0)
                 msvcrt.locking(self.lock.fileno(), msvcrt.LK_NBLCK, 1)
             else:
                 import fcntl
+
                 fcntl.flock(self.lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except OSError:
             self.lock.close()
@@ -74,8 +86,9 @@ class Store:
         self.lock.close()
 
     def replay(self, payload):
-        row = self.db.execute("SELECT payload,state FROM jobs WHERE client_id=?",
-                              (payload["client_request_id"],)).fetchone()
+        row = self.db.execute(
+            "SELECT payload,state FROM jobs WHERE client_id=?", (payload["client_request_id"],)
+        ).fetchone()
         if row:
             if row[0] != canonical(payload):
                 raise APIError(409, "IDEMPOTENCY_CONFLICT", "同一 client_request_id 的请求内容不同")
@@ -88,8 +101,15 @@ class Store:
             if existing:
                 return existing, False
             refresh(state)
-            self.db.execute("INSERT INTO jobs VALUES (?,?,?,?)", (
-                state["job"]["job_id"], payload["client_request_id"], canonical(payload), canonical(state)))
+            self.db.execute(
+                "INSERT INTO jobs VALUES (?,?,?,?)",
+                (
+                    state["job"]["job_id"],
+                    payload["client_request_id"],
+                    canonical(payload),
+                    canonical(state),
+                ),
+            )
         return state, True
 
     def get(self, job_id):
@@ -99,8 +119,11 @@ class Store:
         return json.loads(row[0])
 
     def active(self):
-        return [s for (raw,) in self.db.execute("SELECT state FROM jobs ORDER BY rowid")
-                if (s := json.loads(raw))["job"]["status"] not in JOB_TERMINAL]
+        return [
+            s
+            for (raw,) in self.db.execute("SELECT state FROM jobs ORDER BY rowid")
+            if (s := json.loads(raw))["job"]["status"] not in JOB_TERMINAL
+        ]
 
     def edit(self, job_id, change):
         with self.db:
@@ -112,9 +135,14 @@ class Store:
         return state
 
     def preparations(self):
-        return {key: json.loads(raw) for key, raw in self.db.execute("SELECT key,state FROM preparations")}
+        return {
+            key: json.loads(raw)
+            for key, raw in self.db.execute("SELECT key,state FROM preparations")
+        }
 
     def save_preparation(self, key, state):
         with self.db:
-            self.db.execute("INSERT INTO preparations VALUES (?,?) ON CONFLICT(key) DO UPDATE SET state=excluded.state",
-                            (key, canonical(state)))
+            self.db.execute(
+                "INSERT INTO preparations VALUES (?,?) ON CONFLICT(key) DO UPDATE SET state=excluded.state",
+                (key, canonical(state)),
+            )

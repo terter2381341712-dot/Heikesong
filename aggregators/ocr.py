@@ -1,20 +1,32 @@
 import io
 import zipfile
 
-from task_service.contract import APIError, JOB_TERMINAL, canonical
+from task_service.contract import JOB_TERMINAL, APIError, canonical
 
 
 def results(state):
     job = state["job"]
-    items = [{
-        "input_index": task["input_index"], "task_id": task["task_id"],
-        "input_artifact_id": task["input"]["artifact_id"],
-        "original_name": task["input"]["original_name"], "status": task["status"],
-        "result": state["results"].get(task["task_id"]), "error": task["error"],
-    } for task in job["tasks"]]
-    return {"job_id": job["job_id"], "task_type": job["task_type"], "status": job["status"],
-            "items": items, "combined_text": "\n\n".join(
-                item["result"]["text"] for item in items if item["status"] == "SUCCEEDED")}
+    items = [
+        {
+            "input_index": task["input_index"],
+            "task_id": task["task_id"],
+            "input_artifact_id": task["input"]["artifact_id"],
+            "original_name": task["input"]["original_name"],
+            "status": task["status"],
+            "result": state["results"].get(task["task_id"]),
+            "error": task["error"],
+        }
+        for task in job["tasks"]
+    ]
+    return {
+        "job_id": job["job_id"],
+        "task_type": job["task_type"],
+        "status": job["status"],
+        "items": items,
+        "combined_text": "\n\n".join(
+            item["result"]["text"] for item in items if item["status"] == "SUCCEEDED"
+        ),
+    }
 
 
 def archive(state):
