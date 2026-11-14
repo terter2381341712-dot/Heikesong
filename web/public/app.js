@@ -1,5 +1,5 @@
 import { locale, restoreLocale, setLocale, t } from './i18n.js';
-import { describeError, demoFiles, getScenario, readConfig, resourceApi, setDemoToken, setScenario, taskApi, uuid } from './api.js';
+import { describeError, demoFiles, getScenario, readConfig, resourceApi, setDemoToken, setScenario, taskApi, uuid, verifyWorkbenchAccess } from './api.js';
 import { getInputMime, inspectInput, mimeLabels } from './media.js';
 import {
   bytes, date, empty, escape, historyRows, isConfigured, jobPanel, languageName, message,
@@ -1003,20 +1003,41 @@ function bind() {
   });
   $('settings-form').addEventListener('submit', async (event) => {
     event.preventDefault();
-    $('save-settings').disabled = true;
+    const button = $('save-settings');
+    const checking = $('settings-checking');
+    const dialog = $('settings-dialog');
+    const run = new AbortController();
+    const onClose = () => run.abort();
+    dialog.addEventListener('close', onClose, { once: true });
+    button.disabled = true;
+    checking.hidden = state.mode === 'mock';
+    setNotice($('settings-error'), '');
     try {
       if (state.mode === 'mock') {
         state.scenario = (await setScenario($('scenario').value)).scenario;
       } else {
+        const token = $('token').value.trim();
+        const checks = await verifyWorkbenchAccess(token, run.signal);
+        if (run.signal.aborted) return;
+        const failures = Object.values(checks).filter(result => result.status === 'rejected');
+        if (failures.length) {
+          setNotice($('settings-error'), failures.map(({ reason }) => errorText(reason)).join(' / '));
+          return;
+        }
         deviceControl.manualCredential();
-        applyCredential($('token').value);
+        applyCredential(token);
+        state.connections.P1 = state.connections.P2 = 'good';
+        updateConnections();
       }
-      $('settings-dialog').close();
+      dialog.close();
+      if (state.mode === 'live') toast(t('P1 和 P2 已连接，可以上传图片。', 'P1 and P2 are connected. You can upload images.'));
       restartPoll();
     } catch (error) {
-      setNotice($('settings-error'), errorText(error));
+      if (!run.signal.aborted) setNotice($('settings-error'), errorText(error));
     } finally {
-      $('save-settings').disabled = false;
+      dialog.removeEventListener('close', onClose);
+      checking.hidden = true;
+      button.disabled = false;
     }
   });
 }

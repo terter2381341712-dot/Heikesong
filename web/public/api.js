@@ -12,6 +12,21 @@ export function setDemoToken(value) {
   demoToken = value.trim();
 }
 
+export function requestDeadline(signal, timeout) {
+  const controller = new AbortController();
+  const abort = () => controller.abort(signal.reason);
+  if (signal?.aborted) abort();
+  else signal?.addEventListener('abort', abort, { once: true });
+  const timer = setTimeout(() => controller.abort(new DOMException('Request timed out', 'TimeoutError')), timeout);
+  return {
+    signal: controller.signal,
+    release() {
+      clearTimeout(timer);
+      signal?.removeEventListener('abort', abort);
+    },
+  };
+}
+
 export class ApiError extends Error {
   constructor(service, status, message, code, requestId) {
     super(message);
@@ -47,18 +62,17 @@ function fromConnection(service, error) {
 }
 
 async function request(service, path, options = {}) {
-  const { body, method = 'GET', signal, binary, timeout = 10000 } = options;
-  const requestTimeout = AbortSignal.timeout(timeout);
-  const combinedSignal = signal ? AbortSignal.any([signal, requestTimeout]) : requestTimeout;
+  const { body, method = 'GET', signal, binary, timeout = 10000, token = demoToken } = options;
+  const deadline = requestDeadline(signal, timeout);
   const headers = {};
-  if (service && demoToken && !path.endsWith('/healthz')) headers.Authorization = `Bearer ${demoToken}`;
+  if (service && token && !path.endsWith('/healthz')) headers.Authorization = `Bearer ${token}`;
   if (body !== undefined) headers['Content-Type'] = 'application/json';
   try {
     const response = await fetch(path, {
       method,
       headers,
       body: body === undefined ? undefined : JSON.stringify(body),
-      signal: combinedSignal,
+      signal: deadline.signal,
       redirect: 'error',
       cache: 'no-store',
     });
@@ -70,13 +84,15 @@ async function request(service, path, options = {}) {
     try {
       return await response.json();
     } catch (error) {
-      if (combinedSignal.aborted) throw combinedSignal.reason;
+      if (deadline.signal.aborted) throw deadline.signal.reason;
       throw new ApiError(service, response.status, t('响应不是契约定义的 JSON。', 'The response is not the JSON specified by the API contract.'), 'INVALID_RESPONSE');
     }
   } catch (error) {
     // Preserve an explicit page-switch abort and distinguish it from a timeout.
     if (signal?.aborted) throw signal.reason;
     throw fromConnection(service, error);
+  } finally {
+    deadline.release();
   }
 }
 
@@ -87,8 +103,8 @@ function verifyVersion(service, response) {
   return response;
 }
 
-async function catalog(service, path, signal, arrayField) {
-  const response = verifyVersion(service, await request(service, path, { signal }));
+async function catalog(service, path, signal, arrayField, token) {
+  const response = verifyVersion(service, await request(service, path, { signal, token }));
   if (!Array.isArray(response[arrayField])) {
     throw new ApiError(service, 200, t(`响应缺少 ${arrayField} 数组。`, `The response is missing the ${arrayField} array.`), 'INVALID_RESPONSE');
   }
@@ -159,6 +175,13 @@ export const taskApi = {
 };
 
 export const readConfig = () => request(null, '/config');
+export async function verifyWorkbenchAccess(token, signal) {
+  const [resources, types] = await Promise.allSettled([
+    catalog('P1', `${RESOURCE}/resources`, signal, 'resources', token),
+    catalog('P2', `${TASK}/task-types`, signal, 'task_types', token),
+  ]);
+  return { P1: resources, P2: types };
+}
 export const setScenario = (scenario) => request(null, '/mock/scenario', { method: 'POST', body: { scenario } });
 export const getScenario = () => request(null, '/mock/scenario');
 

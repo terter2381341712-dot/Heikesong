@@ -1,5 +1,6 @@
 import { locale, t } from './i18n.js';
 import { createDeviceConstellation } from './workflow.js';
+import { requestDeadline } from './api.js';
 
 const $ = (id) => document.getElementById(id);
 const labels = {
@@ -19,16 +20,21 @@ function encodeImage(file) {
 }
 
 async function request(action, body, signal) {
-  const response = await fetch('/api/p4/' + action, {
-    cache: 'no-store',
-    signal: AbortSignal.any([signal, AbortSignal.timeout(12000)]),
-    ...(body === undefined ? {} : {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
-    }),
-  });
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.error || data.message);
-  return data;
+  const deadline = requestDeadline(signal, 12000);
+  try {
+    const response = await fetch('/api/p4/' + action, {
+      cache: 'no-store',
+      signal: deadline.signal,
+      ...(body === undefined ? {} : {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+      }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || data.message);
+    return data;
+  } finally {
+    deadline.release();
+  }
 }
 
 export function setupDeviceControl({ authenticate, unauthenticate, navigate }) {
