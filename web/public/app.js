@@ -2,19 +2,18 @@ import { describeError, demoFiles, getScenario, readConfig, resourceApi, setDemo
 import { getInputMime, inspectInput, mimeLabels } from './media.js';
 import {
   bytes, date, empty, escape, historyRows, isConfigured, jobPanel, languageLabels, message,
-  resourceCard, tag, terminal, updateHtml,
+  resourceCard, terminal, updateHtml,
 } from './render.js';
+import { syncPlayback } from './workflow.js';
 
 const $ = (id) => document.getElementById(id);
 const icons = {
-  submit: '<path d="M12 5v14m-7-7h14"/><rect x="3" y="3" width="18" height="18" rx="4"/>',
   jobs: '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 8h8m-8 4h8m-8 4h5"/>',
   devices: '<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8m-4-4v4"/>',
   image: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="m4 17 5-5 4 4 3-3 4 4"/><circle cx="15" cy="9" r="1"/>',
   audio: '<path d="M3 11v2m4-5v8m5-12v16m5-12v8m4-5v2"/>',
   upload: '<path d="M12 16V4m-4 4 4-4 4 4M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/>',
   arrow: '<path d="M4 12h15m-6-6 6 6-6 6"/>',
-  plus: '<path d="M12 5v14M5 12h14"/>',
   settings: '<path d="M4 7h16M4 12h16M4 17h16M8 5v4m8 1v4m-6 1v4"/>',
   close: '<path d="m6 6 12 12M18 6 6 18"/>',
   download: '<path d="M12 4v12m-4-4 4 4 4-4M4 17v2a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2"/>',
@@ -27,17 +26,21 @@ function drawIcons(root = document) {
 }
 
 const jobIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const views = new Set(['submit', 'jobs', 'resources']);
+const panelTitles = { upload: '上传识别文件', progress: '任务进度', results: '识别结果', resources: '设备资源' };
+const isJobView = (view) => view === 'progress' || view === 'results';
+const workflowDialog = $('workflow-dialog');
+const workflowBody = $('workflow-body');
 const state = {
-  mode: '', view: 'submit', jobId: null, history: [], connections: { P1: 'pending', P2: 'pending' }, resources: null,
+  mode: '', view: 'home', jobId: null, history: [], connections: { P1: 'pending', P2: 'pending' }, resources: null,
   resourceError: '', resourceChecked: 0, nodeModeBusy: new Set(), catalog: [], catalogError: '', catalogChecked: false, selected: '', language: '',
   files: [], checkingFiles: false, sending: false, formError: '', formNote: '', pendingCreate: null,
-  job: null, results: null, jobError: '', resultsError: '', jobChecked: 0, cancelling: null, downloading: null, scenario: 'success',
+  job: null, results: null, jobError: '', resultsError: '', jobChecked: 0, cancelling: new Set(), downloading: new Set(), scenario: 'success',
 };
 let activePoll;
 let toastTimer;
 let storageAvailable = true;
-let resultsFocusPending = false;
+let workflowOpener;
+let returningHome = false;
 
 function storageKey(part) {
   return `edge-fabric:0.2:${state.mode}:${part}`;
@@ -68,8 +71,10 @@ function setNotice(element, text) {
 
 function toast(text) {
   clearTimeout(toastTimer);
-  setNotice($('toast'), text);
-  toastTimer = setTimeout(() => setNotice($('toast'), ''), 4500);
+  const target = workflowDialog.open ? $('workflow-toast') : $('toast');
+  setNotice(workflowDialog.open ? $('toast') : $('workflow-toast'), '');
+  setNotice(target, text);
+  toastTimer = setTimeout(() => setNotice(target, ''), 4500);
 }
 
 function errorText(error) {
@@ -82,6 +87,7 @@ function updateConnections() {
     element.dataset.tone = { good: 'good', auth: 'warn', bad: 'bad' }[status] ?? '';
     element.textContent = { pending: '待连接', good: '已连接', auth: '需要令牌', bad: '未接通' }[status];
   }
+  $('workflow-settings').hidden = state.mode !== 'live' || !Object.values(state.connections).includes('auth');
 }
 
 function connectionError(service, error) {
@@ -105,6 +111,7 @@ function limits(type) {
 }
 
 function renderForm() {
+  if (state.view !== 'upload') return;
   const type = currentType();
   const locked = state.sending || state.checkingFiles || hasLockedDraft();
   const hasType = isConfigured(type);
@@ -144,7 +151,7 @@ function renderForm() {
     const progress = entry.uploading ? `<progress max="1" value="${entry.progress}" aria-label="${escape(entry.file.name)} 上传进度"></progress>` : '';
     return `<li class="file-row"><div><p class="file-name">${escape(entry.file.name)}</p><p class="file-meta">${summary}</p>${progress}</div>
       ${locked ? '' : `<button class="icon-button" type="button" data-remove="${index}" data-focus-key="remove-${index}" aria-label="移除 ${escape(entry.file.name)}"><span data-icon="close"></span></button>`}</li>`;
-  }).join(''));
+  }).join(''), $('choose-files'));
   drawIcons($('file-list'));
   $('file-list').hidden = !names.length;
   setNotice($('form-error'), state.formError);
@@ -155,36 +162,38 @@ function renderForm() {
 }
 
 function renderResources() {
+  if (state.view !== 'resources') return;
   const { resources, resourceError } = state;
   const reason = resourceError && `${resources ? '资源快照已过期' : '资源未接通'} · ${resourceError}`;
-  let overview = message(reason, 'error');
-  let detail = overview;
+  let detail = message(reason, 'error');
+  let counts = '';
   if (resources) {
     const devices = resources.resources;
     const slots = devices.reduce((total, node) => total + node.available_slots, 0);
     const online = devices.filter((node) => node.connection === 'ONLINE').length;
-    overview += `<div class="overview-stats"><div class="overview-stat"><strong>${online}</strong><span>在线设备</span></div>
-      <div class="overview-stat"><strong>${slots}</strong><span>可用槽位</span></div></div>`;
-    overview += devices.length ? `<ul class="overview-list">${devices.slice(0, 3).map((node) => `<li><span>${escape(node.name)}</span>${tag(node.mode)}</li>`).join('')}</ul>` : '<p class="field-hint overview-time">P1 当前未发现设备。</p>';
-    detail += devices.length ? `<div class="resource-grid">${devices.map((node) => resourceCard(node, resourceError, state.nodeModeBusy.has(node.worker_id))).join('')}</div>` :
+    counts = `在线设备 ${online} 台 · 可用槽位 ${slots} 个`;
+    detail += devices.length ? `<div class="resource-grid">${devices.map((node) => resourceCard(node, {
+      stale: Boolean(resourceError), changing: state.nodeModeBusy.has(node.worker_id), mock: state.mode === 'mock',
+    })).join('')}</div>` :
       empty('暂无设备', 'P1 当前未报告已注册设备。');
   } else if (!reason) {
-    overview = '<p class="muted">正在读取资源…</p>';
     detail = empty('正在读取资源', '等待 P1 返回快照。');
   }
-  updateHtml($('resource-overview'), overview);
-  updateHtml($('resource-detail'), detail);
+  setNotice($('resource-counts'), counts);
+  updateHtml($('resource-detail'), detail, $('close-workflow'));
   $('snapshot-time').textContent = resources ? `快照时间 ${date(resources.server_time)}` : reason ? '等待 P1 资源服务连接' : '正在读取资源快照…';
 }
 
 function renderJobs() {
-  updateHtml($('job-history'), historyRows(state.history, state.jobId));
-  updateHtml($('recent-jobs'), historyRows(state.history, null, 3));
+  if (!isJobView(state.view)) return;
+  const showResults = state.view === 'results';
+  updateHtml($('job-history'), historyRows(state.history, state.jobId, showResults), $('lookup-id'));
   let content;
   if (state.job) {
     const names = new Map((state.resources?.resources ?? []).map((node) => [node.worker_id, node.name]));
     content = jobPanel(state.job, state.results, names, {
-      jobError: state.jobError, resultsError: state.resultsError, cancelling: state.cancelling === state.jobId, downloading: state.downloading === state.jobId,
+      showResults, jobError: state.jobError, resultsError: state.resultsError,
+      cancelling: state.cancelling.has(state.jobId), downloading: state.downloading.has(state.jobId),
     });
   } else if (state.jobError) {
     content = empty('无法读取任务', state.jobError);
@@ -194,16 +203,9 @@ function renderJobs() {
     content = empty('请选择任务', '从本地记录选择，或输入 Job ID 查询。');
   }
   const detail = $('job-detail');
-  updateHtml(detail, content);
+  updateHtml(detail, content, detail);
   drawIcons(detail);
   for (const segment of detail.querySelectorAll('[data-share]')) segment.style.width = `${Number(segment.dataset.share)}%`;
-  if (resultsFocusPending && state.results && $('job-results-panel')) {
-    const { activeElement } = document;
-    if (activeElement === document.body || activeElement === $('job-history-panel') || activeElement.closest('#job-history, #lookup-form')) {
-      moveTo($('job-results-panel'));
-    }
-    resultsFocusPending = false;
-  }
 }
 
 function rememberJob(job) {
@@ -222,7 +224,7 @@ function rememberJob(job) {
 async function checkHealth(service, signal) {
   try {
     await (service === 'P1' ? resourceApi : taskApi).health(signal);
-    if (!signal.aborted) state.connections[service] = 'good';
+    if (!signal.aborted && state.connections[service] !== 'auth') state.connections[service] = 'good';
   } catch {
     if (!signal.aborted) state.connections[service] = 'bad';
   }
@@ -269,10 +271,13 @@ async function refreshResources(signal) {
     state.resourceError = errorText(error);
     connectionError('P1', error);
   }
-  if (!signal.aborted) renderResources();
+  if (!signal.aborted) {
+    renderResources();
+    renderJobs();
+  }
 }
 
-async function refreshJob(id, signal) {
+async function refreshJob(id, showResults, signal) {
   try {
     const job = await taskApi.job(id, signal);
     if (signal.aborted) return;
@@ -289,6 +294,8 @@ async function refreshJob(id, signal) {
     renderJobs();
     return;
   }
+  renderJobs();
+  if (!showResults) return;
   try {
     const results = await taskApi.results(id, signal);
     if (signal.aborted) return;
@@ -298,6 +305,7 @@ async function refreshJob(id, signal) {
   } catch (error) {
     if (signal.aborted) return;
     state.resultsError = errorText(error);
+    connectionError('P2', error);
   }
   renderJobs();
 }
@@ -306,6 +314,7 @@ function restartPoll() {
   if (activePoll) {
     activePoll.controller.abort();
     clearTimeout(activePoll.timer);
+    activePoll = null;
   }
   if (!state.mode || document.hidden) return;
   const poll = { controller: new AbortController() };
@@ -314,66 +323,110 @@ function restartPoll() {
   const { view, jobId } = state;
   const tick = async () => {
     const started = performance.now();
-    const p1 = view !== 'jobs' || !state.job || !terminal.has(state.job.status) || state.job.dependency_status === 'UNREACHABLE'
-      ? refreshResources(signal) : checkHealth('P1', signal);
-    const p2 = view === 'submit' ? refreshCatalog(signal) : view === 'jobs' && jobId ? refreshJob(jobId, signal) : checkHealth('P2', signal);
+    const needsResources = view === 'resources' || (isJobView(view) && jobId &&
+      (!state.resources || !state.job || !terminal.has(state.job.status) || state.job.dependency_status === 'UNREACHABLE'));
+    const p1 = needsResources ? refreshResources(signal) : checkHealth('P1', signal);
+    let p2;
+    if (view === 'upload') p2 = refreshCatalog(signal);
+    else if (isJobView(view) && jobId) p2 = refreshJob(jobId, view === 'results', signal);
+    else p2 = checkHealth('P2', signal);
     const checked = await Promise.allSettled([p1, p2]);
     if (signal.aborted) return;
     for (const result of checked) {
       if (result.status === 'rejected') toast(errorText(result.reason));
     }
-    if (view === 'jobs') renderJobs();
     updateConnections();
     poll.timer = setTimeout(tick, Math.max(0, 2000 - (performance.now() - started)));
   };
   void tick();
 }
 
-function moveTo(element) {
-  element.focus({ preventScroll: true });
-  element.scrollIntoView({ block: 'start' });
+function readRoute() {
+  const [section, id, action] = location.hash.slice(1).split('/');
+  if (section === 'submit' && id === 'upload') return { view: 'upload' };
+  if (section === 'resources') return { view: 'resources' };
+  if (section !== 'jobs') return { view: 'home' };
+  return {
+    view: id === 'results' || action === 'results' ? 'results' : 'progress',
+    jobId: jobIdPattern.test(id ?? '') ? id.toLowerCase() : state.job?.job_id ?? state.history[0]?.id ?? null,
+  };
 }
 
-function route(placeFocus = false) {
-  const [requested, id, action] = location.hash.slice(1).split('/');
-  const previousView = state.view;
-  state.view = views.has(requested) ? requested : 'submit';
-  const nextId = state.view === 'jobs' ? (jobIdPattern.test(id ?? '') ? id : state.history[0]?.id ?? null) : null;
-  if (nextId !== state.jobId) {
-    resultsFocusPending = false;
-    state.jobId = nextId;
+function markStale() {
+  if (state.view === 'resources' && state.resources && Date.now() - state.resourceChecked > 6000 && !state.resourceError) {
+    state.resourceError = '等待下一次 P1 资源快照。';
+  }
+  if (isJobView(state.view) && state.job && Date.now() - state.jobChecked > 6000 && !state.jobError) {
+    state.jobError = '等待下一次 P2 任务快照。';
+  }
+}
+
+function route() {
+  returningHome = false;
+  const { view, jobId } = readRoute();
+  const changedView = state.view !== view;
+  const changedJob = isJobView(view) && state.jobId !== jobId;
+  state.view = view;
+  if (changedJob) {
+    state.jobId = jobId;
     state.job = state.results = null;
     state.jobError = state.resultsError = '';
     state.jobChecked = 0;
   }
-  if (state.resources && Date.now() - state.resourceChecked > 6000 && !state.resourceError) {
-    state.resourceError = '等待下一次 P1 资源快照。';
-  }
-  for (const name of views) $(`view-${name}`).hidden = name !== state.view;
-  for (const link of document.querySelectorAll('nav [data-view]')) {
-    if (link.dataset.view === state.view) link.setAttribute('aria-current', 'page');
-    else link.removeAttribute('aria-current');
-  }
-  const showResults = state.view === 'jobs' && (id === 'results' || action === 'results');
-  if (placeFocus) resultsFocusPending = showResults && Boolean(nextId);
-  renderForm();
-  renderJobs();
-  renderResources();
-  if (placeFocus) {
-    if (state.view === 'submit' && id === 'upload') moveTo($('submit-form'));
-    else if (state.view === 'jobs' && showResults) moveTo(state.results ? $('job-results-panel') : $('job-history-panel'));
-    else if (state.view === 'resources') moveTo($('resources-title'));
-    else if (state.view !== previousView || !id) window.scrollTo(0, 0);
+  if (view === 'home') {
+    if (workflowDialog.open) {
+      workflowDialog.close();
+      syncPlayback();
+      workflowOpener.focus({ preventScroll: true });
+    }
+  } else {
+    workflowDialog.dataset.panel = view;
+    $('workflow-title').textContent = panelTitles[view];
+    $('view-upload').hidden = view !== 'upload';
+    $('view-jobs').hidden = !isJobView(view);
+    $('view-resources').hidden = view !== 'resources';
+    markStale();
+    renderForm();
+    renderJobs();
+    renderResources();
+    if (!workflowDialog.open) {
+      workflowOpener = $('workflow-graph').querySelector(`[data-workflow-node="${view}"]`);
+      workflowDialog.showModal();
+      syncPlayback();
+    }
+    if (changedView) {
+      workflowBody.scrollTop = 0;
+      $('workflow-title').focus({ preventScroll: true });
+    } else if (changedJob) {
+      $('job-detail').focus({ preventScroll: true });
+      $('job-detail').scrollIntoView({ block: 'start' });
+    }
   }
   restartPoll();
 }
 
+function navigate(hash) {
+  if (location.hash !== hash) {
+    if (state.view === 'home') history.pushState({ workflow: true }, '', hash);
+    else history.replaceState(history.state, '', hash);
+  }
+  route();
+}
+
+function closeWorkflow() {
+  if (returningHome) return;
+  // Only go back if this entry was opened from our workflow home.
+  if (history.state?.workflow) {
+    returningHome = true;
+    history.back();
+  } else {
+    history.replaceState(history.state, '', '#submit');
+    route();
+  }
+}
+
 function openJob(id) {
-  const [view, section, action] = location.hash.slice(1).split('/');
-  const focusResults = view === 'jobs' && (section === 'results' || action === 'results');
-  const hash = `#jobs/${id}${focusResults ? '/results' : ''}`;
-  if (location.hash === hash) route(true);
-  else location.hash = hash;
+  navigate(`#jobs/${id}${state.view === 'results' ? '/results' : ''}`);
 }
 
 async function addFiles(incoming, replace = false) {
@@ -464,8 +517,9 @@ async function submit(event) {
     rememberJob(job);
     setPending(null);
     state.files = [];
+    if (state.view === 'upload' && !returningHome) openJob(job.job_id);
+    else renderJobs();
     toast(storageAvailable ? `已创建任务 ${job.job_id}` : `已创建任务 ${job.job_id}，浏览器本地存储不可用，请保存此 ID。`);
-    openJob(job.job_id);
   } catch (error) {
     state.formError = errorText(error);
     if (state.pendingCreate) {
@@ -495,6 +549,22 @@ function download(blob, name) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+async function copyJobId(id) {
+  try {
+    if (navigator.clipboard) {
+      await navigator.clipboard.writeText(id);
+      toast('Job ID 已复制。');
+      return;
+    }
+  } catch { /* Fall back to text selection if clipboard access was denied. */ }
+  const selection = window.getSelection();
+  const range = document.createRange();
+  range.selectNodeContents($('job-id-text'));
+  selection.removeAllRanges();
+  selection.addRange(range);
+  toast(document.execCommand('copy') ? 'Job ID 已复制。' : '已选中 Job ID，可手动复制。');
+}
+
 async function jobAction(event) {
   const button = event.target.closest('button[data-action]');
   const job = state.job;
@@ -503,15 +573,13 @@ async function jobAction(event) {
   const action = button.dataset.action;
   try {
     if (action === 'copy-id') {
-      if (navigator.clipboard) {
-        await navigator.clipboard.writeText(id);
-        toast('Job ID 已复制。');
-      } else toast(`Job ID ${id}`);
+      await copyJobId(id);
     } else if (action === 'download-input') {
       const input = job.tasks.find((task) => task.task_id === button.dataset.id)?.input;
       if (input) download(await resourceApi.download(input), input.original_name);
     } else if (action === 'cancel-job') {
-      state.cancelling = id;
+      if (state.cancelling.has(id)) return;
+      state.cancelling.add(id);
       renderJobs();
       try {
         const updated = await taskApi.cancel(id);
@@ -521,20 +589,25 @@ async function jobAction(event) {
           restartPoll();
         }
       } finally {
-        state.cancelling = null;
+        state.cancelling.delete(id);
         renderJobs();
       }
     } else if (action === 'download-job') {
-      state.downloading = id;
+      if (state.downloading.has(id)) return;
+      state.downloading.add(id);
       renderJobs();
       try {
         download(await taskApi.download(id), `${state.mode === 'mock' ? 'MOCK-' : ''}${id}.zip`);
       } finally {
-        state.downloading = null;
+        state.downloading.delete(id);
         renderJobs();
       }
     }
   } catch (error) {
+    if (error.service) {
+      connectionError(error.service, error);
+      updateConnections();
+    }
     toast(errorText(error));
   }
 }
@@ -543,6 +616,7 @@ async function changeMode(event) {
   const button = event.target.closest('button[data-action="node-mode"]');
   if (!button) return;
   const { id, mode } = button.dataset;
+  if (state.nodeModeBusy.has(id)) return;
   state.nodeModeBusy.add(id);
   renderResources();
   try {
@@ -553,6 +627,10 @@ async function changeMode(event) {
     }
     if (state.view === 'resources') restartPoll();
   } catch (error) {
+    if (error.service) {
+      connectionError(error.service, error);
+      updateConnections();
+    }
     toast(errorText(error));
   } finally {
     state.nodeModeBusy.delete(id);
@@ -560,23 +638,45 @@ async function changeMode(event) {
   }
 }
 
+async function openSettings() {
+  setNotice($('settings-error'), '');
+  $('settings-dialog').showModal();
+  syncPlayback();
+  if (state.mode !== 'mock') return;
+  $('scenario').value = state.scenario;
+  $('save-settings').disabled = true;
+  try {
+    const { scenario } = await getScenario();
+    state.scenario = scenario;
+    $('scenario').value = scenario;
+  } catch (error) {
+    setNotice($('settings-error'), errorText(error));
+  } finally {
+    $('save-settings').disabled = false;
+  }
+}
+
 function bind() {
-  window.addEventListener('hashchange', () => route(true));
+  window.addEventListener('hashchange', route);
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) {
-      if (state.job && Date.now() - state.jobChecked > 6000 && !state.jobError) {
-        state.jobError = '等待下一次 P2 任务快照。';
-      }
-      route();
-    } else restartPoll();
-  });
-  $('workflow-graph').addEventListener('click', (event) => {
-    const link = event.target.closest('[data-workflow-node]');
-    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
-    if (link?.hash === location.hash) {
-      event.preventDefault();
-      route(true);
+      markStale();
+      renderResources();
+      renderJobs();
     }
+    restartPoll();
+  });
+  document.addEventListener('click', (event) => {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
+    const link = event.target.closest('[data-workflow-node], #workflow-dialog a[href^="#"]');
+    if (!link) return;
+    event.preventDefault();
+    navigate(link.hash);
+  });
+  $('close-workflow').addEventListener('click', closeWorkflow);
+  workflowDialog.addEventListener('cancel', (event) => {
+    event.preventDefault();
+    closeWorkflow();
   });
   $('submit-form').addEventListener('submit', submit);
   $('type-options').addEventListener('change', (event) => {
@@ -650,41 +750,28 @@ function bind() {
     setNotice($('lookup-error'), valid ? '' : '请填写完整 Job ID（UUID）。');
     if (valid) openJob(id);
   });
-  $('job-history').addEventListener('click', (event) => {
-    if (!location.hash.endsWith('/results')) return;
-    const link = event.target.closest('a');
-    const jobId = link?.hash.split('/')[1];
-    if (!jobId || event.button !== 0 || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
-    event.preventDefault();
-    openJob(jobId);
-  });
   $('job-detail').addEventListener('click', jobAction);
   $('resource-detail').addEventListener('click', changeMode);
-  $('open-settings').addEventListener('click', async () => {
-    setNotice($('settings-error'), '');
-    $('settings-dialog').showModal();
-    if (state.mode === 'mock') {
-      $('scenario').value = state.scenario;
-      $('save-settings').disabled = true;
-      try {
-        const { scenario } = await getScenario();
-        state.scenario = scenario;
-        $('scenario').value = scenario;
-      } catch (error) {
-        setNotice($('settings-error'), errorText(error));
-      } finally {
-        $('save-settings').disabled = false;
-      }
-    }
-  });
+  $('open-settings').addEventListener('click', openSettings);
+  $('workflow-settings').addEventListener('click', openSettings);
   $('close-settings').addEventListener('click', () => $('settings-dialog').close());
-  $('settings-dialog').addEventListener('close', () => { $('token').value = ''; });
+  $('settings-dialog').addEventListener('close', () => {
+    $('token').value = '';
+    syncPlayback();
+  });
   $('settings-form').addEventListener('submit', async (event) => {
     event.preventDefault();
     $('save-settings').disabled = true;
     try {
-      if (state.mode === 'mock') state.scenario = (await setScenario($('scenario').value)).scenario;
-      else setDemoToken($('token').value);
+      if (state.mode === 'mock') {
+        state.scenario = (await setScenario($('scenario').value)).scenario;
+      } else {
+        setDemoToken($('token').value);
+        for (const service of ['P1', 'P2']) {
+          if (state.connections[service] === 'auth') state.connections[service] = 'pending';
+        }
+        updateConnections();
+      }
       $('settings-dialog').close();
       restartPoll();
     } catch (error) {
@@ -708,13 +795,13 @@ async function boot() {
   }
   $('environment').hidden = !mock;
   $('environment').textContent = 'MOCK · 合成演示';
-  $('settings-label').textContent = mock ? '模拟场景' : '连接设置';
   $('open-settings').hidden = false;
   $('mock-settings').hidden = !mock;
   $('live-settings').hidden = mock;
-  $('dialog-title').textContent = mock ? '模拟场景' : '连接设置';
+  $('node-sharing-hint').hidden = mock;
+  $('hub-address').textContent = location.origin;
   bind();
-  route(Boolean(location.hash));
+  route();
   if (mock) {
     try { state.scenario = (await getScenario()).scenario; }
     catch (error) { toast(errorText(error)); }

@@ -36,14 +36,20 @@ function readBaseUrl(name) {
 const resourceBaseUrl = readBaseUrl('RESOURCE_BASE_URL');
 const taskBaseUrl = readBaseUrl('TASK_BASE_URL');
 const resourceId = '[A-Za-z0-9_-]{1,80}';
-const jobId = '[a-fA-F0-9-]{36}';
+const uuid = '[a-fA-F0-9]{8}(?:-[a-fA-F0-9]{4}){3}-[a-fA-F0-9]{12}';
 const resourceRoutes = {
   GET: new RegExp(`^/api/resource/v1/(healthz|resources|artifacts/${resourceId}(/content)?)$`),
   POST: new RegExp(`^/api/resource/v1/(artifacts|resources/${resourceId}/mode)$`),
 };
 const taskRoutes = {
-  GET: new RegExp(`^/api/task/v1/(healthz|task-types|jobs/${jobId}(/(results|download))?)$`),
-  POST: new RegExp(`^/api/task/v1/jobs(/${jobId}/cancel)?$`),
+  GET: new RegExp(`^/api/task/v1/(healthz|task-types|jobs/${uuid}(/(results|download))?)$`),
+  POST: new RegExp(`^/api/task/v1/jobs(/${uuid}/cancel)?$`),
+};
+const nodePrefix = '/api/resource/internal/v1/nodes';
+const nodeActions = `heartbeat|claim|confirm_idle|sharing|preparations/${uuid}/status|executions/${uuid}/(complete|cancel_ack)`;
+const nodeRoutes = {
+  GET: new RegExp(`^${nodePrefix}/${resourceId}/artifacts/${resourceId}/content$`),
+  POST: new RegExp(`^${nodePrefix}/(register|${resourceId}/(${nodeActions}))$`),
 };
 
 const staticFiles = new Map([
@@ -52,6 +58,7 @@ const staticFiles = new Map([
   ['/workflow.css', ['workflow.css', 'text/css; charset=utf-8']],
   ['/workflow.js', ['workflow.js', 'text/javascript; charset=utf-8']],
   ['/assets/ether-node.png', ['assets/ether-node.png', 'image/png']],
+  ['/assets/ether-node-small.webp', ['assets/ether-node-small.webp', 'image/webp']],
   ['/app.js', ['app.js', 'text/javascript; charset=utf-8']],
   ['/api.js', ['api.js', 'text/javascript; charset=utf-8']],
   ['/media.js', ['media.js', 'text/javascript; charset=utf-8']],
@@ -95,7 +102,7 @@ function problem(response, status, code, message, retryable = false) {
   response.end(JSON.stringify({ code, message, retryable, request_id: randomUUID(), details: {} }));
 }
 
-function proxy(request, response, path, baseUrl, service) {
+function proxy(request, response, path, baseUrl, service, fallbackToken) {
   if (!baseUrl) {
     problem(response, 503, 'DEPENDENCY_UNAVAILABLE', `${service} 地址尚未配置。`, true);
     return;
@@ -106,9 +113,8 @@ function proxy(request, response, path, baseUrl, service) {
   for (const name of ['accept', 'content-type', 'content-length']) {
     if (request.headers[name] !== undefined) headers[name] = request.headers[name];
   }
-  // Forward only the browser's demo credential or the server's DEMO_TOKEN.
   if (!path.endsWith('/healthz')) {
-    const authorization = request.headers.authorization || (demoToken && `Bearer ${demoToken}`);
+    const authorization = request.headers.authorization || (fallbackToken && `Bearer ${fallbackToken}`);
     if (authorization) headers.authorization = authorization;
   }
   const timeout = /\/(artifacts|content|download)$/.test(path) ? 60000 : 10000;
@@ -169,9 +175,11 @@ const server = createServer(async (request, response) => {
     } else if (mock && await mock(request, response, path)) {
       return;
     } else if (resourceRoutes[request.method]?.test(path)) {
-      proxy(request, response, path, resourceBaseUrl, 'P1 资源服务');
+      proxy(request, response, path, resourceBaseUrl, 'P1 资源服务', demoToken);
     } else if (taskRoutes[request.method]?.test(path)) {
-      proxy(request, response, path, taskBaseUrl, 'P2 任务服务');
+      proxy(request, response, path, taskBaseUrl, 'P2 任务服务', demoToken);
+    } else if (!mockMode && nodeRoutes[request.method]?.test(path)) {
+      proxy(request, response, path, resourceBaseUrl, 'P1 资源服务');
     } else {
       problem(response, 404, 'NOT_FOUND', '该地址不存在。');
     }

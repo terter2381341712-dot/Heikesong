@@ -4,172 +4,164 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light">
+  <meta name="description" content="校园算力网识别工作台，提交识别任务、查询进度、预览结果和查看设备资源。">
   <title>校园算力网 · Edge Fabric</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/workflow.css">
   <script type="module" src="/app.js"></script>
-  <script type="module" src="/workflow.js"></script>
 </head>
 <body>
-  <aside class="rail">
-    <a class="brand" href="#submit" aria-label="校园算力网首页">
-      <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
-      <span><strong>Edge Fabric</strong><small>校园算力网</small></span>
-    </a>
-    <nav aria-label="主导航">
-      <a href="#submit" data-view="submit"><span data-icon="submit"></span>提交任务</a>
-      <a href="#jobs" data-view="jobs"><span data-icon="jobs"></span>任务记录</a>
-      <a href="#resources" data-view="resources"><span data-icon="devices"></span>设备资源</a>
-    </nav>
-    <div class="rail-services" aria-label="服务连接">
-      <div><span>P1 资源服务</span><span id="p1-connection" class="connection">待连接</span></div>
-      <div><span>P2 任务服务</span><span id="p2-connection" class="connection">待连接</span></div>
-    </div>
-  </aside>
+  <a class="skip-link" href="#workflow-graph">跳到识别入口</a>
+  <main class="content">
+    <p id="startup-error" class="notice error" role="alert" hidden></p>
+    <section id="workflow-graph" class="workflow" aria-labelledby="workflow-brand" tabindex="-1">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+          <div><h1 id="workflow-brand">Edge Fabric</h1><small>校园算力网</small></div>
+        </div>
+        <div class="topbar-actions">
+          <span id="environment" class="environment" hidden></span>
+          <button id="open-settings" class="button subtle" type="button" aria-haspopup="dialog" hidden><span data-icon="settings"></span>设置</button>
+        </div>
+      </header>
+      <div class="workflow-stage">
+        <div class="workflow-map">
+          <div class="workflow-art" aria-hidden="true">
+            <picture class="workflow-poster">
+              <source media="(max-width: 770px)" srcset="/assets/ether-node-small.webp" type="image/webp">
+              <img src="/assets/ether-node.png" width="1440" height="810" fetchpriority="high" alt="">
+            </picture>
+            <video id="workflow-video" data-src="/assets/ether-node.mp4" width="1280" height="720" muted loop playsinline preload="none" aria-hidden="true"></video>
+            <svg class="workflow-branches" viewBox="0 0 1280 720" width="1280" height="720" focusable="false">
+              <defs>
+                <path id="thread-upload" pathLength="100" d="M267 208 C323 241 404 273 492 288"></path>
+                <path id="thread-progress" pathLength="100" d="M492 362 C415 365 353 399 303 440"></path>
+                <path id="thread-results" pathLength="100" d="M789 255 C850 204 927 191 983 191"></path>
+                <path id="thread-resources" pathLength="100" d="M787 378 C864 415 954 424 1024 422"></path>
+              </defs>
+              <g class="workflow-branch branch-upload">
+                <use class="workflow-thread" href="#thread-upload"></use>
+                <use class="workflow-current" href="#thread-upload"></use>
+              </g>
+              <g class="workflow-branch branch-progress">
+                <use class="workflow-thread" href="#thread-progress"></use>
+                <use class="workflow-current" href="#thread-progress"></use>
+              </g>
+              <g class="workflow-branch branch-results">
+                <use class="workflow-thread" href="#thread-results"></use>
+                <use class="workflow-current" href="#thread-results"></use>
+              </g>
+              <g class="workflow-branch branch-resources">
+                <use class="workflow-thread" href="#thread-resources"></use>
+                <use class="workflow-current" href="#thread-resources"></use>
+              </g>
+            </svg>
+          </div>
+          <nav class="workflow-nodes" aria-label="流程入口">
+            <a class="workflow-node branch-upload" href="#submit/upload" data-workflow-node="upload" aria-haspopup="dialog" aria-controls="workflow-dialog">
+              <span class="workflow-node-icon" data-icon="upload" aria-hidden="true"></span>
+              <canvas class="workflow-node-orb" width="160" height="160" aria-hidden="true"></canvas>
+              <span class="workflow-node-copy"><span class="workflow-node-name">上传图片</span><small>批量选择 JPG、PNG</small></span>
+            </a>
+            <a class="workflow-node branch-progress" href="#jobs" data-workflow-node="progress" aria-haspopup="dialog" aria-controls="workflow-dialog">
+              <span class="workflow-node-icon" data-icon="jobs" aria-hidden="true"></span>
+              <canvas class="workflow-node-orb" width="160" height="160" aria-hidden="true"></canvas>
+              <span class="workflow-node-copy"><span class="workflow-node-name">任务进度</span><small>查询逐图状态</small></span>
+            </a>
+            <a class="workflow-node branch-results" href="#jobs/results" data-workflow-node="results" aria-haspopup="dialog" aria-controls="workflow-dialog">
+              <span class="workflow-node-icon" data-icon="download" aria-hidden="true"></span>
+              <canvas class="workflow-node-orb" width="160" height="160" aria-hidden="true"></canvas>
+              <span class="workflow-node-copy"><span class="workflow-node-name">识别结果</span><small>预览与下载 ZIP</small></span>
+            </a>
+            <a class="workflow-node branch-resources" href="#resources" data-workflow-node="resources" aria-haspopup="dialog" aria-controls="workflow-dialog">
+              <span class="workflow-node-icon" data-icon="devices" aria-hidden="true"></span>
+              <canvas class="workflow-node-orb" width="160" height="160" aria-hidden="true"></canvas>
+              <span class="workflow-node-copy"><span class="workflow-node-name">设备资源</span><small>查看节点与槽位</small></span>
+            </a>
+          </nav>
+        </div>
+      </div>
+      <footer class="service-status" aria-label="服务连接">
+        <div><span>P1 资源服务</span><span id="p1-connection" class="connection">待连接</span></div>
+        <div><span>P2 任务服务</span><span id="p2-connection" class="connection">待连接</span></div>
+      </footer>
+    </section>
+  </main>
 
-  <main class="main">
-    <header class="topbar">
-      <span class="topbar-title">识别工作台</span>
-      <div class="topbar-actions">
-        <span id="environment" class="environment" hidden></span>
-        <button id="open-settings" class="button subtle" type="button" hidden><span data-icon="settings"></span><span id="settings-label">连接设置</span></button>
+  <dialog id="workflow-dialog" class="panel workflow-dialog" aria-labelledby="workflow-title">
+    <header class="workflow-dialog-header">
+      <h2 id="workflow-title" tabindex="-1" autofocus></h2>
+      <div class="workflow-dialog-actions">
+        <button id="workflow-settings" class="button subtle" type="button" aria-haspopup="dialog" hidden>连接设置</button>
+        <button id="close-workflow" class="icon-button" type="button" aria-label="关闭窗口"><span data-icon="close"></span></button>
       </div>
     </header>
-
-    <div class="content">
-      <p id="startup-error" class="notice error" role="alert" hidden></p>
-      <section id="view-submit" aria-labelledby="submit-title">
-        <div class="page-heading">
-          <h1 id="submit-title">新建识别任务</h1>
-          <p>一批任务使用同一种输入格式，结果按文件顺序返回。</p>
-        </div>
-        <section id="workflow-graph" class="workflow" aria-label="识别流程图谱">
-          <div class="workflow-toolbar">
-            <h2>任务流程</h2>
-            <button id="workflow-playback" class="workflow-playback" type="button" hidden></button>
+    <div id="workflow-body" class="workflow-dialog-body">
+      <div id="view-upload" hidden>
+        <form id="submit-form" aria-label="提交识别任务">
+          <fieldset class="form-section">
+            <legend>任务类型</legend>
+            <div id="type-options" class="type-options"><p class="muted">正在读取任务类型…</p></div>
+            <p id="catalog-error" class="notice error" role="status" hidden></p>
+          </fieldset>
+          <div class="form-section">
+            <label for="language" class="field-title">识别语言</label>
+            <select id="language" disabled></select>
           </div>
-          <div class="workflow-stage">
-            <div class="workflow-art" aria-hidden="true">
-              <img class="workflow-poster" src="/assets/ether-node.png" width="1920" height="1080" alt="">
-              <video id="workflow-video" data-src="/assets/ether-node.mp4" width="1280" height="720" muted loop playsinline preload="none" aria-hidden="true"></video>
-              <svg class="workflow-branches" viewBox="0 0 1280 720" width="1280" height="720" focusable="false">
-                <g class="workflow-branch branch-upload">
-                  <path d="M478 286 C404 273 323 241 267 208"></path>
-                  <circle cx="267" cy="208" r="4"></circle>
-                </g>
-                <g class="workflow-branch branch-progress">
-                  <path d="M478 362 C415 365 353 399 303 440"></path>
-                  <circle cx="303" cy="440" r="4"></circle>
-                </g>
-                <g class="workflow-branch branch-results">
-                  <path d="M802 248 C850 204 927 191 983 191"></path>
-                  <circle cx="983" cy="191" r="4"></circle>
-                </g>
-                <g class="workflow-branch branch-resources">
-                  <path d="M801 385 C864 415 954 424 1024 422"></path>
-                  <circle cx="1024" cy="422" r="4"></circle>
-                </g>
-              </svg>
+          <div class="form-section">
+            <label for="files" class="field-title">输入文件</label>
+            <div id="dropzone" class="dropzone" aria-disabled="true">
+              <span class="drop-icon" data-icon="upload"></span>
+              <input id="files" type="file" multiple hidden disabled>
+              <button id="choose-files" type="button" class="button secondary" disabled>选择文件</button>
+              <span class="drop-hint">或拖放文件到这里</span>
+              <button id="use-samples" type="button" class="button subtle" hidden>使用演示文件</button>
+              <p id="file-limits" class="field-hint">请先选择已配置的任务类型。</p>
             </div>
-            <nav class="workflow-nodes" aria-label="流程入口">
-              <a class="workflow-node branch-upload" href="#submit/upload" data-workflow-node="upload">
-                <span class="workflow-node-icon" data-icon="upload" aria-hidden="true"></span>
-                <span class="workflow-node-name">上传图片</span>
-                <small>批量选择 JPG、PNG</small>
-              </a>
-              <a class="workflow-node branch-progress" href="#jobs" data-workflow-node="progress">
-                <span class="workflow-node-icon" data-icon="jobs" aria-hidden="true"></span>
-                <span class="workflow-node-name">任务进度</span>
-                <small>查询逐图状态</small>
-              </a>
-              <a class="workflow-node branch-results" href="#jobs/results" data-workflow-node="results">
-                <span class="workflow-node-icon" data-icon="download" aria-hidden="true"></span>
-                <span class="workflow-node-name">识别结果</span>
-                <small>预览与下载 ZIP</small>
-              </a>
-              <a class="workflow-node branch-resources" href="#resources" data-workflow-node="resources">
-                <span class="workflow-node-icon" data-icon="devices" aria-hidden="true"></span>
-                <span class="workflow-node-name">设备资源</span>
-                <small>查看节点与槽位</small>
-              </a>
-            </nav>
+            <ul id="file-list" class="file-list" aria-label="已选文件" hidden></ul>
+            <p id="form-error" class="notice error" role="alert" hidden></p>
           </div>
-        </section>
-        <div class="submit-layout">
-          <form id="submit-form" class="panel composer" tabindex="-1" aria-label="提交识别任务">
-            <fieldset class="form-section">
-              <legend>任务类型</legend>
-              <div id="type-options" class="type-options"><p class="muted">正在读取任务类型…</p></div>
-              <p id="catalog-error" class="notice error" role="status" hidden></p>
-            </fieldset>
-            <div class="form-section">
-              <label for="language" class="field-title">识别语言</label>
-              <select id="language" disabled></select>
-            </div>
-            <div class="form-section">
-              <label for="files" class="field-title">输入文件</label>
-              <div id="dropzone" class="dropzone" aria-disabled="true">
-                <span class="drop-icon" data-icon="upload"></span>
-                <input id="files" type="file" multiple hidden disabled>
-                <button id="choose-files" type="button" class="button secondary" disabled>选择文件</button>
-                <span class="drop-hint">或拖放文件到这里</span>
-                <button id="use-samples" type="button" class="button subtle" hidden>使用演示文件</button>
-                <p id="file-limits" class="field-hint">请先选择已配置的任务类型。</p>
-              </div>
-              <ul id="file-list" class="file-list" aria-label="已选文件" hidden></ul>
-              <p id="form-error" class="notice error" role="alert" hidden></p>
-            </div>
-            <div class="form-footer">
-              <p id="submit-note" class="muted" role="status"></p>
-              <button id="discard-pending" class="button subtle" type="button" hidden>重新选文件</button>
-              <button id="submit-button" class="button primary" type="submit" disabled><span id="submit-label">提交任务</span><span data-icon="arrow"></span></button>
-            </div>
+          <div class="form-footer">
+            <p id="submit-note" class="muted" role="status"></p>
+            <button id="discard-pending" class="button subtle" type="button" hidden>重新选文件</button>
+            <button id="submit-button" class="button primary" type="submit" disabled><span id="submit-label">提交任务</span><span data-icon="arrow"></span></button>
+          </div>
+        </form>
+      </div>
+      <div id="view-jobs" class="job-layout" hidden>
+        <section class="panel compact" aria-labelledby="job-history-title">
+          <div class="panel-heading"><h3 id="job-history-title">任务批次</h3></div>
+          <div id="job-history"></div>
+          <form id="lookup-form" class="lookup-form">
+            <label for="lookup-id" class="field-title">按 Job ID 查询</label>
+            <div><input id="lookup-id" name="job-id" type="text" autocomplete="off" spellcheck="false" required><button class="button secondary" type="submit">查询</button></div>
+            <p id="lookup-error" class="field-hint error-text" role="alert" hidden></p>
           </form>
-          <aside class="overview">
-            <section class="panel compact" aria-labelledby="overview-heading">
-              <div class="panel-heading"><h2 id="overview-heading">资源概览</h2><a class="text-link" href="#resources">查看设备 <span data-icon="arrow"></span></a></div>
-              <div id="resource-overview"><p class="muted">正在读取资源…</p></div>
-            </section>
-            <section class="panel compact" aria-labelledby="recent-heading">
-              <div class="panel-heading"><h2 id="recent-heading">最近任务</h2><a class="text-link" href="#jobs">全部记录 <span data-icon="arrow"></span></a></div>
-              <div id="recent-jobs"></div>
-            </section>
-          </aside>
-        </div>
-      </section>
-
-      <section id="view-jobs" aria-labelledby="jobs-title" hidden>
-        <div class="page-heading heading-actions">
-          <div><h1 id="jobs-title">任务记录</h1><p>跟踪输入状态、分派设备与识别结果。</p></div>
-          <a class="button primary" href="#submit"><span data-icon="plus"></span>新建任务</a>
-        </div>
-        <div class="job-layout">
-          <aside class="panel compact job-history" id="job-history-panel" tabindex="-1" aria-label="本地任务记录">
-            <div class="panel-heading"><h2>任务批次</h2></div>
-            <div id="job-history"></div>
-            <form id="lookup-form" class="lookup-form">
-              <label for="lookup-id" class="field-title">按 Job ID 查询</label>
-              <div><input id="lookup-id" name="job-id" type="text" autocomplete="off" spellcheck="false" required aria-label="Job ID"><button class="button secondary" type="submit">查询</button></div>
-              <p id="lookup-error" class="field-hint error-text" role="alert" hidden></p>
-            </form>
-          </aside>
-          <div id="job-detail" aria-label="任务详情"></div>
-        </div>
-      </section>
-
-      <section id="view-resources" aria-labelledby="resources-title" hidden>
-        <div class="page-heading heading-actions">
-          <div><h1 id="resources-title" tabindex="-1">设备资源</h1><p id="snapshot-time">正在读取资源快照…</p></div>
+        </section>
+        <div id="job-detail" role="region" tabindex="-1" aria-label="任务详情"></div>
+      </div>
+      <div id="view-resources" hidden>
+        <p id="node-sharing-hint" class="field-hint" hidden>在设备上的 Node 程序中输入 on 或 off，可开启或关闭本机共享。</p>
+        <div class="resource-heading">
+          <p id="resource-counts" hidden></p>
+          <p id="snapshot-time" class="field-hint">正在读取资源快照…</p>
         </div>
         <div id="resource-detail"></div>
-      </section>
+      </div>
     </div>
-  </main>
+    <div id="workflow-toast" class="toast" role="status" hidden></div>
+  </dialog>
 
   <dialog id="settings-dialog" class="panel dialog" aria-labelledby="dialog-title">
     <form id="settings-form">
-      <div class="panel-heading"><h2 id="dialog-title">连接设置</h2><button type="button" id="close-settings" class="icon-button" aria-label="关闭设置"><span data-icon="close"></span></button></div>
+      <div class="panel-heading"><h2 id="dialog-title">工作台设置</h2><button type="button" id="close-settings" class="icon-button" aria-label="关闭设置"><span data-icon="close"></span></button></div>
+      <div class="motion-settings">
+        <label for="workflow-playback">播放首页动效</label>
+        <input id="workflow-playback" type="checkbox" role="switch" aria-describedby="motion-preference">
+        <p id="motion-preference" class="field-hint" hidden>系统已开启减少动态效果。</p>
+      </div>
       <div id="mock-settings" class="dialog-fields" hidden>
         <label for="scenario" class="field-title">模拟场景</label>
         <select id="scenario">
@@ -184,9 +176,12 @@
         <p class="field-hint">此设置作用于当前本地演示进程。</p>
       </div>
       <div id="live-settings" class="dialog-fields" hidden>
-        <label for="token" class="field-title">DEMO_TOKEN</label>
+        <p class="field-title">Hub 地址</p>
+        <p id="hub-address" class="mono"></p>
+        <p class="field-hint">同网设备上的 Node 和浏览器请使用同一个可达的 Hub 地址。</p>
+        <label for="token" class="field-title">用户令牌（DEMO_TOKEN）</label>
         <input id="token" type="password" autocomplete="off" spellcheck="false" maxlength="512" placeholder="输入演示令牌">
-        <p class="field-hint">浏览器输入的令牌仅保存在当前页面内存中。部署也可通过环境变量提供令牌。</p>
+        <p class="field-hint">使用 Hub 分配的用户令牌。页面刷新后需重新输入，部署也可通过环境变量提供令牌。</p>
       </div>
       <p id="settings-error" class="notice error" role="alert" hidden></p>
       <div class="dialog-footer"><button id="save-settings" class="button primary" type="submit">应用设置</button></div>
