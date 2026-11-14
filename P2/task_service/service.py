@@ -75,18 +75,20 @@ def candidate_action(node, job):
         return None, "READY 缺少实际后端、provider 或模型 SHA 核验证据"
     if PROVIDERS.get(cap["backend"]) != cap["runtime_provider"]:
         return None, "READY 后端与实际 provider 不匹配"
-    if cap["backend"] == "cuda" and node["max_slots"] != 1:
-        return None, "GPU 必须保持单卡单槽"
     threads, budget = node.get("threads_per_slot", 0), node.get("cpu_thread_budget", 0)
     prefetch = node.get("prefetch_capacity", 0)
-    if (
-        (prefetch and (node["max_slots"] != 1 or threads < 1))
-        or (node["max_slots"] > 1 and threads < 1)
-        or (threads and threads * node["max_slots"] + prefetch > budget)
-    ):
+    # 预取仍仅单槽：该校验对所有后端一致（含 GPU）。
+    if prefetch and (node["max_slots"] != 1 or threads < 1):
         return None, "节点 CPU 线程预算不足或未声明"
-    if node["hardware"].get("logical_cores") and budget > node["hardware"]["logical_cores"]:
-        return None, "节点 CPU 预算超过逻辑核心数"
+    # GPU 逻辑多路：不再要求单槽，也不走 CPU 多槽线程预算（显存预算已在 P1 注册准入）。
+    # 其余（CPU 任意槽、GPU 单槽）保持原有线程预算校验不变。
+    if not (cap["backend"] == "cuda" and node["max_slots"] > 1):
+        if (node["max_slots"] > 1 and threads < 1) or (
+            threads and threads * node["max_slots"] + prefetch > budget
+        ):
+            return None, "节点 CPU 线程预算不足或未声明"
+        if node["hardware"].get("logical_cores") and budget > node["hardware"]["logical_cores"]:
+            return None, "节点 CPU 预算超过逻辑核心数"
     return "execute", None
 
 

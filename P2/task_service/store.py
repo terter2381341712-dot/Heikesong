@@ -200,9 +200,14 @@ class Store:
         ]
 
     def prefetches(self):
-        return {worker: json.loads(raw) for worker, raw in self.db.execute("SELECT worker_id,state FROM input_prefetches")}
+        return {
+            worker: json.loads(raw)
+            for worker, raw in self.db.execute("SELECT worker_id,state FROM input_prefetches")
+        }
 
     def save_prefetch(self, worker, state):
         with self.db:
-            self.db.execute("INSERT INTO input_prefetches VALUES (?,?) ON CONFLICT(worker_id) DO UPDATE SET state=excluded.state",
-                            (worker, canonical(state)))
+            self.db.execute(
+                "INSERT INTO input_prefetches VALUES (?,?) ON CONFLICT(worker_id) DO UPDATE SET state=excluded.state",
+                (worker, canonical(state)),
+            )

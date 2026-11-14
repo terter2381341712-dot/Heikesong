@@ -55,26 +55,41 @@ class Agent:
     def __init__(self, server: str, name: str, backend: str = "cpu",
                  device_id: int = 0, threads: int = 0, slots: int = 1,
                  cpu_budget: Optional[int] = None, slot_id: Optional[int] = None,
-                 prefetch: Optional[int] = None) -> None:
+                 prefetch: Optional[int] = None,
+                 gpu_lane_vram_bytes: Optional[int] = None) -> None:
         if backend not in {"cpu", "cuda"} or device_id < 0 or threads < 0:
             raise ValueError("无效的 backend/device_id/threads")
+        if gpu_lane_vram_bytes is not None and gpu_lane_vram_bytes < 0:
+            raise ValueError("每路显存字节不能为负")
         cores = os.cpu_count() or 1
         budget = cores if cpu_budget is None else cpu_budget
-        if not 1 <= slots <= 64 or not 1 <= budget <= cores or (backend == "cuda" and slots != 1):
-            raise ValueError("槽位/CPU 预算无效；GPU 只允许一槽")
-        prefetch = int(backend == "cuda") if prefetch is None else prefetch
-        if prefetch not in (0, 1) or (prefetch and slots != 1):
-            raise ValueError("预取只支持单槽，容量为 0 或 1")
-        if prefetch:
-            threads = threads or min(2, budget - 1)
-            if threads < 1 or threads + 1 > budget:
-                raise ValueError("预取需要额外一个 CPU 线程预算")
-        if slots > 1 or cpu_budget is not None:
-            threads = threads or budget // slots
-            if threads < 1:
-                raise ValueError("CPU 预算不足以为每槽分配至少一个线程")
-        if slots * threads > budget:
-            raise ValueError("槽位数 × 每槽线程数超过 CPU 预算")
+        if not 1 <= slots <= 64 or not 1 <= budget <= cores:
+            raise ValueError("槽位/CPU 预算无效")
+        if backend == "cuda" and slots > 1:
+            # GPU 逻辑多路：一份权重 + N 个逻辑路；显存预算为准，不走 CPU 线程预算。
+            if not gpu_lane_vram_bytes:
+                raise ValueError(
+                    "GPU 多逻辑路必须声明每路显存（--gpu-lane-vram-bytes）；"
+                    "可用 python -m node_agent.gpu_probe 报告的 lane_vram_estimate_bytes"
+                )
+            if prefetch is not None and prefetch != 0:
+                raise ValueError("GPU 多逻辑路暂不启用输入预取")
+            prefetch = 0
+        else:
+            # 既有行为（CPU 多槽、GPU 单槽、预取）完全不变。
+            prefetch = int(backend == "cuda") if prefetch is None else prefetch
+            if prefetch not in (0, 1) or (prefetch and slots != 1):
+                raise ValueError("预取只支持单槽，容量为 0 或 1")
+            if prefetch:
+                threads = threads or min(2, budget - 1)
+                if threads < 1 or threads + 1 > budget:
+                    raise ValueError("预取需要额外一个 CPU 线程预算")
+            if slots > 1 or cpu_budget is not None:
+                threads = threads or budget // slots
+                if threads < 1:
+                    raise ValueError("CPU 预算不足以为每槽分配至少一个线程")
+            if slots * threads > budget:
+                raise ValueError("槽位数 × 每槽线程数超过 CPU 预算")
         self.server = server.rstrip("/")
         self.name = name
         self.backend, self.device_id, self.threads = backend, device_id, threads
@@ -82,6 +97,7 @@ class Agent:
         self._pool = None
         self._slot_metadata = []
         self.prefetch_capacity = prefetch
+        self.gpu_lane_vram_bytes = gpu_lane_vram_bytes
         self._input_pipeline = None
         self._runtime = None
         self._runtime_reset_pending = False
@@ -140,6 +156,7 @@ class Agent:
                         "threads_per_slot": self.threads,
                         "cpu_thread_budget": self.cpu_budget,
                         "backend": self.backend,
+                        "gpu_lane_vram_bytes": self.gpu_lane_vram_bytes,
                     },
                 )
                 resp.raise_for_status()
@@ -186,6 +203,9 @@ class Agent:
     # ---------- 主循环 ----------
 
     def run(self) -> None:
+        if self.slots > 1 and self.backend == "cuda":
+            from .gpu_lanes import run_gpu_lanes
+            return run_gpu_lanes(self)
         if self.slots > 1:
             from .pool import run_pool
             return run_pool(self)
@@ -454,7 +474,7 @@ class Agent:
 
     # ---------- 单次执行 ----------
 
-    def _do_execution(self, execution: dict) -> None:
+    def _do_execution(self, execution: dict, engine_lock=None) -> None:
         execution_id = execution["execution_id"]
         timings: dict[str, float] = {
             "download_ms": 0.0,
@@ -497,7 +517,11 @@ class Agent:
             print(f"[agent] execute pid={os.getpid()} execution_id={execution_id} "
                   f"backend={self.backend} device_id={self.device_id} started={time.time():.6f}", flush=True)
             t0 = time.monotonic()
-            result = runner.execute_array(array, execution.get("parameters", {}), workdir)
+            if engine_lock is not None:
+                with engine_lock:
+                    result = runner.execute_array(array, execution.get("parameters", {}), workdir)
+            else:
+                result = runner.execute_array(array, execution.get("parameters", {}), workdir)
             timings["inference_ms"] = (time.monotonic() - t0) * 1000
             print(f"[agent] inference_finished execution_id={execution_id} finished={time.time():.6f}", flush=True)
 
@@ -576,15 +600,20 @@ def main() -> None:
                         help="显式选择执行后端；CUDA 不可用时失败，不静默降级")
     parser.add_argument("--device-id", type=int, default=0, help="CUDA 设备编号")
     parser.add_argument("--threads", type=int, default=0, help="CPU 推理线程预算；0 使用运行时默认")
-    parser.add_argument("--slots", type=int, default=1, help="CPU 常驻执行槽数；GPU 仅允许 1")
+    parser.add_argument("--slots", type=int, default=1, help="槽数：CPU 为常驻执行槽数；GPU 为逻辑推理路数")
     parser.add_argument("--prefetch", type=int, choices=[0, 1], default=None,
-                        help="输入预取；CUDA 默认 1，CPU 默认 0；仅单槽，额外占 1 CPU 线程预算")
+                        help="输入预取；CUDA 单槽默认 1，CPU 默认 0；仅单槽，额外占 1 CPU 线程预算")
     parser.add_argument("--cpu-budget", type=int, help="节点 CPU 总线程预算，不得超过逻辑核心数")
+    parser.add_argument("--gpu-lane-vram-bytes", type=int, default=None,
+                        help="GPU 逻辑多路时每路实测显存字节（可用 python -m node_agent.gpu_probe 报告的 lane_vram_estimate_bytes）")
     args = parser.parse_args()
     if args.device_id < 0 or args.threads < 0:
         parser.error("device-id 和 threads 不能为负数")
+    if args.gpu_lane_vram_bytes is not None and args.gpu_lane_vram_bytes < 0:
+        parser.error("gpu-lane-vram-bytes 不能为负数")
     agent = Agent(server=args.server, name=args.name, backend=args.backend,
-                  device_id=args.device_id, threads=args.threads, slots=args.slots, cpu_budget=args.cpu_budget, prefetch=args.prefetch)
+                  device_id=args.device_id, threads=args.threads, slots=args.slots, cpu_budget=args.cpu_budget, prefetch=args.prefetch,
+                  gpu_lane_vram_bytes=args.gpu_lane_vram_bytes)
     try:
         with lock_node_directory(agent.data_dir):
             if args.interactive:

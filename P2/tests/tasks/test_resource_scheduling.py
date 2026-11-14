@@ -85,7 +85,7 @@ async def test_calibration_bootstrap_never_waits_for_busy_gpu(rig):
     assert rig.mock.nodes[0]["available_slots"] == cuda["available_slots"] == 0
 
 
-@pytest.mark.parametrize("change", ["backend", "provider", "gpu_slots", "cpu_budget"])
+@pytest.mark.parametrize("change", ["backend", "provider", "cpu_budget"])
 async def test_capability_budget_gate_precedes_ranking(rig, change):
     node = rig.mock.nodes[0]
     cap = node["capabilities"][0]
@@ -94,14 +94,26 @@ async def test_capability_budget_gate_precedes_ranking(rig, change):
         cap.update(backend="cuda")
     if change == "provider":
         cap.update(runtime_provider="UnknownProvider")
-    if change == "gpu_slots":
-        cap.update(backend="cuda", runtime_provider="CUDAExecutionProvider")
-        node.update(max_slots=2, available_slots=2)
     if change == "cpu_budget":
         node.update(max_slots=2, available_slots=2, threads_per_slot=2, cpu_thread_budget=2)
     job = await rig.create(["mock_image_1"])
     await rig.tick()
     assert decision(rig, job)["worker_id"] == rig.mock.nodes[1]["worker_id"]
+
+
+async def test_gpu_multislot_is_valid_candidate(rig):
+    from task_service.service import candidate_action
+
+    node = rig.mock.nodes[0]
+    cap = node["capabilities"][0]
+    cap.update(backend="cuda", runtime_provider="CUDAExecutionProvider", model_sha256="f" * 64)
+    cap["calibration"]["median_compute_ms"] = 0.01
+    node.update(max_slots=2, available_slots=2)
+    job = await rig.create(["mock_image_1"])
+    # GPU 逻辑多路不再被单槽限制拦截，且不走 CPU 线程预算校验。
+    assert candidate_action(node, job)[0] == "execute"
+    await rig.tick()
+    assert decision(rig, job)["worker_id"] == node["worker_id"]
 
 
 async def test_buckets_configuration_ttl_isolate_history(rig):

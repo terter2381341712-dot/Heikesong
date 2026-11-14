@@ -62,6 +62,114 @@ def compute(connection, server, name, identity, options):
         connection.close()
 
 
+def compute_lanes(connection, server, name, identity, options, lane_count):
+    """GPU 逻辑多路子进程：一份权重 + N 个推理路（线程），共享 runner 与一个引擎锁。
+
+    消息协议（parent -> child）：
+      ("load", preparation)                        加载共享 runner，回 "load_evidence"
+      ("execution", execution)                     派发到一路线程，回 "accepted"
+      ("stop_lane", {slot_id, execution_id})       确认取消意图，回 "stopped"
+      ("stop", None)                               整进程退出
+    child -> parent：("load_evidence" | "accepted" | "done" | "stopped", payload)
+
+    取消为"路级 + P1 仲裁"：无法强杀线程，真正的结束由父进程上报
+    slots/{slot_id}/stopped 完成；该路晚到的结果会被 P1 以 STALE_EXECUTION 拒收。
+    """
+    import queue
+    import threading
+
+    threads = options.get("threads", 0)
+    configure_thread_environment(threads)
+    if threads:
+        import cv2
+
+        cv2.setNumThreads(threads)
+    from node_agent.agent import Agent
+
+    agent = Agent(server, name, prefetch=0, **options)
+    agent.worker_id, agent.session_id, agent.node_secret = identity
+    engine_lock = threading.Lock()
+    done_queue = queue.Queue()
+    lane_threads = []
+
+    def run_lane(payload):
+        try:
+            agent._do_execution(payload, engine_lock)
+        except Exception:
+            pass  # _do_execution 已自行上报 FAILED，这里仅兜底
+        finally:
+            done_queue.put(
+                {
+                    "slot_id": payload.get("slot_id"),
+                    "execution_id": payload.get("execution_id"),
+                    "session_stale": agent._session_stale,
+                }
+            )
+
+    try:
+        while True:
+            # 优先回传已完成的路，父进程据此释放逻辑路。
+            while True:
+                try:
+                    done = done_queue.get_nowait()
+                except queue.Empty:
+                    break
+                connection.send(("done", done))
+
+            if connection.poll(0.05):
+                kind, payload = connection.recv()
+                if kind == "load":
+                    try:
+                        evidence = agent._prepare_local(payload)
+                        connection.send(
+                            (
+                                "load_evidence",
+                                {
+                                    "prepared": agent._prepared[0] if agent._prepared else None,
+                                    "session_stale": agent._session_stale,
+                                    "evidence": evidence,
+                                    "error": None,
+                                },
+                            )
+                        )
+                    except Exception as exc:
+                        connection.send(
+                            (
+                                "load_evidence",
+                                {
+                                    "prepared": None,
+                                    "session_stale": agent._session_stale,
+                                    "evidence": None,
+                                    "error": {
+                                        "code": getattr(exc, "code", "MODEL_LOAD_FAILED"),
+                                        "message": str(exc),
+                                    },
+                                },
+                            )
+                        )
+                elif kind == "execution":
+                    t = threading.Thread(
+                        target=run_lane,
+                        args=(payload,),
+                        name=f"lane-{payload.get('slot_id')}",
+                        daemon=True,
+                    )
+                    lane_threads.append(t)
+                    t.start()
+                    connection.send(("accepted", {"slot_id": payload.get("slot_id")}))
+                elif kind == "stop_lane":
+                    connection.send(("stopped", {"slot_id": payload.get("slot_id")}))
+                elif kind == "stop":
+                    break
+    except EOFError:
+        pass
+    finally:
+        for t in lane_threads:
+            t.join(timeout=5)
+        agent._client.close()
+        connection.close()
+
+
 def stop_process(process):
     if process.is_alive():
         process.terminate()

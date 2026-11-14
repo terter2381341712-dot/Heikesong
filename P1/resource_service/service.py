@@ -1213,7 +1213,6 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
             if status == "READY":
                 expected = s.catalog.model_sha256(row["profile_id"])
                 if (not body.calibration or not body.calibration.passed
-                        or (node["max_slots"] > 1 and body.backend != "cpu")
                         or not s.catalog.backend_allowed(row["profile_id"], body.backend, body.runtime_provider)):
                     status, error_code, error_message = "FAILED", "MODEL_LOAD_FAILED", "缺少通过的自测或实际后端"
                 elif not expected or body.model_sha256 != expected:

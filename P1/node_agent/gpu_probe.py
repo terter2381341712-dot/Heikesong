@@ -29,6 +29,28 @@ def provider_counts(events):
     )
 
 
+def nvidia_mem_used_bytes(device_id):
+    """nvidia-smi 查询当前显存占用字节；不可用时返回 None（不用 0 冒充）。"""
+    try:
+        smi = subprocess.run(
+            [
+                "nvidia-smi",
+                "-i",
+                str(device_id),
+                "--query-gpu=memory.used",
+                "--format=csv,noheader,nounits",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        if smi.returncode == 0 and smi.stdout.strip():
+            return int(float(smi.stdout.strip().splitlines()[0].strip())) * 1024 * 1024
+    except (OSError, subprocess.TimeoutExpired, ValueError):
+        pass
+    return None
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -64,6 +86,7 @@ def main():
             profile_digest=digest,
             available_providers=ort.get_available_providers(),
         )
+        vram_before = nvidia_mem_used_bytes(args.device_id)
         runner, model_sha, provider = load_locked_runner(
             raw,
             p["task_type"],
@@ -74,6 +97,14 @@ def main():
         )
         report.update(model_sha256=model_sha, runtime_provider=provider)
         engine = runner.ensure_engine()
+        # 每路显存估算 = 生产 runner 三个 session 加载前后的显存增量；
+        # 在诊断性 profiling session 之前测量，避免把额外 session 计入。
+        vram_after = nvidia_mem_used_bytes(args.device_id)
+        report["lane_vram_estimate_bytes"] = (
+            max(0, vram_after - vram_before)
+            if vram_before is not None and vram_after is not None
+            else None
+        )
         paths = {p.name: p for p in model_files()}
         # Diagnostic-only sessions with profiling enabled, same frozen models and
         # provider options as the production runner. They process actual OCR tensors.
