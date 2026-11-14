@@ -15,6 +15,11 @@ from urllib.parse import urlsplit
 ROOT = Path(__file__).resolve().parents[2]
 
 
+def absolute_interpreter(value):
+    """Keep the venv entry point: resolving a python symlink changes sys.prefix."""
+    return Path(os.path.abspath(os.fspath(value)))
+
+
 def base_url(value):
     parsed = urlsplit(value)
     if (
@@ -152,7 +157,12 @@ def configure_run(args):
                 continue
             if getattr(args, key, None) is None:
                 if key in {"config", "data_dir", "p1_python", "p2_python"} and value:
-                    value = str((ROOT / value).resolve())
+                    path = ROOT / value
+                    value = str(
+                        absolute_interpreter(path)
+                        if key in {"p1_python", "p2_python"}
+                        else path.resolve()
+                    )
                 setattr(args, key, value)
     defaults = {
         "bind": "0.0.0.0",
@@ -175,7 +185,7 @@ def interpreter_for(role, p1_python=None, p2_python=None, windows=None):
         windows = os.name == "nt"
     component = "P2" if role == "task" else "P1"
     override = p2_python if role == "task" else p1_python
-    return (
+    return absolute_interpreter(
         Path(override)
         if override
         else (ROOT / component / ".venv" / ("Scripts/python.exe" if windows else "bin/python"))
@@ -188,7 +198,7 @@ def module_command(executable, component, module):
         f"import sys,runpy; sys.path.insert(0,{str(ROOT / component)!r}); "
         f"runpy.run_module({module!r},run_name='__main__')"
     )
-    return [str(executable), "-c", bootstrap]
+    return [str(absolute_interpreter(executable)), "-c", bootstrap]
 
 
 def run(args):
@@ -212,7 +222,7 @@ def run(args):
         plan.append(
             {
                 "role": role,
-                "python": str(executable.resolve()),
+                "python": str(executable),
                 "resource_url": config["resource_url"],
                 "listen_port": {"resource": args.resource_port, "task": args.task_port}.get(role),
                 "node_name": args.node_name if role == "node" else None,
@@ -254,7 +264,7 @@ def run(args):
             module = {"resource": "resource_service", "task": "task_service", "node": "node_agent"}[
                 role
             ]
-            argv = module_command(interpreter.resolve(), component, module)
+            argv = module_command(interpreter, component, module)
             if role == "node":
                 argv += ["--server", config["resource_url"], "--name", args.node_name]
                 if args.interactive:

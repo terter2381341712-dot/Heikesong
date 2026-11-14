@@ -150,7 +150,7 @@ def test_ready_runtime_selected_automatically(tmp_path, monkeypatch):
     runtime = control.Runtime(tmp_path)
     monkeypatch.setattr(runtime, "candidates", lambda component: [Path(sys.executable)])
     monkeypatch.setattr(runtime, "probe", lambda *args: {"compatible": True, "ready": True})
-    assert runtime.ensure("P1", lambda msg: None) == str(Path(sys.executable).resolve())
+    assert runtime.ensure("P1", lambda msg: None) == str(Path(sys.executable).absolute())
 
 
 def test_background_failure_is_visible_and_releases_busy(panel):
@@ -217,7 +217,7 @@ def test_control_port_cannot_have_two_owners(panel, server):
 
 def test_p2_reuses_selected_p1_python_instead_of_requiring_311(tmp_path, monkeypatch):
     runtime = control.Runtime(tmp_path)
-    runtime.selected["P1"] = str(Path(sys.executable).resolve())
+    runtime.selected["P1"] = str(Path(sys.executable).absolute())
     monkeypatch.setattr(runtime, "probe", lambda *args: {"compatible": True, "ready": True})
 
     def forbidden(*args):
@@ -229,7 +229,7 @@ def test_p2_reuses_selected_p1_python_instead_of_requiring_311(tmp_path, monkeyp
 
 def test_shared_environment_installs_missing_p2_dependencies(tmp_path, monkeypatch):
     runtime = control.Runtime(tmp_path)
-    runtime.selected["P1"] = str(Path(sys.executable).resolve())
+    runtime.selected["P1"] = str(Path(sys.executable).absolute())
     installed = []
     monkeypatch.setattr(
         runtime, "probe", lambda p, component: {"ready": component == "P1" or bool(installed)}

@@ -207,7 +207,7 @@ class Runtime:
                 )
             except subprocess.SubprocessError:
                 pass
-        return list(dict.fromkeys(p for p in values if p.is_file()))
+        return list(dict.fromkeys(cluster.absolute_interpreter(p) for p in values if p.is_file()))
 
     def probe(self, executable, component):
         modules = (
@@ -252,7 +252,7 @@ class Runtime:
     def ensure(self, component, progress):
         if component == "P2" and "P1" in self.selected:
             # One exact Python 3.9.6 interpreter for the normal center workflow.
-            executable = Path(self.selected["P1"])
+            executable = cluster.absolute_interpreter(self.selected["P1"])
             if not self.probe(executable, "P2")["ready"]:
                 progress("正在为 Python 3.9.6 补齐P2依赖，P1/P2将共用本机环境…")
                 self.directory.mkdir(parents=True, exist_ok=True)
@@ -298,16 +298,19 @@ class Runtime:
                 not self.probe(executable, "P1")["ready"]
                 or not self.probe(executable, "P2")["ready"]
             ):
-                raise ValueError("统一环境未通过P1/P2联合依赖检查，请查看准备日志。")
-            self.selected["P2"] = str(executable.resolve())
+                raise ValueError(
+                    f"统一环境未通过P1/P2联合依赖检查。解释器：{executable}；请查看准备日志。"
+                )
+            self.selected["P2"] = str(executable)
             return self.selected["P2"]
         compatible = []
         progress(f"检测 {component} 的本机解释器和依赖…")
         for executable in self.candidates(component):
+            executable = cluster.absolute_interpreter(executable)
             result = self.probe(executable, component)
             if result["compatible"]:
                 if result["ready"]:
-                    self.selected[component] = str(executable.resolve())
+                    self.selected[component] = str(executable)
                     return self.selected[component]
                 compatible.append(executable)
         if not compatible:
@@ -317,7 +320,7 @@ class Runtime:
             )
         target = self.directory / component
         suffix = "Scripts/python.exe" if os.name == "nt" else "bin/python"
-        executable = target / suffix
+        executable = cluster.absolute_interpreter(target / suffix)
         self.directory.mkdir(parents=True, exist_ok=True)
         progress(f"首次准备 {component} 环境，正在安装依赖，可能需要几分钟…")
         with self.log.open("ab") as output:
@@ -341,7 +344,7 @@ class Runtime:
             self.setup_command(command, output)
         if not self.probe(executable, component)["ready"]:
             raise ValueError(f"{component} 依赖核验未通过，查看 {self.log}")
-        self.selected[component] = str(executable.resolve())
+        self.selected[component] = str(executable)
         return self.selected[component]
 
 
