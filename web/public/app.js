@@ -1,8 +1,9 @@
+import { locale, restoreLocale, setLocale, t } from './i18n.js';
 import { describeError, demoFiles, getScenario, readConfig, resourceApi, setDemoToken, setScenario, taskApi, uuid } from './api.js';
 import { getInputMime, inspectInput, mimeLabels } from './media.js';
 import {
-  bytes, date, empty, escape, historyRows, isConfigured, jobPanel, languageLabels, message,
-  resourceCard, terminal, updateHtml,
+  bytes, date, empty, escape, historyRows, isConfigured, jobPanel, languageName, message,
+  resourceCard, terminal, typeName, updateHtml,
 } from './render.js';
 import { syncPlayback } from './workflow.js';
 
@@ -26,14 +27,17 @@ function drawIcons(root = document) {
 }
 
 const jobIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const panelTitles = { upload: '上传识别文件', progress: '任务进度', results: '识别结果', resources: '设备资源' };
+const panelTitles = {
+  upload: ['上传识别文件', 'Upload files'], progress: ['任务进度', 'Job progress'],
+  results: ['识别结果', 'Results'], resources: ['设备资源', 'Devices'],
+};
 const isJobView = (view) => view === 'progress' || view === 'results';
 const workflowDialog = $('workflow-dialog');
 const workflowBody = $('workflow-body');
 const state = {
   mode: '', view: 'home', jobId: null, history: [], connections: { P1: 'pending', P2: 'pending' }, resources: null,
   resourceError: '', resourceChecked: 0, nodeModeBusy: new Set(), catalog: [], catalogError: '', catalogChecked: false, selected: '', language: '',
-  files: [], checkingFiles: false, sending: false, formError: '', formNote: '', pendingCreate: null,
+  files: [], checkingFiles: false, sending: false, formError: '', formNote: null, pendingCreate: null,
   job: null, results: null, jobError: '', resultsError: '', jobChecked: 0, cancelling: new Set(), downloading: new Set(), scenario: 'success',
 };
 let activePoll;
@@ -85,7 +89,7 @@ function updateConnections() {
   for (const [service, status] of Object.entries(state.connections)) {
     const element = $(`${service.toLowerCase()}-connection`);
     element.dataset.tone = { good: 'good', auth: 'warn', bad: 'bad' }[status] ?? '';
-    element.textContent = { pending: '待连接', good: '已连接', auth: '需要令牌', bad: '未接通' }[status];
+    element.textContent = { pending: t('待连接', 'Connecting'), good: t('已连接', 'Connected'), auth: t('需要令牌', 'Token required'), bad: t('未接通', 'Disconnected') }[status];
   }
   $('workflow-settings').hidden = state.mode !== 'live' || !Object.values(state.connections).includes('auth');
 }
@@ -105,9 +109,9 @@ function hasLockedDraft() {
 
 function limits(type) {
   const formats = type.input_mime_types.map((mime) => mimeLabels[mime]).join(' / ');
-  const media = type.max_duration_ms != null ? `${type.max_duration_ms / 1000} 秒以内 · 16 kHz 单声道 PCM 16 位` :
-    type.max_pixels != null ? `最多 ${new Intl.NumberFormat('zh-CN').format(type.max_pixels)} 像素` : '';
-  return [`${formats} · 每个文件 ≤ ${bytes(type.max_file_bytes)}`, media, `最多 ${type.max_inputs_per_job} 个文件`].filter(Boolean).join(' · ');
+  const media = type.max_duration_ms != null ? t(`${type.max_duration_ms / 1000} 秒以内 · 16 kHz 单声道 PCM 16 位`, `Up to ${type.max_duration_ms / 1000} s · 16 kHz mono 16-bit PCM`) :
+    type.max_pixels != null ? t(`最多 ${new Intl.NumberFormat('zh-CN').format(type.max_pixels)} 像素`, `Up to ${new Intl.NumberFormat(locale).format(type.max_pixels)} pixels`) : '';
+  return [t(`${formats} · 每个文件 ≤ ${bytes(type.max_file_bytes)}`, `${formats} · ≤ ${bytes(type.max_file_bytes)} per file`), media, t(`最多 ${type.max_inputs_per_job} 个文件`, `Up to ${type.max_inputs_per_job} files`)].filter(Boolean).join(' · ');
 }
 
 function renderForm() {
@@ -123,18 +127,19 @@ function renderForm() {
     const enabled = isConfigured(entry);
     const id = escape(entry.task_type);
     const formats = entry.input_mime_types.map((mime) => mimeLabels[mime]).join(' / ');
-    const info = enabled ? formats : `未配置 · ${entry.reason || '等待模型配置发布'}`;
+    const info = enabled ? formats : `${t('未配置', 'Not configured')} · ${entry.reason || t('等待模型配置发布', 'Model configuration pending')}`;
+    const name = locale === 'en' ? typeName(entry.task_type, entry.display_name) : entry.display_name;
     return `<label class="type-card">
       <input type="radio" name="task-type" value="${id}" data-focus-key="type-${id}"${state.selected === entry.task_type ? ' checked' : ''}${locked || !enabled ? ' disabled' : ''}>
       <span class="type-icon" data-icon="${entry.task_type === 'asr.file.v1' ? 'audio' : 'image'}"></span>
-      <span><strong>${escape(entry.display_name)}</strong><small>${escape(info)}</small></span><i class="type-indicator" aria-hidden="true"></i>
+      <span><strong>${escape(name)}</strong><small>${escape(info)}</small></span><i class="type-indicator" aria-hidden="true"></i>
     </label>`;
   }).join('');
-  const noCatalog = state.catalogError ? '暂时无法读取任务类型。' : state.catalogChecked ? 'P2 暂未发布任务类型。' : '正在读取任务类型…';
+  const noCatalog = state.catalogError ? t('暂时无法读取任务类型。', 'Task types are unavailable.') : state.catalogChecked ? t('P2 暂未发布任务类型。', 'P2 has not published any task types.') : t('正在读取任务类型…', 'Loading task types…');
   updateHtml($('type-options'), catalogPresent ? rows : `<p class="muted">${noCatalog}</p>`);
   drawIcons($('type-options'));
-  setNotice($('catalog-error'), state.catalogError && `${catalogPresent ? '类型目录已过期 · ' : ''}${state.catalogError}`);
-  updateHtml($('language'), (type?.supported_languages ?? []).map((language) => `<option value="${escape(language)}">${escape(languageLabels[language])}</option>`).join(''));
+  setNotice($('catalog-error'), state.catalogError && `${catalogPresent ? t('类型目录已过期 · ', 'Task catalog is out of date · ') : ''}${state.catalogError}`);
+  updateHtml($('language'), (type?.supported_languages ?? []).map((language) => `<option value="${escape(language)}">${escape(languageName(language))}</option>`).join(''));
   $('language').value = state.language;
   $('language').disabled = !canEdit;
   $('files').accept = hasType ? type.input_mime_types.map((mime) => ({'image/jpeg': '.jpg,.jpeg', 'image/png': '.png', 'audio/wav': '.wav'})[mime] || mime).join(',') : '';
@@ -142,46 +147,46 @@ function renderForm() {
   $('dropzone').setAttribute('aria-disabled', String(!canEdit));
   $('use-samples').hidden = state.mode !== 'mock';
   $('use-samples').disabled = !canEdit;
-  $('file-limits').textContent = hasType ? limits(type) : '请先选择已配置的任务类型。';
+  $('file-limits').textContent = hasType ? limits(type) : t('请先选择已配置的任务类型。', 'Choose a configured task type first.');
   const names = state.files.length ? state.files : state.pendingCreate?.names.map((name) => ({ file: { name }, artifact: true })) ?? [];
   updateHtml($('file-list'), names.map((entry, index) => {
     let summary = bytes(entry.file.size);
-    if (entry.artifact) summary = entry.file.size == null ? '文件已上传' : `${summary} · 上传完成`;
-    if (entry.uploading) summary += ` · 上传中 ${Math.round(100 * entry.progress)}%`;
-    const progress = entry.uploading ? `<progress max="1" value="${entry.progress}" aria-label="${escape(entry.file.name)} 上传进度"></progress>` : '';
+    if (entry.artifact) summary = entry.file.size == null ? t('文件已上传', 'File uploaded') : t(`${summary} · 上传完成`, `${summary} · Uploaded`);
+    if (entry.uploading) summary += ` · ${t('上传中', 'Uploading')} ${Math.round(100 * entry.progress)}%`;
+    const progress = entry.uploading ? `<progress max="1" value="${entry.progress}" aria-label="${t('上传进度', 'Upload progress')}: ${escape(entry.file.name)}"></progress>` : '';
     return `<li class="file-row"><div><p class="file-name">${escape(entry.file.name)}</p><p class="file-meta">${summary}</p>${progress}</div>
-      ${locked ? '' : `<button class="icon-button" type="button" data-remove="${index}" data-focus-key="remove-${index}" aria-label="移除 ${escape(entry.file.name)}"><span data-icon="close"></span></button>`}</li>`;
+      ${locked ? '' : `<button class="icon-button" type="button" data-remove="${index}" data-focus-key="remove-${index}" aria-label="${t('移除', 'Remove')} ${escape(entry.file.name)}"><span data-icon="close"></span></button>`}</li>`;
   }).join(''), $('choose-files'));
   drawIcons($('file-list'));
   $('file-list').hidden = !names.length;
   setNotice($('form-error'), state.formError);
   $('submit-button').disabled = state.sending || state.checkingFiles || (!hasPending && (disabled || !state.files.length));
-  $('submit-label').textContent = state.sending ? '提交中…' : hasPending ? '重试原提交' : '提交任务';
+  $('submit-label').textContent = state.sending ? t('提交中…', 'Submitting…') : hasPending ? t('重试原提交', 'Retry submission') : t('提交任务', 'Submit job');
   $('discard-pending').hidden = !hasPending || !hasLockedDraft() || state.sending;
-  $('submit-note').textContent = state.formNote || (hasPending ? '重试会沿用原提交 ID 和载荷。' : names.length ? `已选 ${names.length} 个文件` : '');
+  $('submit-note').textContent = state.formNote?.() || (hasPending ? t('重试会沿用原提交 ID 和载荷。', 'Retrying uses the original submission ID and payload.') : names.length ? t(`已选 ${names.length} 个文件`, `Files selected: ${names.length}`) : '');
 }
 
 function renderResources() {
   if (state.view !== 'resources') return;
   const { resources, resourceError } = state;
-  const reason = resourceError && `${resources ? '资源快照已过期' : '资源未接通'} · ${resourceError}`;
+  const reason = resourceError && `${resources ? t('资源快照已过期', 'Resource snapshot is out of date') : t('资源未接通', 'Resource service unavailable')} · ${resourceError}`;
   let detail = message(reason, 'error');
   let counts = '';
   if (resources) {
     const devices = resources.resources;
     const slots = devices.reduce((total, node) => total + node.available_slots, 0);
     const online = devices.filter((node) => node.connection === 'ONLINE').length;
-    counts = `在线设备 ${online} 台 · 可用槽位 ${slots} 个`;
+    counts = t(`在线设备 ${online} 台 · 可用槽位 ${slots} 个`, `Online devices: ${online} · Available slots: ${slots}`);
     detail += devices.length ? `<div class="resource-grid">${devices.map((node) => resourceCard(node, {
       stale: Boolean(resourceError), changing: state.nodeModeBusy.has(node.worker_id), mock: state.mode === 'mock',
     })).join('')}</div>` :
-      empty('暂无设备', 'P1 当前未报告已注册设备。');
+      empty(t('暂无设备', 'No devices'), t('P1 当前未报告已注册设备。', 'P1 has not reported any registered devices.'));
   } else if (!reason) {
-    detail = empty('正在读取资源', '等待 P1 返回快照。');
+    detail = empty(t('正在读取资源', 'Loading resources'), t('等待 P1 返回快照。', 'Waiting for a snapshot from P1.'));
   }
   setNotice($('resource-counts'), counts);
   updateHtml($('resource-detail'), detail, $('close-workflow'));
-  $('snapshot-time').textContent = resources ? `快照时间 ${date(resources.server_time)}` : reason ? '等待 P1 资源服务连接' : '正在读取资源快照…';
+  $('snapshot-time').textContent = resources ? t(`快照时间 ${date(resources.server_time)}`, `Snapshot taken ${date(resources.server_time)}`) : reason ? t('等待 P1 资源服务连接', 'Waiting for the P1 resource service') : t('正在读取资源快照…', 'Loading resource snapshot…');
 }
 
 function renderJobs() {
@@ -196,11 +201,11 @@ function renderJobs() {
       cancelling: state.cancelling.has(state.jobId), downloading: state.downloading.has(state.jobId),
     });
   } else if (state.jobError) {
-    content = empty('无法读取任务', state.jobError);
+    content = empty(t('无法读取任务', 'Could not load the job'), state.jobError);
   } else if (state.jobId) {
-    content = empty('正在读取任务', state.jobId);
+    content = empty(t('正在读取任务', 'Loading job'), state.jobId);
   } else {
-    content = empty('请选择任务', '从本地记录选择，或输入 Job ID 查询。');
+    content = empty(t('请选择任务', 'Choose a job'), t('从本地记录选择，或输入 Job ID 查询。', 'Choose from local history or enter a Job ID.'));
   }
   const detail = $('job-detail');
   updateHtml(detail, content, detail);
@@ -281,7 +286,7 @@ async function refreshJob(id, showResults, signal) {
   try {
     const job = await taskApi.job(id, signal);
     if (signal.aborted) return;
-    if (job?.job_id?.toLowerCase() !== id.toLowerCase() || !Array.isArray(job.tasks) || !job.counts) throw new Error('任务响应与查询 ID 或字段不匹配。');
+    if (job?.job_id?.toLowerCase() !== id.toLowerCase() || !Array.isArray(job.tasks) || !job.counts) throw new Error(t('任务响应与查询 ID 或字段不匹配。', 'The job response does not match the requested ID or expected fields.'));
     state.job = job;
     state.jobChecked = Date.now();
     state.jobError = '';
@@ -299,7 +304,7 @@ async function refreshJob(id, showResults, signal) {
   try {
     const results = await taskApi.results(id, signal);
     if (signal.aborted) return;
-    if (results?.job_id?.toLowerCase() !== id.toLowerCase() || !Array.isArray(results.items)) throw new Error('结果响应与查询 ID 或字段不匹配。');
+    if (results?.job_id?.toLowerCase() !== id.toLowerCase() || !Array.isArray(results.items)) throw new Error(t('结果响应与查询 ID 或字段不匹配。', 'The results response does not match the requested ID or expected fields.'));
     state.results = results;
     state.resultsError = '';
   } catch (error) {
@@ -354,10 +359,10 @@ function readRoute() {
 
 function markStale() {
   if (state.view === 'resources' && state.resources && Date.now() - state.resourceChecked > 6000 && !state.resourceError) {
-    state.resourceError = '等待下一次 P1 资源快照。';
+    state.resourceError = t('等待下一次 P1 资源快照。', 'Waiting for the next P1 resource snapshot.');
   }
   if (isJobView(state.view) && state.job && Date.now() - state.jobChecked > 6000 && !state.jobError) {
-    state.jobError = '等待下一次 P2 任务快照。';
+    state.jobError = t('等待下一次 P2 任务快照。', 'Waiting for the next P2 job snapshot.');
   }
 }
 
@@ -381,7 +386,7 @@ function route() {
     }
   } else {
     workflowDialog.dataset.panel = view;
-    $('workflow-title').textContent = panelTitles[view];
+    $('workflow-title').textContent = t(...panelTitles[view]);
     $('view-upload').hidden = view !== 'upload';
     $('view-jobs').hidden = !isJobView(view);
     $('view-resources').hidden = view !== 'resources';
@@ -434,19 +439,19 @@ async function addFiles(incoming, replace = false) {
   if (!isConfigured(type) || hasLockedDraft() || state.sending || state.checkingFiles) return;
   state.checkingFiles = true;
   state.formError = '';
-  state.formNote = '正在检查文件…';
+  state.formNote = () => t('正在检查文件…', 'Checking files…');
   renderForm();
   const accepted = replace ? [] : [...state.files];
   const errors = [];
   try {
     if (accepted.length + incoming.length > type.max_inputs_per_job) {
-      throw new Error(`此类型每批最多 ${type.max_inputs_per_job} 个文件。`);
+      throw new Error(t(`此类型每批最多 ${type.max_inputs_per_job} 个文件。`, `This task type supports up to ${type.max_inputs_per_job} files per job.`));
     }
     for (const file of incoming) {
       const mime = getInputMime(file);
       try {
-        if (!type.input_mime_types.includes(mime)) throw new Error('格式与所选类型不匹配。');
-        if (file.size > type.max_file_bytes) throw new Error(`文件超过 ${bytes(type.max_file_bytes)}。`);
+        if (!type.input_mime_types.includes(mime)) throw new Error(t('格式与所选类型不匹配。', 'The format does not match the selected task type.'));
+        if (file.size > type.max_file_bytes) throw new Error(t(`文件超过 ${bytes(type.max_file_bytes)}。`, `The file exceeds ${bytes(type.max_file_bytes)}.`));
         inspectInput(await file.arrayBuffer(), mime, type);
         if (mime.startsWith('image/')) (await createImageBitmap(file)).close();
         accepted.push({ file, mime, uploadId: uuid(), progress: 0 });
@@ -458,12 +463,12 @@ async function addFiles(incoming, replace = false) {
       setPending(null);
       state.files = accepted;
     }
-    if (errors.length) state.formError = errors.slice(0, 3).join('　') + (errors.length > 3 ? `　另有 ${errors.length - 3} 个文件未通过预检。` : '');
+    if (errors.length) state.formError = errors.slice(0, 3).join('　') + (errors.length > 3 ? t(`　另有 ${errors.length - 3} 个文件未通过预检。`, ` · ${errors.length - 3} more files failed validation.`) : '');
   } catch (error) {
     state.formError = error.message;
   } finally {
     state.checkingFiles = false;
-    state.formNote = '';
+    state.formNote = null;
     renderForm();
   }
 }
@@ -485,7 +490,7 @@ async function submit(event) {
       const hashes = new Set();
       for (const [index, entry] of state.files.entries()) {
         if (!entry.artifact) {
-          state.formNote = `正在上传 ${index + 1} / ${state.files.length}`;
+          state.formNote = () => t(`正在上传 ${index + 1} / ${state.files.length}`, `Uploading ${index + 1} / ${state.files.length}`);
           entry.uploading = true;
           entry.progress = 0;
           renderForm();
@@ -499,7 +504,7 @@ async function submit(event) {
             entry.uploading = false;
           }
         }
-        if (hashes.has(entry.artifact.sha256)) throw new Error(`文件 ${entry.file.name} 与同批另一文件内容相同，请移除重复项。`);
+        if (hashes.has(entry.artifact.sha256)) throw new Error(t(`文件 ${entry.file.name} 与同批另一文件内容相同，请移除重复项。`, `${entry.file.name} duplicates another file in the batch. Remove the duplicate to continue.`));
         hashes.add(entry.artifact.sha256);
       }
       setPending({
@@ -510,16 +515,16 @@ async function submit(event) {
         },
       });
     }
-    state.formNote = '正在创建任务…';
+    state.formNote = () => t('正在创建任务…', 'Creating job…');
     renderForm();
     const job = await taskApi.create(state.pendingCreate.payload);
-    if (!jobIdPattern.test(job?.job_id)) throw new Error('P2 未返回有效 Job ID，可用原提交重试。');
+    if (!jobIdPattern.test(job?.job_id)) throw new Error(t('P2 未返回有效 Job ID，可用原提交重试。', 'P2 did not return a valid Job ID. Retry the original submission.'));
     rememberJob(job);
     setPending(null);
     state.files = [];
     if (state.view === 'upload' && !returningHome) openJob(job.job_id);
     else renderJobs();
-    toast(storageAvailable ? `已创建任务 ${job.job_id}` : `已创建任务 ${job.job_id}，浏览器本地存储不可用，请保存此 ID。`);
+    toast(storageAvailable ? t(`已创建任务 ${job.job_id}`, `Job created: ${job.job_id}`) : t(`已创建任务 ${job.job_id}，浏览器本地存储不可用，请保存此 ID。`, `Job created: ${job.job_id}. Save this ID because browser storage is unavailable.`));
   } catch (error) {
     state.formError = errorText(error);
     if (state.pendingCreate) {
@@ -533,7 +538,7 @@ async function submit(event) {
     }
   } finally {
     state.sending = false;
-    state.formNote = '';
+    state.formNote = null;
     renderForm();
   }
 }
@@ -553,7 +558,7 @@ async function copyJobId(id) {
   try {
     if (navigator.clipboard) {
       await navigator.clipboard.writeText(id);
-      toast('Job ID 已复制。');
+      toast(t('Job ID 已复制。', 'Job ID copied.'));
       return;
     }
   } catch { /* Fall back to text selection if clipboard access was denied. */ }
@@ -562,7 +567,7 @@ async function copyJobId(id) {
   range.selectNodeContents($('job-id-text'));
   selection.removeAllRanges();
   selection.addRange(range);
-  toast(document.execCommand('copy') ? 'Job ID 已复制。' : '已选中 Job ID，可手动复制。');
+  toast(document.execCommand('copy') ? t('Job ID 已复制。', 'Job ID copied.') : t('已选中 Job ID，可手动复制。', 'Job ID selected. Copy it manually.'));
 }
 
 async function jobAction(event) {
@@ -621,7 +626,7 @@ async function changeMode(event) {
   renderResources();
   try {
     const node = await resourceApi.mode(id, mode);
-    if (node?.worker_id !== id) throw new Error('P1 返回了不同的设备 ID。');
+    if (node?.worker_id !== id) throw new Error(t('P1 返回了不同的设备 ID。', 'P1 returned a different device ID.'));
     if (state.resources) {
       state.resources.resources = state.resources.resources.map((resource) => resource.worker_id === id ? node : resource);
     }
@@ -707,7 +712,7 @@ function bind() {
     renderForm();
   });
   $('discard-pending').addEventListener('click', () => {
-    if (!state.pendingCreate.editable && !confirm('重新选文件将开始新提交。如果 P2 已受理，原任务仍会继续。')) return;
+    if (!state.pendingCreate.editable && !confirm(t('重新选文件将开始新提交。如果 P2 已受理，原任务仍会继续。', 'Choosing new files starts a new submission. If P2 already accepted the original job, it will continue.'))) return;
     setPending(null);
     state.files = [];
     state.formError = '';
@@ -747,13 +752,22 @@ function bind() {
     event.preventDefault();
     const id = $('lookup-id').value.trim();
     const valid = jobIdPattern.test(id);
-    setNotice($('lookup-error'), valid ? '' : '请填写完整 Job ID（UUID）。');
+    setNotice($('lookup-error'), valid ? '' : t('请填写完整 Job ID（UUID）。', 'Enter a complete Job ID (UUID).'));
     if (valid) openJob(id);
   });
   $('job-detail').addEventListener('click', jobAction);
   $('resource-detail').addEventListener('click', changeMode);
   $('open-settings').addEventListener('click', openSettings);
   $('workflow-settings').addEventListener('click', openSettings);
+  $('ui-language').addEventListener('change', (event) => {
+    setLocale(event.target.value);
+    updateConnections();
+    $('environment').textContent = t('MOCK · 合成演示', 'MOCK · Demo');
+    if (workflowDialog.open) $('workflow-title').textContent = t(...panelTitles[state.view]);
+    renderForm();
+    renderJobs();
+    renderResources();
+  });
   $('close-settings').addEventListener('click', () => $('settings-dialog').close());
   $('settings-dialog').addEventListener('close', () => {
     $('token').value = '';
@@ -783,6 +797,7 @@ function bind() {
 }
 
 async function boot() {
+  restoreLocale();
   drawIcons();
   const { mock } = await readConfig();
   state.mode = mock ? 'mock' : 'live';
@@ -794,7 +809,7 @@ async function boot() {
     state.language = pending.payload.parameters.language;
   }
   $('environment').hidden = !mock;
-  $('environment').textContent = 'MOCK · 合成演示';
+  $('environment').textContent = t('MOCK · 合成演示', 'MOCK · Demo');
   $('open-settings').hidden = false;
   $('mock-settings').hidden = !mock;
   $('live-settings').hidden = mock;
@@ -808,4 +823,4 @@ async function boot() {
   }
 }
 
-boot().catch((error) => setNotice($('startup-error'), `工作台启动失败 · ${errorText(error)}`));
+boot().catch((error) => setNotice($('startup-error'), t(`工作台启动失败 · ${errorText(error)}`, `Could not start the workbench · ${errorText(error)}`)));

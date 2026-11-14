@@ -1,6 +1,6 @@
+import { t } from './i18n.js';
 const RESOURCE = '/api/resource/v1';
 const TASK = '/api/task/v1';
-const labels = { P1: 'P1 资源服务', P2: 'P2 任务服务' };
 const filenames = {
   'image/png': '.png', 'image/jpeg': '.jpg', 'audio/wav': '.wav',
 };
@@ -27,22 +27,22 @@ export class ApiError extends Error {
 }
 
 export function describeError(error) {
-  const service = labels[error.service];
+  const service = { P1: t('P1 资源服务', 'P1 Resource service'), P2: t('P2 任务服务', 'P2 Task service') }[error.service];
   if (!service) return error.message;
-  const request = error.requestId ? `（请求 ${error.requestId}）` : '';
+  const request = error.requestId ? t(`（请求 ${error.requestId}）`, ` (request ${error.requestId})`) : '';
   return `${service} · ${error.message}${request}`;
 }
 
 function fromResponse(service, status, problem) {
   const code = problem?.code;
-  let message = problem?.message || `返回 HTTP ${status}`;
-  if (status === 401 || status === 403) message = '请在连接设置中检查 DEMO_TOKEN。';
+  let message = problem?.message || t(`返回 HTTP ${status}`, `HTTP ${status}`);
+  if (status === 401 || status === 403) message = t('请在连接设置中检查 DEMO_TOKEN。', 'Check DEMO_TOKEN in Connection settings.');
   return new ApiError(service, status, message, code, problem?.request_id);
 }
 
 function fromConnection(service, error) {
   if (error instanceof ApiError || error.name === 'AbortError') return error;
-  const message = error.name === 'TimeoutError' ? '请求超时。' : '连接已断开，请检查服务。';
+  const message = error.name === 'TimeoutError' ? t('请求超时。', 'The request timed out.') : t('连接已断开，请检查服务。', 'The connection was lost. Check the service.');
   return new ApiError(service, 0, message);
 }
 
@@ -71,7 +71,7 @@ async function request(service, path, options = {}) {
       return await response.json();
     } catch (error) {
       if (combinedSignal.aborted) throw combinedSignal.reason;
-      throw new ApiError(service, response.status, '响应不是契约定义的 JSON。', 'INVALID_RESPONSE');
+      throw new ApiError(service, response.status, t('响应不是契约定义的 JSON。', 'The response is not the JSON specified by the API contract.'), 'INVALID_RESPONSE');
     }
   } catch (error) {
     // Preserve an explicit page-switch abort and distinguish it from a timeout.
@@ -82,7 +82,7 @@ async function request(service, path, options = {}) {
 
 function verifyVersion(service, response) {
   if (response?.contract_version !== CONTRACT_VERSION) {
-    throw new ApiError(service, 200, `接口契约应为 ${CONTRACT_VERSION}，实际为 ${response?.contract_version ?? 'N/A'}。`, 'CONTRACT_VERSION');
+    throw new ApiError(service, 200, t(`接口契约应为 ${CONTRACT_VERSION}，实际为 ${response?.contract_version ?? 'N/A'}。`, `Expected API contract ${CONTRACT_VERSION}, received ${response?.contract_version ?? 'N/A'}.`), 'CONTRACT_VERSION');
   }
   return response;
 }
@@ -90,7 +90,7 @@ function verifyVersion(service, response) {
 async function catalog(service, path, signal, arrayField) {
   const response = verifyVersion(service, await request(service, path, { signal }));
   if (!Array.isArray(response[arrayField])) {
-    throw new ApiError(service, 200, `响应缺少 ${arrayField} 数组。`, 'INVALID_RESPONSE');
+    throw new ApiError(service, 200, t(`响应缺少 ${arrayField} 数组。`, `The response is missing the ${arrayField} array.`), 'INVALID_RESPONSE');
   }
   return response;
 }
@@ -98,7 +98,7 @@ async function catalog(service, path, signal, arrayField) {
 async function health(service, path, expected, signal) {
   const response = verifyVersion(service, await request(service, path, { signal }));
   if (response.service !== expected || response.status !== 'ok') {
-    throw new ApiError(service, 200, '健康检查的服务标识或状态不匹配。', 'INVALID_RESPONSE');
+    throw new ApiError(service, 200, t('健康检查的服务标识或状态不匹配。', 'The health check returned an unexpected service or status.'), 'INVALID_RESPONSE');
   }
   return response;
 }
@@ -121,13 +121,13 @@ function upload(file, uploadId, mime, onProgress) {
       if (xhr.status < 200 || xhr.status >= 300) {
         reject(fromResponse('P1', xhr.status, xhr.response));
       } else if (!xhr.response?.artifact_id || !xhr.response?.sha256) {
-        reject(new ApiError('P1', xhr.status, '上传响应缺少文件 ID 或 SHA-256。', 'INVALID_RESPONSE'));
+        reject(new ApiError('P1', xhr.status, t('上传响应缺少文件 ID 或 SHA-256。', 'The upload response is missing a file ID or SHA-256 hash.'), 'INVALID_RESPONSE'));
       } else {
         resolve(xhr.response);
       }
     };
-    xhr.onerror = () => reject(new ApiError('P1', 0, '上传连接已断开。'));
-    xhr.ontimeout = () => reject(new ApiError('P1', 0, '上传超时，重试将沿用原上传 ID。'));
+    xhr.onerror = () => reject(new ApiError('P1', 0, t('上传连接已断开。', 'The upload connection was lost.')));
+    xhr.ontimeout = () => reject(new ApiError('P1', 0, t('上传超时，重试将沿用原上传 ID。', 'The upload timed out. Retrying uses the original upload ID.')));
     xhr.send(body);
   });
 }
@@ -164,7 +164,7 @@ export const getScenario = () => request(null, '/mock/scenario');
 
 export async function demoFiles(mime, count) {
   const extension = filenames[mime];
-  if (!extension) throw new Error('此类型没有演示文件。');
+  if (!extension) throw new Error(t('此类型没有演示文件。', 'No sample files are available for this task type.'));
   return Promise.all(Array.from({ length: count }, async (_, index) => {
     const name = `MOCK-${index + 1}${extension}`;
     const blob = await request(null, `/samples/${name}`, { binary: true });

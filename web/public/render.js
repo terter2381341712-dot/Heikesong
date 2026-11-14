@@ -1,31 +1,36 @@
+import { locale, t } from './i18n.js';
 const statusInfo = {
-  QUEUED: ['排队中'], WAITING_FOR_RESOURCES: ['等待资源', 'warn'], DISPATCHING: ['分派对账中', 'active'],
-  RUNNING: ['执行中', 'active'], CANCELLING: ['取消确认中', 'warn'], CANCEL_REQUESTED: ['已请求取消', 'warn'],
-  SUCCEEDED: ['执行成功', 'good'], PARTIAL_FAILED: ['部分失败', 'warn'], FAILED: ['执行失败', 'bad'], CANCELLED: ['已取消'],
-  REJECTED: ['分派拒绝', 'bad'], ACCEPTED: ['已受理', 'active'], ONLINE: ['在线', 'good'], OFFLINE: ['离线', 'bad'],
-  ACTIVE: ['允许接单', 'good'], DRAINING: ['排空中', 'warn'], PAUSED: ['已暂停'],
-  UNAVAILABLE: ['不兼容'], NOT_PREPARED: ['未准备'], PREPARING: ['准备中', 'warn'], READY: ['已就绪', 'good'], ERROR: ['准备失败', 'bad'],
+  QUEUED: ['排队中', 'Queued'], WAITING_FOR_RESOURCES: ['等待资源', 'Waiting for resources', 'warn'], DISPATCHING: ['分派对账中', 'Reconciling dispatch', 'active'],
+  RUNNING: ['执行中', 'Running', 'active'], CANCELLING: ['取消确认中', 'Cancelling', 'warn'], CANCEL_REQUESTED: ['已请求取消', 'Cancellation requested', 'warn'],
+  SUCCEEDED: ['执行成功', 'Succeeded', 'good'], PARTIAL_FAILED: ['部分失败', 'Partial failure', 'warn'], FAILED: ['执行失败', 'Failed', 'bad'], CANCELLED: ['已取消', 'Cancelled'],
+  REJECTED: ['分派拒绝', 'Dispatch rejected', 'bad'], ACCEPTED: ['已受理', 'Accepted', 'active'], ONLINE: ['在线', 'Online', 'good'], OFFLINE: ['离线', 'Offline', 'bad'],
+  ACTIVE: ['允许接单', 'Accepting jobs', 'good'], DRAINING: ['排空中', 'Draining', 'warn'], PAUSED: ['已暂停', 'Paused'],
+  UNAVAILABLE: ['不兼容', 'Incompatible'], NOT_PREPARED: ['未准备', 'Not prepared'], PREPARING: ['准备中', 'Preparing', 'warn'], READY: ['已就绪', 'Ready', 'good'], ERROR: ['准备失败', 'Preparation failed', 'bad'],
 };
 
 export const terminal = new Set(['SUCCEEDED', 'PARTIAL_FAILED', 'FAILED', 'CANCELLED']);
-export const languageLabels = { auto: '自动识别', zh: '中文', en: '英语' };
-const typeLabels = { 'ocr.image.v1': '图片文字识别', 'asr.file.v1': '短录音文字识别' };
-const sourceLabels = { detected: '自动检测', unavailable: 'N/A', 'nvidia-smi': 'nvidia-smi' };
-const beijing = new Intl.DateTimeFormat('zh-CN', {
+const languageLabels = { auto: ['自动识别', 'Auto-detect'], zh: ['中文', 'Chinese'], en: ['英语', 'English'] };
+const typeLabels = { 'ocr.image.v1': ['图片文字识别', 'Image OCR'], 'asr.file.v1': ['短录音文字识别', 'Short audio transcription'] };
+const sourceLabels = { detected: ['自动检测', 'Auto-detected'], unavailable: ['N/A', 'N/A'], 'nvidia-smi': ['nvidia-smi', 'nvidia-smi'] };
+const dateOptions = {
   timeZone: 'Asia/Shanghai', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
-});
+};
+const beijing = new Intl.DateTimeFormat('zh-CN', dateOptions);
+const beijingEn = new Intl.DateTimeFormat('en-GB', dateOptions);
 const renderedHtml = new WeakMap();
 
 export const escape = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
 })[char]);
-export const typeName = (type) => typeLabels[type] ?? type;
+export const typeName = (type, fallback = type) => Object.hasOwn(typeLabels, type) ? t(...typeLabels[type]) : fallback;
+export const languageName = (language) => Object.hasOwn(languageLabels, language) ? t(...languageLabels[language]) : language;
+const sourceName = (source) => Object.hasOwn(sourceLabels, source) ? t(...sourceLabels[source]) : 'N/A';
 export const isConfigured = (type) => type?.configuration_state === 'CONFIGURED' && Boolean(type.profile_digest);
 export const tag = (status) => {
-  const [label, tone = ''] = Object.hasOwn(statusInfo, status) ? statusInfo[status] : [status];
-  return `<span class="tag ${tone}" title="${escape(status)}">${escape(label)}</span>`;
+  const [chinese, english, tone = ''] = Object.hasOwn(statusInfo, status) ? statusInfo[status] : [status, status];
+  return `<span class="tag ${tone}" title="${escape(status)}">${escape(t(chinese, english))}</span>`;
 };
-export const date = (value) => value ? `${beijing.format(new Date(value))} 北京时间` : 'N/A';
+export const date = (value) => value ? `${(locale === 'en' ? beijingEn : beijing).format(new Date(value))} ${t('北京时间', 'Beijing time')}` : 'N/A';
 export const bytes = (value) => {
   if (value == null) return 'N/A';
   const units = ['B', 'KiB', 'MiB', 'GiB', 'TiB'];
@@ -55,11 +60,11 @@ export function empty(title, text) {
 }
 
 export function historyRows(entries, current, showResults) {
-  if (!entries.length) return `<p class="muted">此浏览器暂无任务记录。</p>`;
+  if (!entries.length) return `<p class="muted">${t('此浏览器暂无任务记录。', 'No jobs in this browser yet.')}</p>`;
   const suffix = showResults ? '/results' : '';
   return entries.slice(0, 25).map((entry) => `
     <a class="recent-item" href="#jobs/${escape(entry.id)}${suffix}" data-focus-key="job-${escape(entry.id)}"${entry.id === current ? ' aria-current="true"' : ''}>
-      <strong>${escape(entry.type ? typeName(entry.type) : '任务详情')}</strong>
+      <strong>${escape(entry.type ? typeName(entry.type) : t('任务详情', 'Job details'))}</strong>
       <small class="mono">${escape(entry.id)}</small>
       ${entry.status ? tag(entry.status) : ''}
     </a>`).join('');
@@ -67,7 +72,7 @@ export function historyRows(entries, current, showResults) {
 
 function issue(error) {
   if (!error) return '';
-  const request = error.request_id ? `（请求 ${error.request_id}）` : '';
+  const request = error.request_id ? t(`（请求 ${error.request_id}）`, ` (request ${error.request_id})`) : '';
   return message(`${error.code} · ${error.message}${request}`, 'error');
 }
 
@@ -84,18 +89,18 @@ function asTimestamp(ms) {
 
 function output(result, id) {
   if (!result) return '';
-  const text = `<p class="result-text">${escape(result.text || '（结果为空）')}</p>`;
+  const text = `<p class="result-text">${escape(result.text || t('（结果为空）', '(No text recognized)'))}</p>`;
   if (result.task_type === 'asr.file.v1') {
     const segments = result.segments.map((segment) => `<li><span class="mono">${asTimestamp(segment.start_ms)} – ${asTimestamp(segment.end_ms)}</span><span>${escape(segment.text)}</span></li>`).join('');
-    return `${text}<p class="task-meta">${asTimestamp(result.duration_ms)} · ${escape(languageLabels[result.language] ?? 'N/A')}</p>${segments ? `<ul class="segments" aria-label="录音时间戳">${segments}</ul>` : ''}`;
+    return `${text}<p class="task-meta">${asTimestamp(result.duration_ms)} · ${escape(languageName(result.language) ?? 'N/A')}</p>${segments ? `<ul class="segments" aria-label="${t('录音时间戳', 'Audio timestamps')}">${segments}</ul>` : ''}`;
   }
-  const blocks = result.blocks.map((block) => `<li><span class="mono">[${escape(block.bbox.join(', '))}] · 置信度 ${escape(block.confidence ?? 'N/A')}</span><span>${escape(block.text)}</span></li>`).join('');
-  return `${text}<p class="task-meta">${escape(result.image_width)} × ${escape(result.image_height)} px</p>${blocks ? `<details data-detail="ocr-${escape(id)}"><summary data-focus-key="ocr-${escape(id)}">文字块与位置（${result.blocks.length}）</summary><ul class="segments">${blocks}</ul></details>` : ''}`;
+  const blocks = result.blocks.map((block) => `<li><span class="mono">[${escape(block.bbox.join(', '))}] · ${t('置信度', 'Confidence')} ${escape(block.confidence ?? 'N/A')}</span><span>${escape(block.text)}</span></li>`).join('');
+  return `${text}<p class="task-meta">${escape(result.image_width)} × ${escape(result.image_height)} px</p>${blocks ? `<details data-detail="ocr-${escape(id)}"><summary data-focus-key="ocr-${escape(id)}">${t('文字块与位置', 'Text blocks and positions')} (${result.blocks.length})</summary><ul class="segments">${blocks}</ul></details>` : ''}`;
 }
 
 const countLabels = {
-  succeeded: '成功', running: '执行', failed: '失败', cancelled: '取消', dispatching: '对账',
-  waiting_for_resources: '等待资源', queued: '排队', cancelling: '取消中',
+  succeeded: ['成功', 'Succeeded'], running: ['执行', 'Running'], failed: ['失败', 'Failed'], cancelled: ['取消', 'Cancelled'], dispatching: ['对账', 'Reconciling'],
+  waiting_for_resources: ['等待资源', 'Waiting for resources'], queued: ['排队', 'Queued'], cancelling: ['取消中', 'Cancelling'],
 };
 
 function renderCounts(counts) {
@@ -105,7 +110,7 @@ function renderCounts(counts) {
     return `<span class="count-segment ${status}" data-share="${share}"></span>`;
   }).join('');
   const labels = Object.entries(countLabels).map(([status, label]) => `<span>${label} ${escape(counts[status])}</span>`).join('');
-  return `<div class="count-heading"><strong>输入处理</strong><span>${escape(completed)} / ${escape(counts.total)} 项已结束</span></div>
+  return `<div class="count-heading"><strong>${t('输入处理', 'Input processing')}</strong><span>${escape(completed)} / ${escape(counts.total)} ${t('项已结束', 'complete')}</span></div>
     <div class="count-bar" aria-hidden="true">${bars}</div><div class="count-labels">${labels}</div>`;
 }
 
@@ -113,23 +118,23 @@ function taskRow(task, result, resourceNames, showResults) {
   const id = escape(task.task_id);
   const current = task.dispatches.find((dispatch) => dispatch.execution_id === task.current_execution_id);
   const worker = current ?? (terminal.has(task.status) ? task.dispatches.at(-1) : null);
-  const unassigned = task.current_execution_id ? '分派待确认' : terminal.has(task.status) ? '未分派' : '待分派';
+  const unassigned = task.current_execution_id ? t('分派待确认', 'Dispatch unconfirmed') : terminal.has(task.status) ? t('未分派', 'Unassigned') : t('待分派', 'Awaiting dispatch');
   const name = worker ? resourceNames.get(worker.worker_id) || worker.worker_id : unassigned;
   const stopped = task.dispatches.findLast(sharedDeviceStopped);
   const resumed = task.status === 'WAITING_FOR_RESOURCES' || (worker && worker.execution_id !== stopped?.execution_id);
-  const handoff = stopped && resumed && `原分派中止 · ${stopped.error.message}`;
+  const handoff = stopped && resumed && t(`原分派中止 · ${stopped.error.message}`, `Previous dispatch stopped · ${stopped.error.message}`);
   const dispatches = showResults ? '' : task.dispatches.map((dispatch) => `
-    <li><span class="mono">${escape(resourceNames.get(dispatch.worker_id) || dispatch.worker_id)}</span><span>尝试 ${escape(dispatch.attempt_no)} ${tag(dispatch.status)} <code>${escape(dispatch.execution_id)}</code></span></li>
+    <li><span class="mono">${escape(resourceNames.get(dispatch.worker_id) || dispatch.worker_id)}</span><span>${t('尝试', 'Attempt')} ${escape(dispatch.attempt_no)} ${tag(dispatch.status)} <code>${escape(dispatch.execution_id)}</code></span></li>
     ${dispatch.error ? `<li>${issue(dispatch.error)}</li>` : ''}`).join('');
   const artifact = task.input;
   return `<li class="task-row">
     <div class="task-header"><h4>${escape(task.input_index + 1)}. ${escape(artifact.original_name)}</h4>${tag(task.status)}</div>
-    <p class="task-meta"><span>${escape(name)}</span><span>已受理 ${escape(task.attempts_used)} 次</span><span>${bytes(artifact.size_bytes)}</span></p>
+    <p class="task-meta"><span>${escape(name)}</span><span>${t('已受理', 'Accepted attempts:')} ${escape(task.attempts_used)}${t(' 次', '')}</span><span>${bytes(artifact.size_bytes)}</span></p>
     ${message(handoff && task.waiting_reason !== stopped.error.message ? handoff : '', 'warn')}
     ${message(task.waiting_reason, 'warn')}${issue(result?.error ?? task.error)}
     ${output(result?.result, task.task_id)}
-    ${dispatches ? `<details data-detail="dispatch-${id}"><summary data-focus-key="dispatch-${id}">分派记录（${task.dispatches.length}）</summary><ul class="segments">${dispatches}</ul></details>` : ''}
-    <button class="button subtle" type="button" data-action="download-input" data-id="${id}" data-focus-key="input-${id}">下载原文件</button>
+    ${dispatches ? `<details data-detail="dispatch-${id}"><summary data-focus-key="dispatch-${id}">${t('分派记录', 'Dispatch history')} (${task.dispatches.length})</summary><ul class="segments">${dispatches}</ul></details>` : ''}
+    <button class="button subtle" type="button" data-action="download-input" data-id="${id}" data-focus-key="input-${id}">${t('下载原文件', 'Download original')}</button>
   </li>`;
 }
 
@@ -142,32 +147,32 @@ export function jobPanel(job, results, resourceNames, { showResults, jobError, r
   const canCancel = !showResults && !finished && !job.cancel_requested;
   const needsP1 = job.dependency_status === 'UNREACHABLE';
   const switchPath = `#jobs/${id}${showResults ? '' : '/results'}`;
-  const switchLabel = showResults ? '查看任务进度' : '查看识别结果';
+  const switchLabel = showResults ? t('查看任务进度', 'View job progress') : t('查看识别结果', 'View results');
   let resultNotice = '';
   if (showResults) {
-    if (resultsError) resultNotice = message(`${results ? '结果快照已过期' : '结果读取失败'} · ${resultsError}`, 'error');
-    else if (!results) resultNotice = message('正在读取识别结果…');
-    else if (!finished && !results.items.some((item) => item.result)) resultNotice = message('识别完成后可预览结果。');
+    if (resultsError) resultNotice = message(`${results ? t('结果快照已过期', 'Result snapshot is out of date') : t('结果读取失败', 'Could not load results')} · ${resultsError}`, 'error');
+    else if (!results) resultNotice = message(t('正在读取识别结果…', 'Loading results…'));
+    else if (!finished && !results.items.some((item) => item.result)) resultNotice = message(t('识别完成后可预览结果。', 'Results will be available after recognition finishes.'));
   }
   return `<section class="panel compact job-summary">
     <div class="panel-heading"><h3>${escape(typeName(job.task_type))}</h3>${tag(job.status)}</div>
-    <p class="mono">Job ID <span id="job-id-text">${id}</span></p><p class="task-meta">创建于 ${escape(date(job.created_at))} · ${escape(languageLabels[job.parameters.language])}</p>
-    ${message(jobError && `快照已过期 · ${jobError}`, 'error')}
-    ${message(needsP1 ? 'P2 报告 P1 资源服务不可达，等待恢复和对账。' : '', 'warn')}
-    ${message(job.status === 'CANCELLING' ? '正在等待活动任务确认停止。' : '', 'warn')}
+    <p class="mono">Job ID <span id="job-id-text">${id}</span></p><p class="task-meta">${t('创建于', 'Created')} ${escape(date(job.created_at))} · ${escape(languageName(job.parameters.language))}</p>
+    ${message(jobError && t(`快照已过期 · ${jobError}`, `Snapshot is out of date · ${jobError}`), 'error')}
+    ${message(needsP1 ? t('P2 报告 P1 资源服务不可达，等待恢复和对账。', 'P2 reports that P1 is unreachable. Waiting for recovery and reconciliation.') : '', 'warn')}
+    ${message(job.status === 'CANCELLING' ? t('正在等待活动任务确认停止。', 'Waiting for active tasks to confirm cancellation.') : '', 'warn')}
     ${renderCounts(job.counts)}
     <div class="summary-actions">
-      <button class="button secondary" type="button" data-action="copy-id" data-focus-key="copy-id">复制 Job ID</button>
+      <button class="button secondary" type="button" data-action="copy-id" data-focus-key="copy-id">${t('复制 Job ID', 'Copy Job ID')}</button>
       <a class="button secondary" href="${switchPath}" data-focus-key="switch-job-view">${switchLabel}</a>
-      ${canDownload ? `<button class="button primary" type="button" data-action="download-job" data-focus-key="download-job"${downloading || jobError ? ' disabled' : ''}><span data-icon="download"></span>${downloading ? '下载中…' : '下载 ZIP'}</button>` : ''}
-      ${canCancel ? `<button class="button danger" type="button" data-action="cancel-job" data-focus-key="cancel-job"${cancelling || jobError ? ' disabled' : ''}>${cancelling ? '请求中…' : '取消任务'}</button>` : ''}
+      ${canDownload ? `<button class="button primary" type="button" data-action="download-job" data-focus-key="download-job"${downloading || jobError ? ' disabled' : ''}><span data-icon="download"></span>${downloading ? t('下载中…', 'Downloading…') : t('下载 ZIP', 'Download ZIP')}</button>` : ''}
+      ${canCancel ? `<button class="button danger" type="button" data-action="cancel-job" data-focus-key="cancel-job"${cancelling || jobError ? ' disabled' : ''}>${cancelling ? t('请求中…', 'Requesting…') : t('取消任务', 'Cancel job')}</button>` : ''}
     </div>
   </section>
   <section class="panel compact" aria-labelledby="job-inputs-title">
-    <div class="panel-heading"><h3 id="job-inputs-title">${showResults ? '逐文件结果' : '逐文件进度'}</h3></div>
+    <div class="panel-heading"><h3 id="job-inputs-title">${showResults ? t('逐文件结果', 'Results by file') : t('逐文件进度', 'Progress by file')}</h3></div>
     ${resultNotice}
     <ul class="task-list">${orderedInputs.map((task) => taskRow(task, items.get(task.task_id), resourceNames, showResults)).join('')}</ul>
-    ${showResults && results?.combined_text ? `<details data-detail="combined"><summary data-focus-key="combined">查看合并文本</summary><p class="result-text">${escape(results.combined_text)}</p></details>` : ''}
+    ${showResults && results?.combined_text ? `<details data-detail="combined"><summary data-focus-key="combined">${t('查看合并文本', 'View combined text')}</summary><p class="result-text">${escape(results.combined_text)}</p></details>` : ''}
   </section>`;
 }
 
@@ -178,24 +183,24 @@ function percent(value) {
 function nodeFacts(node) {
   const { hardware, telemetry } = node;
   const facts = [
-    ['系统 / 架构', `${hardware.os} / ${hardware.arch}`],
-    ['CPU（自动检测）', `${hardware.cpu_name ?? 'N/A'} · ${hardware.logical_cores ?? 'N/A'} 线程`],
-    ['GPU（检测来源）', `${hardware.gpu_name ?? 'N/A'} · ${sourceLabels[hardware.gpu_info_source] ?? 'N/A'}`],
-    ['GPU 显存', bytes(hardware.gpu_vram_bytes)],
-    ['CPU / GPU 利用率', `${percent(telemetry?.cpu_percent)} / ${percent(telemetry?.gpu_percent)}`],
-    ['内存已用 / 总量', `${bytes(telemetry?.ram_used_bytes)} / ${bytes(hardware.ram_total_bytes)}`],
-    ['GPU 显存已用 / 采样来源', `${bytes(telemetry?.gpu_memory_used_bytes)} · ${sourceLabels[telemetry?.gpu_metric_source] ?? 'N/A'}`],
-    ['槽位（占用 / 可用 / 总量）', `${node.reserved_slots} / ${node.available_slots} / ${node.max_slots}`],
+    [t('系统 / 架构', 'OS / architecture'), `${hardware.os} / ${hardware.arch}`],
+    [t('CPU（自动检测）', 'CPU (auto-detected)'), `${hardware.cpu_name ?? 'N/A'} · ${hardware.logical_cores ?? 'N/A'} ${t('线程', 'threads')}`],
+    [t('GPU（检测来源）', 'GPU (detection source)'), `${hardware.gpu_name ?? 'N/A'} · ${sourceName(hardware.gpu_info_source)}`],
+    [t('GPU 显存', 'GPU memory'), bytes(hardware.gpu_vram_bytes)],
+    [t('CPU / GPU 利用率', 'CPU / GPU usage'), `${percent(telemetry?.cpu_percent)} / ${percent(telemetry?.gpu_percent)}`],
+    [t('内存已用 / 总量', 'Memory used / total'), `${bytes(telemetry?.ram_used_bytes)} / ${bytes(hardware.ram_total_bytes)}`],
+    [t('GPU 显存已用 / 采样来源', 'GPU memory used / data source'), `${bytes(telemetry?.gpu_memory_used_bytes)} · ${sourceName(telemetry?.gpu_metric_source)}`],
+    [t('槽位（占用 / 可用 / 总量）', 'Slots (used / available / total)'), `${node.reserved_slots} / ${node.available_slots} / ${node.max_slots}`],
   ];
   return facts.map(([label, value]) => `<div><dt>${escape(label)}</dt><dd>${escape(value)}</dd></div>`).join('');
 }
 
 function capabilityRows(capabilities) {
-  if (!capabilities.length) return `<p class="field-hint">服务尚未报告能力。</p>`;
+  if (!capabilities.length) return `<p class="field-hint">${t('服务尚未报告能力。', 'The service has not reported any capabilities.')}</p>`;
   return `<ul>${capabilities.map((capability) => `
     <li class="capability"><div><strong>${escape(typeName(capability.task_type))}</strong>
-      <p class="field-hint">后端 ${escape(capability.backend ?? 'N/A')} · ${escape(capability.runtime_provider ?? 'N/A')}</p>
-      <p class="field-hint">模型${capability.model_cached ? '已缓存' : '未缓存'} · ${capability.verified ? '自测已通过' : '自测未通过或未验证'}</p>
+      <p class="field-hint">${t('后端', 'Backend')} ${escape(capability.backend ?? 'N/A')} · ${escape(capability.runtime_provider ?? 'N/A')}</p>
+      <p class="field-hint">${t('模型', 'Model ')}${capability.model_cached ? t('已缓存', 'cached') : t('未缓存', 'not cached')} · ${capability.verified ? t('自测已通过', 'Self-test passed') : t('自测未通过或未验证', 'Self-test failed or unverified')}</p>
       ${capability.reason ? `<p class="field-hint">${escape(capability.reason)}</p>` : ''}</div>${tag(capability.state)}</li>`).join('')}</ul>`;
 }
 
@@ -204,17 +209,17 @@ export function resourceCard(node, { stale, changing, mock }) {
   const id = escape(node.worker_id);
   const manual = Object.entries(hardware.manual_labels).map(([key, value]) => `${key} = ${value}`).join(' · ');
   const action = node.mode === 'ACTIVE' ? 'DRAINING' : 'ACTIVE';
-  const label = action === 'DRAINING' ? (mock ? '退出接单' : '暂停接新任务') : '恢复接单';
+  const label = action === 'DRAINING' ? (mock ? t('退出接单', 'Stop accepting jobs') : t('暂停接新任务', 'Pause new jobs')) : t('恢复接单', 'Resume accepting jobs');
   return `<article class="panel compact resource-card">
     <div class="panel-heading"><h3>${escape(node.name)}</h3><div class="node-tags">${tag(node.connection)}${tag(node.mode)}</div></div>
     <p class="mono">${id}</p>
     <dl class="node-facts">${nodeFacts(node)}</dl>
-    ${manual ? `<p class="field-hint">手动标注 · ${escape(manual)}</p>` : ''}
-    ${hardware.detection_errors.map((error) => message(`检测异常 · ${error}`, 'warn')).join('')}
-    ${message(node.mode === 'DRAINING' ? '现有工作完成后暂停接单。' : '', 'warn')}
-    ${message(node.cleanup_pending ? '正在等待设备确认停止。' : '', 'warn')}
-    <h4 class="node-subtitle">执行能力</h4>${capabilityRows(node.capabilities)}
-    <div class="node-footer"><p class="field-hint">采样于 ${escape(date(node.telemetry?.sampled_at))}<br>心跳于 ${escape(date(node.last_seen_at))}</p>
-      <button class="button secondary" type="button" data-action="node-mode" data-id="${id}" data-mode="${action}" data-focus-key="mode-${id}"${stale || changing || node.cleanup_pending || node.connection === 'OFFLINE' ? ' disabled' : ''}>${changing ? '请求中…' : label}</button></div>
+    ${manual ? `<p class="field-hint">${t('手动标注', 'Manual labels')} · ${escape(manual)}</p>` : ''}
+    ${hardware.detection_errors.map((error) => message(t(`检测异常 · ${error}`, `Detection error · ${error}`), 'warn')).join('')}
+    ${message(node.mode === 'DRAINING' ? t('现有工作完成后暂停接单。', 'New jobs will be paused once active work finishes.') : '', 'warn')}
+    ${message(node.cleanup_pending ? t('正在等待设备确认停止。', 'Waiting for the device to confirm that work has stopped.') : '', 'warn')}
+    <h4 class="node-subtitle">${t('执行能力', 'Capabilities')}</h4>${capabilityRows(node.capabilities)}
+    <div class="node-footer"><p class="field-hint">${t('采样于', 'Sampled')} ${escape(date(node.telemetry?.sampled_at))}<br>${t('心跳于', 'Last heartbeat')} ${escape(date(node.last_seen_at))}</p>
+      <button class="button secondary" type="button" data-action="node-mode" data-id="${id}" data-mode="${action}" data-focus-key="mode-${id}"${stale || changing || node.cleanup_pending || node.connection === 'OFFLINE' ? ' disabled' : ''}>${changing ? t('请求中…', 'Requesting…') : label}</button></div>
   </article>`;
 }

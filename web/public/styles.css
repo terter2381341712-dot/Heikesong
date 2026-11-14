@@ -1,5 +1,29 @@
+@font-face {
+  font-family: "Anthropic Sans";
+  src: url("/assets/anthropic-sans-normal.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 300 800;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Anthropic Mono";
+  src: url("/assets/anthropic-mono-normal.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 300 800;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Noto Sans SC";
+  src: url("/assets/noto-sans-sc-home.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+
 :root {
-  font-family: Inter, "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+  font-family: "Anthropic Sans", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
   color: #32231e;
   background: #f7f5f2;
   font-synthesis: none;
@@ -33,7 +57,7 @@ h1, h2, h3, p, dl, dd { margin: 0; }
 ul { margin: 0; padding: 0; list-style: none; }
 svg { width: 18px; height: 18px; flex: 0 0 auto; vertical-align: middle; }
 [data-icon] { display: inline-flex; align-items: center; }
-code, .mono { font-family: "IBM Plex Mono", Consolas, monospace; overflow-wrap: anywhere; }
+code, .mono { font-family: "Anthropic Mono", Consolas, monospace; overflow-wrap: anywhere; }
 .mono { font-size: 12px; font-variant-numeric: tabular-nums; }
 .muted { color: var(--muted); }
 .error-text { color: var(--error) !important; }
@@ -55,7 +79,7 @@ code, .mono { font-family: "IBM Plex Mono", Consolas, monospace; overflow-wrap: 
 }
 .brand-mark i { border-radius: 2px; background: #97462d; }
 .brand-mark i:nth-child(2) { border: 1px solid #97462d; background: none; }
-.brand h1 { font-size: 17px; font-weight: 750; letter-spacing: -.02em; line-height: 1.25; }
+.brand h1 { font-size: 18px; font-weight: 650; letter-spacing: -.025em; line-height: 1.2; }
 .brand small { display: block; }
 .brand small { color: #67534b; font-size: 12px; margin-top: 2px; }
 .service-status {
@@ -90,6 +114,7 @@ code, .mono { font-family: "IBM Plex Mono", Consolas, monospace; overflow-wrap: 
 .environment { display: inline-flex; align-items: center; gap: 6px; border: 1px solid #e6d3a3; color: #664709; background: #fff2d1; font-weight: 750; font-size: 12px; padding: 4px 9px; border-radius: 6px; white-space: nowrap; }
 .environment::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #9b6e16; }
 .content {
+  font-family: "Anthropic Sans", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -242,7 +267,7 @@ summary { cursor: pointer; font-weight: 700; color: var(--green); }
 .dialog-fields { display: grid; }
 .dialog-fields .field-hint { margin-top: 7px; }
 #live-settings label { margin-top: 14px; }
-.motion-settings {
+.language-settings, .motion-settings {
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
@@ -253,7 +278,8 @@ summary { cursor: pointer; font-weight: 700; color: var(--green); }
   border-radius: 14px;
   background: linear-gradient(155deg, #fff, #f5efe9);
 }
-.motion-settings label { font-weight: 650; }
+.language-settings label, .motion-settings label { font-weight: 650; }
+.language-settings select { min-width: 110px; }
 .motion-settings .field-hint { grid-column: 1 / -1; }
 #workflow-playback {
   appearance: none;

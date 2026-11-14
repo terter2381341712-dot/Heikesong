@@ -1,3 +1,4 @@
+import { t } from './i18n.js';
 export const mimeLabels = { 'image/jpeg': 'JPG', 'image/png': 'PNG', 'audio/wav': 'WAV' };
 export const emptyMedia = {
   width: null, height: null, duration_ms: null, sample_rate_hz: null, channels: null, audio_encoding: null,
@@ -71,7 +72,7 @@ function parseWav(view) {
   if (!format || !dataBytes || dataBytes % 2) return null;
   if (format.encoding !== 1 || format.bits !== 16 || format.channels !== 1 ||
     format.sample_rate_hz !== 16000 || format.block_align !== 2 || format.bytes_per_second !== 32000) {
-    throw new InputError('WAV 必须为 16 kHz、单声道、PCM 16 位。');
+    throw new InputError(t('WAV 必须为 16 kHz、单声道、PCM 16 位。', 'WAV files must use 16 kHz mono 16-bit PCM.'));
   }
   return {
     duration: dataBytes / 32,
@@ -85,17 +86,17 @@ export function inspectInput(buffer, mime, descriptor) {
   const view = new DataView(buffer);
   if (mime === 'audio/wav') {
     const audio = parseWav(view);
-    if (!audio) throw new InputError('无法读取有效的 WAV 音频。');
+    if (!audio) throw new InputError(t('无法读取有效的 WAV 音频。', 'Could not read valid WAV audio.'));
     const { duration, ...fields } = audio;
     if (descriptor.max_duration_ms != null && duration > descriptor.max_duration_ms) {
-      throw new InputError('录音时长超出任务上限。', 'INPUT_TOO_LARGE');
+      throw new InputError(t('录音时长超出任务上限。', 'The audio exceeds the duration limit.'), 'INPUT_TOO_LARGE');
     }
     return { ...emptyMedia, ...fields, duration_ms: Math.ceil(duration) };
   }
   const image = mime === 'image/png' ? parsePng(view) : parseJpeg(view);
-  if (!image?.width || !image.height) throw new InputError('无法读取有效的图片尺寸。');
+  if (!image?.width || !image.height) throw new InputError(t('无法读取有效的图片尺寸。', 'Could not read valid image dimensions.'));
   if (descriptor.max_pixels != null && image.width * image.height > descriptor.max_pixels) {
-    throw new InputError('图片像素数超出任务上限。', 'INPUT_TOO_LARGE');
+    throw new InputError(t('图片像素数超出任务上限。', 'The image exceeds the pixel limit.'), 'INPUT_TOO_LARGE');
   }
   return { ...emptyMedia, ...image };
 }

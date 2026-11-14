@@ -57,9 +57,13 @@ const staticFiles = new Map([
   ['/styles.css', ['styles.css', 'text/css; charset=utf-8']],
   ['/workflow.css', ['workflow.css', 'text/css; charset=utf-8']],
   ['/workflow.js', ['workflow.js', 'text/javascript; charset=utf-8']],
+  ['/assets/anthropic-sans-normal.woff2', ['assets/anthropic-sans-normal.woff2', 'font/woff2']],
+  ['/assets/anthropic-mono-normal.woff2', ['assets/anthropic-mono-normal.woff2', 'font/woff2']],
+  ['/assets/noto-sans-sc-home.woff2', ['assets/noto-sans-sc-home.woff2', 'font/woff2']],
   ['/assets/ether-node.png', ['assets/ether-node.png', 'image/png']],
   ['/assets/ether-node-small.webp', ['assets/ether-node-small.webp', 'image/webp']],
   ['/app.js', ['app.js', 'text/javascript; charset=utf-8']],
+  ['/i18n.js', ['i18n.js', 'text/javascript; charset=utf-8']],
   ['/api.js', ['api.js', 'text/javascript; charset=utf-8']],
   ['/media.js', ['media.js', 'text/javascript; charset=utf-8']],
   ['/render.js', ['render.js', 'text/javascript; charset=utf-8']],
@@ -147,7 +151,7 @@ function proxy(request, response, path, baseUrl, service, fallbackToken) {
 const server = createServer(async (request, response) => {
   response.setHeader('Cache-Control', 'no-store');
   response.setHeader('X-Content-Type-Options', 'nosniff');
-  response.setHeader('Content-Security-Policy', "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; media-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'self'");
+  response.setHeader('Content-Security-Policy', "default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; media-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'self'");
   try {
     const authority = request.headers.host;
     if (!authority || ((host === '127.0.0.1' || host === 'localhost') && !/^(?:localhost|127\.0\.0\.1)(?::\d+)?$/.test(authority))) {
