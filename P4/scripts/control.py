@@ -242,12 +242,65 @@ class Runtime:
             else:
                 result = json.loads(process.stdout)
             version = tuple(int(p) for p in result["version"].split("."))
-            result["compatible"] = version == (3, 9, 6) if component == "P1" else version >= (3, 11)
+            result["compatible"] = (
+                version == (3, 9, 6) if component == "P1" else version >= (3, 9, 6)
+            )
             return result
         except (OSError, ValueError, subprocess.SubprocessError):
             return {"compatible": False, "ready": False}
 
     def ensure(self, component, progress):
+        if component == "P2" and "P1" in self.selected:
+            # One exact Python 3.9.6 interpreter for the normal center workflow.
+            executable = Path(self.selected["P1"])
+            if not self.probe(executable, "P2")["ready"]:
+                progress("正在为 Python 3.9.6 补齐P2依赖，P1/P2将共用本机环境…")
+                self.directory.mkdir(parents=True, exist_ok=True)
+                probe = subprocess.run(
+                    [str(executable), "-c", "import pip"], capture_output=True, timeout=10
+                )
+                if probe.returncode == 0:
+                    command = [str(executable), "-m", "pip"]
+                else:
+                    # The optional Windows embedded interpreter has no bundled pip.
+                    helper = None
+                    for candidate in self.candidates("P2"):
+                        if candidate == executable:
+                            continue
+                        try:
+                            help_result = subprocess.run(
+                                [str(candidate), "-m", "pip", "--help"],
+                                capture_output=True,
+                                timeout=10,
+                            )
+                            if help_result.returncode == 0 and b"--python" in help_result.stdout:
+                                helper = candidate
+                                break
+                        except (OSError, subprocess.SubprocessError):
+                            continue
+                    if helper is None:
+                        raise ValueError("当前Python缺少pip，请为Python安装pip后重试。")
+                    command = [str(helper), "-m", "pip", "--python", str(executable)]
+                text = (ROOT / "P2/pyproject.toml").read_text(encoding="utf-8")
+                dependencies = ast.literal_eval(
+                    re.search(r"dependencies\s*=\s*(\[[\s\S]*?\])", text).group(1)
+                )
+                command += [
+                    "install",
+                    "--disable-pip-version-check",
+                    "--cache-dir",
+                    str(self.directory / "pip-cache"),
+                    *dependencies,
+                ]
+                with self.log.open("ab") as output:
+                    self.setup_command(command, output)
+            if (
+                not self.probe(executable, "P1")["ready"]
+                or not self.probe(executable, "P2")["ready"]
+            ):
+                raise ValueError("统一环境未通过P1/P2联合依赖检查，请查看准备日志。")
+            self.selected["P2"] = str(executable.resolve())
+            return self.selected["P2"]
         compatible = []
         progress(f"检测 {component} 的本机解释器和依赖…")
         for executable in self.candidates(component):
@@ -258,7 +311,7 @@ class Runtime:
                     return self.selected[component]
                 compatible.append(executable)
         if not compatible:
-            required = "Python 3.9.6（完整版本号）" if component == "P1" else "Python 3.11 或以上"
+            required = "Python 3.9.6（完整版本号）" if component == "P1" else "Python 3.9.6 或以上"
             raise ValueError(
                 f"本机没有找到 {required}。请先安装该解释器，再点按钮重试；无需填写路径。"
             )
@@ -333,7 +386,7 @@ class Panel:
         module = {"resource": "resource_service", "task": "task_service", "node": "node_agent"}[
             role
         ]
-        argv = [executable, "-m", module]
+        argv = cluster.module_command(executable, component, module)
         if role == "node":
             save(
                 self.directory / "node-control.json",
@@ -638,6 +691,7 @@ class Panel:
                 and self.bad_codes < 5
                 else "",
                 "processes": {k: p.poll() is None for k, p in self.processes.items()},
+                "python_paths": dict(self.runtime.selected),
             }
         state["logs"] = {}
         for role in ("resource", "task", "node", "test", "env/setup"):

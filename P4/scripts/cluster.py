@@ -182,6 +182,15 @@ def interpreter_for(role, p1_python=None, p2_python=None, windows=None):
     )
 
 
+def module_command(executable, component, module):
+    # Embedded Windows Python ignores cwd/PYTHONPATH. Set the repo module path explicitly.
+    bootstrap = (
+        f"import sys,runpy; sys.path.insert(0,{str(ROOT / component)!r}); "
+        f"runpy.run_module({module!r},run_name='__main__')"
+    )
+    return [str(executable), "-c", bootstrap]
+
+
 def run(args):
     config = json.loads(Path(args.config).read_text(encoding="utf-8"))
     directory = Path(args.data_dir).resolve()
@@ -245,7 +254,7 @@ def run(args):
             module = {"resource": "resource_service", "task": "task_service", "node": "node_agent"}[
                 role
             ]
-            argv = [str(interpreter.resolve()), "-m", module]
+            argv = module_command(interpreter.resolve(), component, module)
             if role == "node":
                 argv += ["--server", config["resource_url"], "--name", args.node_name]
                 if args.interactive:

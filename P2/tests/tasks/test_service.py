@@ -11,6 +11,33 @@ from task_service.contract import validate
 from task_service.store import Store
 
 
+async def test_scheduler_continues_after_poll_timeout_on_python39(rig, monkeypatch):
+    from types import SimpleNamespace
+
+    second_tick = asyncio.Event()
+    ticks = 0
+
+    async def tick():
+        nonlocal ticks
+        ticks += 1
+        if ticks >= 2:
+            second_tick.set()
+        return True
+
+    monkeypatch.setattr(rig.service, "tick", tick)
+    monkeypatch.setattr(rig.service, "settings", SimpleNamespace(poll_seconds=0.005))
+    runner = asyncio.create_task(rig.service.run())
+    try:
+        await asyncio.wait_for(second_tick.wait(), timeout=1)
+        assert not runner.done()
+    finally:
+        runner.cancel()
+        try:
+            await runner
+        except asyncio.CancelledError:
+            pass
+
+
 async def test_health_catalog_and_roles(rig):
     rig.mock.unreachable = True
     response = await rig.client.get(PREFIX + "/healthz", headers={"Authorization": ""})

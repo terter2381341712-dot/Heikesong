@@ -134,7 +134,9 @@ def test_sharing_buttons_send_requests_without_claiming_confirmation(panel):
 def test_runtime_detects_version_without_installing(tmp_path):
     runtime = control.Runtime(tmp_path)
     assert runtime.probe(Path(sys.executable), "P2")["compatible"] is True
-    assert runtime.probe(Path(sys.executable), "P1")["compatible"] is False
+    assert runtime.probe(Path(sys.executable), "P1")["compatible"] is (
+        sys.version_info[:3] == (3, 9, 6)
+    )
 
 
 def test_missing_runtime_does_not_silently_change_profile(tmp_path, monkeypatch):
@@ -211,3 +213,32 @@ def test_control_port_cannot_have_two_owners(panel, server):
             ("127.0.0.1", server.server_port), control.handler_for(panel)
         )
         second.server_close()
+
+
+def test_p2_reuses_selected_p1_python_instead_of_requiring_311(tmp_path, monkeypatch):
+    runtime = control.Runtime(tmp_path)
+    runtime.selected["P1"] = str(Path(sys.executable).resolve())
+    monkeypatch.setattr(runtime, "probe", lambda *args: {"compatible": True, "ready": True})
+
+    def forbidden(*args):
+        raise AssertionError("Should reuse the selected P1 interpreter")
+
+    monkeypatch.setattr(runtime, "candidates", forbidden)
+    assert runtime.ensure("P2", lambda msg: None) == runtime.selected["P1"]
+
+
+def test_shared_environment_installs_missing_p2_dependencies(tmp_path, monkeypatch):
+    runtime = control.Runtime(tmp_path)
+    runtime.selected["P1"] = str(Path(sys.executable).resolve())
+    installed = []
+    monkeypatch.setattr(
+        runtime, "probe", lambda p, component: {"ready": component == "P1" or bool(installed)}
+    )
+    monkeypatch.setattr(runtime, "setup_command", lambda command, output: installed.append(command))
+    monkeypatch.setattr(
+        control.subprocess, "run", lambda *args, **kw: SimpleNamespace(returncode=0)
+    )
+    runtime.ensure("P2", lambda msg: None)
+    assert installed[0][0] == runtime.selected["P1"]
+    assert "jsonschema>=4.23,<5" in installed[0]
+    assert runtime.selected["P2"] == runtime.selected["P1"]

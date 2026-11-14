@@ -26,10 +26,10 @@
 
 | 电脑角色 | 命令角色 | 必需环境 | 配置文件 |
 |---|---|---|---|
-| A：中心 P1、P2、本机计算 | center --with-node | P1 Python 3.9.6 + P2 Python ≥3.11 | center.json |
+| A：中心 P1、P2、本机计算 | center --with-node | 统一 Python 3.9.6 | center.json |
 | B：只提供计算 | node | P1 Python 3.9.6 | node.json，仅 JOIN |
-| C：只运行 P2（可选） | task | P2 Python ≥3.11 | task.json，DEMO/TASK |
-| 验收电脑 | verify.py | P4 Python ≥3.11 | client.json，DEMO/TASK |
+| C：只运行 P2（可选） | task | Python ≥3.9.6，推荐3.9.6 | task.json，DEMO/TASK |
+| 验收电脑 | verify.py | Python ≥3.9.6，推荐3.9.6 | client.json，DEMO/TASK |
 
 若 P2 放电脑 C，A 改为 `--role resource`（另外启动本机 node），C 使用 `--role task`。所有配置中的 resource_url 仍指向 A。只保留一个连接此中心的 P2，避免多个独立调度器竞争；P2 的健康检查只证明它存活，不证明 P1 可达。
 
@@ -38,16 +38,16 @@
 当前真实 OCR 锁定 Python **3.9.6**、RapidOCR **3.10.0**、ONNX Runtime **1.19.2**、Pillow **11.3.0**；Python 3.9 的其他补丁版本也会被拒绝。先安装这些解释器，不能改锁文件绕过核验。Windows PowerShell 示例：
 
 ```powershell
-# py 启动器未登记解释器时，用真实 python.exe 路径替换 py -3.9 / py -3.11
+# py 启动器未登记解释器时，用真实 Python 3.9.6 路径替换 py -3.9
 py -3.9 -c "import platform; assert platform.python_version() == '3.9.6'"
 py -3.9 -m venv P1/.venv
 P1/.venv/Scripts/python.exe -m pip install -r P1/requirements.txt
 
 # 中心或独立 P2 电脑安装；推荐沿用仓库 uv.lock
-uv sync --project P2 --frozen
+uv sync --project P2 --frozen --python 3.9.6
 
 # 验收电脑安装；启动工具 cluster.py 本身只依赖标准库
-py -3.11 -m venv P4/.venv
+py -3.9 -m venv P4/.venv
 P4/.venv/Scripts/python.exe -m pip install -r P4/requirements.txt
 ```
 

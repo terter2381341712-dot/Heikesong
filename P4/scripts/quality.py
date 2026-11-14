@@ -37,7 +37,9 @@ def score(directory, reference_file):
         for line in (directory / "inputs.jsonl").read_text(encoding="utf-8").splitlines()
     ]
     rows, edits, chars, correct = [], 0, 0, 0
-    for item, source in zip(results["items"], manifest, strict=True):
+    if len(results["items"]) != len(manifest):
+        raise ValueError("输入清单与结果数量不一致")
+    for item, source in zip(results["items"], manifest):
         if item["input_artifact_id"] != source["input_artifact_id"]:
             raise ValueError("输入与结果不对应")
         truth = normalize(references["texts_by_sha256"][source["input_sha256"]])

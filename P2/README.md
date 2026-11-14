@@ -10,10 +10,12 @@
 
 ## 环境与启动
 
-Python 3.11 或以上。使用 `uv.lock` 固定 P2 HTTP 服务及测试依赖，不安装 OCR 引擎。实际自测使用 Python 3.11。
+Python **3.9.6 或以上**。当前已增加Python3.9.6兼容，P4按钮入口默认与P1共用同一个3.9.6解释器，无需额外安装3.11。独立部署仍可使用较新Python。使用 `uv.lock` 固定P2 HTTP服务及测试依赖；P2本身不安装或运行OCR引擎。历史报告中的3.11/3.13环境保留为旧实验记录。
+
+本次锁文件由uv0.13.8生成；旧uv如提示锁格式不支持，需要升级uv。按钮启动不依赖uv。
 
 ```sh
-uv sync --frozen
+uv sync --frozen --python 3.9.6
 ```
 
 真实联调前填写 `.env.example` 中的配置，并通过 shell 或进程管理器注入环境。程序**不会自动读取 .env**。最少需要 `RESOURCE_BASE_URL`、`TASK_TOKEN`、`DEMO_TOKEN`、`TASK_DATA_DIR`；启动入口：

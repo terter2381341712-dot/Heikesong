@@ -67,6 +67,11 @@ def main():
             state["mode"] == "center" and all(state["processes"].values()),
             "automatic environment detection and center + local node",
         )
+        checked(
+            state["python_paths"]["P1"] == state["python_paths"]["P2"],
+            "P1 and P2 share the Python 3.9.6 interpreter",
+        )
+        report["shared_python"] = "3.9.6"
         response = call("/api/discover", {})
         checked(bool(response["centers"]), "UDP center discovery")
         paired = call(
