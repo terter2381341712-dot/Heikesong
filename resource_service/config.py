@@ -7,6 +7,9 @@ from pathlib import Path
 
 CONTRACT_VERSION = "0.2.0"
 
+# 仓库根目录（profiles/ 与代码同仓库）
+REPO_ROOT = Path(__file__).resolve().parent.parent
+
 
 @dataclass(frozen=True)
 class Config:
@@ -16,6 +19,7 @@ class Config:
     demo_token: str
     task_token: str
     join_token: str
+    profiles_dir: Path = REPO_ROOT / "profiles"
 
     @property
     def db_path(self) -> Path:
@@ -35,4 +39,7 @@ def load_config() -> Config:
         demo_token=os.environ.get("DEMO_TOKEN", ""),
         task_token=os.environ.get("TASK_TOKEN", ""),
         join_token=os.environ.get("JOIN_TOKEN", ""),
+        profiles_dir=Path(
+            os.environ.get("RESOURCE_PROFILES_DIR", str(REPO_ROOT / "profiles"))
+        ).resolve(),
     )

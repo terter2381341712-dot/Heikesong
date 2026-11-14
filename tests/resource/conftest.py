@@ -25,6 +25,7 @@ def client(tmp_path):
         demo_token="demo-t",
         task_token="task-t",
         join_token="join-t",
+        profiles_dir=tmp_path / "data" / "profiles",
     )
     app = create_app(cfg)
     with TestClient(app) as c:
@@ -58,6 +59,7 @@ def client_with_profile(tmp_path):
         demo_token="demo-t",
         task_token="task-t",
         join_token="join-t",
+        profiles_dir=profiles_dir,
     )
     app = create_app(cfg)
     with TestClient(app) as c:

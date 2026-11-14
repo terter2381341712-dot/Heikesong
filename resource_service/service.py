@@ -95,7 +95,7 @@ class State:
         config.data_dir.mkdir(parents=True, exist_ok=True)
         config.artifacts_dir.mkdir(parents=True, exist_ok=True)
         self.db = Database(config.db_path)
-        self.catalog = Catalog(config.data_dir / "profiles")
+        self.catalog = Catalog(config.profiles_dir)
         self._recover()
 
     def _recover(self) -> None:
@@ -292,11 +292,13 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
         demo_token="demo-token",
         task_token="task-token",
         join_token="join-token",
+        profiles_dir=Path("./profiles").resolve(),
     )
     state_holder: dict[str, State] = {}
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
+        cfg.profiles_dir.mkdir(parents=True, exist_ok=True)
         state = State(cfg)
         state_holder["state"] = state
         scanner = asyncio.create_task(_scan_loop(state))

@@ -28,7 +28,7 @@ class Runner(ABC):
 
 _REGISTRY: dict[str, str] = {
     # task_type -> "module:ClassName"（延迟导入，避免未安装依赖时崩溃）
-    "ocr.image.v1": "runners.devstub:DevStubRunner",
+    "ocr.image.v1": "runners.rapidocr_runner:RapidOCRRunner",
     "asr.file.v1": "runners.devstub:DevStubRunner",
 }
 
