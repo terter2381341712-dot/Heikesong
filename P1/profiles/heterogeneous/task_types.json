@@ -1,0 +1,53 @@
+{
+  "contract_version": "0.3.0",
+  "note": "可选 CPU/CUDA 同模型目录；两种后端必须分别通过实际加载与自测。CUDA 实机验收尚待执行。",
+  "task_types": [
+    {
+      "task_type": "ocr.image.v1",
+      "display_name": "图片文字识别",
+      "profile_id": "ocr.heterogeneous.v1",
+      "profile_digest": null,
+      "configuration_state": "UNCONFIGURED",
+      "supported_languages": [
+        "auto",
+        "zh",
+        "en"
+      ],
+      "input_mime_types": [
+        "image/jpeg",
+        "image/png"
+      ],
+      "max_file_bytes": 10485760,
+      "max_pixels": 20000000,
+      "max_duration_ms": null,
+      "max_inputs_per_job": 200,
+      "split_unit": "input_file",
+      "result_schema": "OCRResult",
+      "default_timeout_seconds": 120,
+      "reason": "计划类型；模型、许可和依赖待P1验证发布。"
+    },
+    {
+      "task_type": "asr.file.v1",
+      "display_name": "短录音文字识别",
+      "profile_id": "asr.default.v1",
+      "profile_digest": null,
+      "configuration_state": "UNCONFIGURED",
+      "supported_languages": [
+        "auto",
+        "zh",
+        "en"
+      ],
+      "input_mime_types": [
+        "audio/wav"
+      ],
+      "max_file_bytes": 2097152,
+      "max_pixels": null,
+      "max_duration_ms": 60000,
+      "max_inputs_per_job": 200,
+      "split_unit": "input_file",
+      "result_schema": "ASRResult",
+      "default_timeout_seconds": 300,
+      "reason": "计划类型；模型、许可和依赖待P1验证发布。"
+    }
+  ]
+}

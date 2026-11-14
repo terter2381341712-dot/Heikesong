@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: D题多设备任务平台：P1资源执行 + P2任务调度
-  version: 0.2.0
+  version: 0.3.0
   description: 待实现契约，替代0.1.0。用户选择类型并提供文件。字段之外语义必须同时遵守05-接口契约与联调手册.md。示例全合成，非实测。
 tags:
 - name: P1
@@ -1102,7 +1102,7 @@ components:
           - p2_task
         contract_version:
           type: string
-          const: 0.2.0
+          const: 0.3.0
         status:
           type: string
           const: ok
@@ -1299,7 +1299,7 @@ components:
       properties:
         contract_version:
           type: string
-          const: 0.2.0
+          const: 0.3.0
         server_time:
           type: string
           format: date-time
@@ -1318,7 +1318,7 @@ components:
       properties:
         contract_version:
           type: string
-          const: 0.2.0
+          const: 0.3.0
         status:
           type: string
           const: DESIGN_ONLY
@@ -1658,23 +1658,30 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Capability'
+        threads_per_slot:
+          type: integer
+          minimum: 0
+        cpu_thread_budget:
+          type: integer
+          minimum: 0
         max_slots:
           type: integer
-          const: 1
+          minimum: 1
+          maximum: 64
         reserved_slots:
           type: integer
           minimum: 0
-          maximum: 1
+          maximum: 64
         available_slots:
           type: integer
           minimum: 0
-          maximum: 1
+          maximum: 64
         active_execution_ids:
           type: array
           items:
             type: string
             format: uuid
-          maxItems: 1
+          maxItems: 64
         active_preparation_id:
           anyOf:
           - type: string
@@ -1714,7 +1721,7 @@ components:
       properties:
         contract_version:
           type: string
-          const: 0.2.0
+          const: 0.3.0
         server_time:
           type: string
           format: date-time
@@ -1920,6 +1927,12 @@ components:
     Execution:
       type: object
       properties:
+        slot_id:
+          anyOf:
+          - type: integer
+            minimum: 0
+            maximum: 63
+          - type: 'null'
         execution_id:
           type: string
           format: uuid
@@ -2766,6 +2779,23 @@ components:
           additionalProperties:
             type: string
             minLength: 1
+        backend_dependencies:
+          type: object
+          description: 可选的后端依赖锁；指定后端优先使用其依赖，否则使用 dependencies。CPU/CUDA 共用模型和预后处理。
+          additionalProperties: false
+          properties:
+            cpu:
+              type: object
+              minProperties: 1
+              additionalProperties:
+                type: string
+                minLength: 1
+            cuda:
+              type: object
+              minProperties: 1
+              additionalProperties:
+                type: string
+                minLength: 1
         preprocessing:
           type: string
           minLength: 1
@@ -2913,7 +2943,7 @@ components:
       properties:
         contract_version:
           type: string
-          const: 0.2.0
+          const: 0.3.0
         status:
           type: string
           const: UNVERIFIED_TEMPLATE

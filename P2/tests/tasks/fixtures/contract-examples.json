@@ -1,0 +1,1836 @@
+{
+  "_notice": "全部为合成契约样例，边界样例代表独立场景，不是可按文件顺序播放的连续事件日志。设备、SHA、时长和结果均非实测；不得用作性能或功能完成证据。二进制文件需实际上传，不存在与这些ID对应的服务文件。",
+  "health_p1": {
+    "service": "p1_resource",
+    "contract_version": "0.3.0",
+    "status": "ok",
+    "server_time": "2026-11-14T04:00:00Z"
+  },
+  "health_p2": {
+    "service": "p2_task",
+    "contract_version": "0.3.0",
+    "status": "ok",
+    "server_time": "2026-11-14T04:00:00Z"
+  },
+  "catalog_unconfigured": {
+    "contract_version": "0.3.0",
+    "server_time": "2026-11-14T04:00:00Z",
+    "task_types": [
+      {
+        "task_type": "ocr.image.v1",
+        "display_name": "图片文字识别",
+        "profile_id": "ocr.default.v1",
+        "profile_digest": null,
+        "configuration_state": "UNCONFIGURED",
+        "supported_languages": [
+          "auto",
+          "zh",
+          "en"
+        ],
+        "input_mime_types": [
+          "image/jpeg",
+          "image/png"
+        ],
+        "max_file_bytes": 10485760,
+        "max_pixels": 20000000,
+        "max_duration_ms": null,
+        "max_inputs_per_job": 200,
+        "split_unit": "input_file",
+        "result_schema": "OCRResult",
+        "default_timeout_seconds": 120,
+        "reason": "计划类型；模型、许可和依赖待P1验证发布。语言列表是初始目标，发布时按实际支持填写。"
+      },
+      {
+        "task_type": "asr.file.v1",
+        "display_name": "短录音文字识别",
+        "profile_id": "asr.default.v1",
+        "profile_digest": null,
+        "configuration_state": "UNCONFIGURED",
+        "supported_languages": [
+          "auto",
+          "zh",
+          "en"
+        ],
+        "input_mime_types": [
+          "audio/wav"
+        ],
+        "max_file_bytes": 2097152,
+        "max_pixels": null,
+        "max_duration_ms": 60000,
+        "max_inputs_per_job": 200,
+        "split_unit": "input_file",
+        "result_schema": "ASRResult",
+        "default_timeout_seconds": 300,
+        "reason": "计划类型；模型、许可和依赖待P1验证发布。语言列表是初始目标，发布时按实际支持填写。"
+      }
+    ]
+  },
+  "catalog_configured": {
+    "contract_version": "0.3.0",
+    "server_time": "2026-11-14T04:00:00Z",
+    "task_types": [
+      {
+        "task_type": "ocr.image.v1",
+        "display_name": "图片文字识别",
+        "profile_id": "ocr.default.v1",
+        "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "configuration_state": "CONFIGURED",
+        "supported_languages": [
+          "auto",
+          "zh",
+          "en"
+        ],
+        "input_mime_types": [
+          "image/jpeg",
+          "image/png"
+        ],
+        "max_file_bytes": 10485760,
+        "max_pixels": 20000000,
+        "max_duration_ms": null,
+        "max_inputs_per_job": 200,
+        "split_unit": "input_file",
+        "result_schema": "OCRResult",
+        "default_timeout_seconds": 120,
+        "reason": null
+      },
+      {
+        "task_type": "asr.file.v1",
+        "display_name": "短录音文字识别",
+        "profile_id": "asr.default.v1",
+        "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "configuration_state": "CONFIGURED",
+        "supported_languages": [
+          "auto",
+          "zh",
+          "en"
+        ],
+        "input_mime_types": [
+          "audio/wav"
+        ],
+        "max_file_bytes": 2097152,
+        "max_pixels": null,
+        "max_duration_ms": 60000,
+        "max_inputs_per_job": 200,
+        "split_unit": "input_file",
+        "result_schema": "ASRResult",
+        "default_timeout_seconds": 300,
+        "reason": null
+      }
+    ]
+  },
+  "artifact_image": {
+    "artifact_id": "artifact_image_1",
+    "kind": "INPUT",
+    "original_name": "MOCK_image.png",
+    "content_type": "image/png",
+    "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "size_bytes": 1024,
+    "media_info": {
+      "width": 640,
+      "height": 480,
+      "duration_ms": null,
+      "sample_rate_hz": null,
+      "channels": null,
+      "audio_encoding": null
+    },
+    "download_path": "/api/resource/v1/artifacts/artifact_image_1/content",
+    "created_at": "2026-11-14T04:00:00Z"
+  },
+  "artifact_audio": {
+    "artifact_id": "artifact_audio_1",
+    "kind": "INPUT",
+    "original_name": "MOCK_audio.wav",
+    "content_type": "audio/wav",
+    "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "size_bytes": 96044,
+    "media_info": {
+      "width": null,
+      "height": null,
+      "duration_ms": 3000,
+      "sample_rate_hz": 16000,
+      "channels": 1,
+      "audio_encoding": "PCM_S16LE"
+    },
+    "download_path": "/api/resource/v1/artifacts/artifact_audio_1/content",
+    "created_at": "2026-11-14T04:00:00Z"
+  },
+  "artifact_result": {
+    "artifact_id": "artifact_result_1",
+    "kind": "RESULT",
+    "original_name": "MOCK_result.json",
+    "content_type": "application/json",
+    "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "size_bytes": 1024,
+    "media_info": {
+      "width": null,
+      "height": null,
+      "duration_ms": null,
+      "sample_rate_hz": null,
+      "channels": null,
+      "audio_encoding": null
+    },
+    "download_path": "/api/resource/v1/artifacts/artifact_result_1/content",
+    "created_at": "2026-11-14T04:00:00Z"
+  },
+  "upload_multipart_fields": {
+    "upload_id": "00000000-0000-4000-8000-000000000010",
+    "file": "MOCK_BINARY_PLACEHOLDER_USE_REAL_FILE_BYTES"
+  },
+  "node_ready": {
+    "worker_id": "worker_m4",
+    "session_id": "00000000-0000-4000-8000-000000000001",
+    "name": "MOCK M4",
+    "connection": "ONLINE",
+    "mode": "ACTIVE",
+    "hardware": {
+      "os": "macOS",
+      "arch": "arm64",
+      "cpu_name": "MOCK CPU",
+      "logical_cores": 8,
+      "ram_total_bytes": 17179869184,
+      "ram_available_bytes": 8589934592,
+      "gpu_name": null,
+      "gpu_vram_bytes": null,
+      "gpu_info_source": "unavailable",
+      "manual_labels": {
+        "note": "合成设备，不是实际检测"
+      },
+      "detection_errors": []
+    },
+    "capabilities": [
+      {
+        "task_type": "ocr.image.v1",
+        "profile_id": "ocr.default.v1",
+        "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "state": "READY",
+        "model_cached": true,
+        "backend": "cpu",
+        "runtime_provider": "MOCK_CPU_PROVIDER",
+        "model_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "verified": true,
+        "calibration": {
+          "sample_count": 3,
+          "median_compute_ms": 1000,
+          "passed": true,
+          "finished_at": "2026-11-14T04:00:00Z"
+        },
+        "reason": null
+      }
+    ],
+    "max_slots": 1,
+    "reserved_slots": 0,
+    "available_slots": 1,
+    "active_execution_ids": [],
+    "active_preparation_id": null,
+    "cleanup_pending": false,
+    "last_seen_at": "2026-11-14T04:00:00Z",
+    "telemetry": {
+      "sampled_at": "2026-11-14T04:00:00Z",
+      "cpu_percent": 50,
+      "ram_used_bytes": 8589934592,
+      "gpu_percent": null,
+      "gpu_memory_used_bytes": null,
+      "gpu_metric_source": "unavailable"
+    }
+  },
+  "resources_ready": {
+    "contract_version": "0.3.0",
+    "server_time": "2026-11-14T04:00:00Z",
+    "resources": [
+      {
+        "worker_id": "worker_m4",
+        "session_id": "00000000-0000-4000-8000-000000000001",
+        "name": "MOCK M4",
+        "connection": "ONLINE",
+        "mode": "ACTIVE",
+        "hardware": {
+          "os": "macOS",
+          "arch": "arm64",
+          "cpu_name": "MOCK CPU",
+          "logical_cores": 8,
+          "ram_total_bytes": 17179869184,
+          "ram_available_bytes": 8589934592,
+          "gpu_name": null,
+          "gpu_vram_bytes": null,
+          "gpu_info_source": "unavailable",
+          "manual_labels": {
+            "note": "合成设备，不是实际检测"
+          },
+          "detection_errors": []
+        },
+        "capabilities": [
+          {
+            "task_type": "ocr.image.v1",
+            "profile_id": "ocr.default.v1",
+            "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "state": "READY",
+            "model_cached": true,
+            "backend": "cpu",
+            "runtime_provider": "MOCK_CPU_PROVIDER",
+            "model_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "verified": true,
+            "calibration": {
+              "sample_count": 3,
+              "median_compute_ms": 1000,
+              "passed": true,
+              "finished_at": "2026-11-14T04:00:00Z"
+            },
+            "reason": null
+          }
+        ],
+        "max_slots": 1,
+        "reserved_slots": 0,
+        "available_slots": 1,
+        "active_execution_ids": [],
+        "active_preparation_id": null,
+        "cleanup_pending": false,
+        "last_seen_at": "2026-11-14T04:00:00Z",
+        "telemetry": {
+          "sampled_at": "2026-11-14T04:00:00Z",
+          "cpu_percent": 50,
+          "ram_used_bytes": 8589934592,
+          "gpu_percent": null,
+          "gpu_memory_used_bytes": null,
+          "gpu_metric_source": "unavailable"
+        }
+      },
+      {
+        "worker_id": "worker_m1",
+        "session_id": "00000000-0000-4000-8000-000000000002",
+        "name": "MOCK M1",
+        "connection": "ONLINE",
+        "mode": "ACTIVE",
+        "hardware": {
+          "os": "macOS",
+          "arch": "arm64",
+          "cpu_name": "MOCK CPU",
+          "logical_cores": 8,
+          "ram_total_bytes": 17179869184,
+          "ram_available_bytes": 8589934592,
+          "gpu_name": null,
+          "gpu_vram_bytes": null,
+          "gpu_info_source": "unavailable",
+          "manual_labels": {
+            "note": "合成设备，不是实际检测"
+          },
+          "detection_errors": []
+        },
+        "capabilities": [
+          {
+            "task_type": "ocr.image.v1",
+            "profile_id": "ocr.default.v1",
+            "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "state": "READY",
+            "model_cached": true,
+            "backend": "cpu",
+            "runtime_provider": "MOCK_CPU_PROVIDER",
+            "model_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "verified": true,
+            "calibration": {
+              "sample_count": 3,
+              "median_compute_ms": 1000,
+              "passed": true,
+              "finished_at": "2026-11-14T04:00:00Z"
+            },
+            "reason": null
+          }
+        ],
+        "max_slots": 1,
+        "reserved_slots": 0,
+        "available_slots": 1,
+        "active_execution_ids": [],
+        "active_preparation_id": null,
+        "cleanup_pending": false,
+        "last_seen_at": "2026-11-14T04:00:00Z",
+        "telemetry": {
+          "sampled_at": "2026-11-14T04:00:00Z",
+          "cpu_percent": 50,
+          "ram_used_bytes": 8589934592,
+          "gpu_percent": null,
+          "gpu_memory_used_bytes": null,
+          "gpu_metric_source": "unavailable"
+        }
+      }
+    ]
+  },
+  "resources_empty": {
+    "contract_version": "0.3.0",
+    "server_time": "2026-11-14T04:00:00Z",
+    "resources": []
+  },
+  "resources_ready_asr": {
+    "contract_version": "0.3.0",
+    "server_time": "2026-11-14T04:00:00Z",
+    "resources": [
+      {
+        "worker_id": "worker_m4",
+        "session_id": "00000000-0000-4000-8000-000000000001",
+        "name": "MOCK M4",
+        "connection": "ONLINE",
+        "mode": "ACTIVE",
+        "hardware": {
+          "os": "macOS",
+          "arch": "arm64",
+          "cpu_name": "MOCK CPU",
+          "logical_cores": 8,
+          "ram_total_bytes": 17179869184,
+          "ram_available_bytes": 8589934592,
+          "gpu_name": null,
+          "gpu_vram_bytes": null,
+          "gpu_info_source": "unavailable",
+          "manual_labels": {
+            "note": "合成设备，不是实际检测"
+          },
+          "detection_errors": []
+        },
+        "capabilities": [
+          {
+            "task_type": "asr.file.v1",
+            "profile_id": "asr.default.v1",
+            "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "state": "READY",
+            "model_cached": true,
+            "backend": "cpu",
+            "runtime_provider": "MOCK_CPU_PROVIDER",
+            "model_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "verified": true,
+            "calibration": {
+              "sample_count": 3,
+              "median_compute_ms": 1000,
+              "passed": true,
+              "finished_at": "2026-11-14T04:00:00Z"
+            },
+            "reason": null
+          }
+        ],
+        "max_slots": 1,
+        "reserved_slots": 0,
+        "available_slots": 1,
+        "active_execution_ids": [],
+        "active_preparation_id": null,
+        "cleanup_pending": false,
+        "last_seen_at": "2026-11-14T04:00:00Z",
+        "telemetry": {
+          "sampled_at": "2026-11-14T04:00:00Z",
+          "cpu_percent": 50,
+          "ram_used_bytes": 8589934592,
+          "gpu_percent": null,
+          "gpu_memory_used_bytes": null,
+          "gpu_metric_source": "unavailable"
+        }
+      }
+    ]
+  },
+  "mode_request": {
+    "mode": "DRAINING"
+  },
+  "node_paused": {
+    "worker_id": "worker_m4",
+    "session_id": "00000000-0000-4000-8000-000000000001",
+    "name": "MOCK M4",
+    "connection": "ONLINE",
+    "mode": "PAUSED",
+    "hardware": {
+      "os": "macOS",
+      "arch": "arm64",
+      "cpu_name": "MOCK CPU",
+      "logical_cores": 8,
+      "ram_total_bytes": 17179869184,
+      "ram_available_bytes": 8589934592,
+      "gpu_name": null,
+      "gpu_vram_bytes": null,
+      "gpu_info_source": "unavailable",
+      "manual_labels": {
+        "note": "合成设备，不是实际检测"
+      },
+      "detection_errors": []
+    },
+    "capabilities": [
+      {
+        "task_type": "ocr.image.v1",
+        "profile_id": "ocr.default.v1",
+        "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "state": "READY",
+        "model_cached": true,
+        "backend": "cpu",
+        "runtime_provider": "MOCK_CPU_PROVIDER",
+        "model_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "verified": true,
+        "calibration": {
+          "sample_count": 3,
+          "median_compute_ms": 1000,
+          "passed": true,
+          "finished_at": "2026-11-14T04:00:00Z"
+        },
+        "reason": null
+      }
+    ],
+    "max_slots": 1,
+    "reserved_slots": 0,
+    "available_slots": 0,
+    "active_execution_ids": [],
+    "active_preparation_id": null,
+    "cleanup_pending": false,
+    "last_seen_at": "2026-11-14T04:00:00Z",
+    "telemetry": {
+      "sampled_at": "2026-11-14T04:00:00Z",
+      "cpu_percent": 50,
+      "ram_used_bytes": 8589934592,
+      "gpu_percent": null,
+      "gpu_memory_used_bytes": null,
+      "gpu_metric_source": "unavailable"
+    }
+  },
+  "preparation_request": {
+    "preparation_id": "00000000-0000-4000-8000-000000000020",
+    "worker_id": "worker_m4",
+    "worker_session_id": "00000000-0000-4000-8000-000000000001",
+    "task_type": "ocr.image.v1",
+    "profile_id": "ocr.default.v1",
+    "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "preparation_ready": {
+    "preparation_id": "00000000-0000-4000-8000-000000000020",
+    "worker_id": "worker_m4",
+    "worker_session_id": "00000000-0000-4000-8000-000000000001",
+    "task_type": "ocr.image.v1",
+    "profile_id": "ocr.default.v1",
+    "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "status": "READY",
+    "created_at": "2026-11-14T04:00:00Z",
+    "finished_at": "2026-11-14T04:00:03Z",
+    "progress": 1,
+    "error": null
+  },
+  "preparation_loading": {
+    "preparation_id": "00000000-0000-4000-8000-000000000020",
+    "worker_id": "worker_m4",
+    "worker_session_id": "00000000-0000-4000-8000-000000000001",
+    "task_type": "ocr.image.v1",
+    "profile_id": "ocr.default.v1",
+    "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "status": "LOADING",
+    "created_at": "2026-11-14T04:00:00Z",
+    "finished_at": null,
+    "progress": null,
+    "error": null
+  },
+  "preparation_failed": {
+    "preparation_id": "00000000-0000-4000-8000-000000000020",
+    "worker_id": "worker_m4",
+    "worker_session_id": "00000000-0000-4000-8000-000000000001",
+    "task_type": "ocr.image.v1",
+    "profile_id": "ocr.default.v1",
+    "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "status": "FAILED",
+    "created_at": "2026-11-14T04:00:00Z",
+    "finished_at": "2026-11-14T04:00:03Z",
+    "progress": null,
+    "error": {
+      "code": "MODEL_LOAD_FAILED",
+      "message": "MOCK模型加载失败",
+      "retryable": false,
+      "request_id": "00000000-0000-4000-8000-000000000999",
+      "details": {}
+    }
+  },
+  "execution_request_ocr": {
+    "execution_id": "00000000-0000-4000-8000-000000000030",
+    "job_id": "00000000-0000-4000-8000-000000000040",
+    "task_id": "00000000-0000-4000-8000-000000000050",
+    "attempt_no": 1,
+    "worker_id": "worker_m4",
+    "worker_session_id": "00000000-0000-4000-8000-000000000001",
+    "task_type": "ocr.image.v1",
+    "profile_id": "ocr.default.v1",
+    "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "input_artifact_id": "artifact_image_1",
+    "parameters": {
+      "language": "auto"
+    },
+    "timeout_seconds": 120
+  },
+  "execution_request_asr": {
+    "execution_id": "00000000-0000-4000-8000-000000000031",
+    "job_id": "00000000-0000-4000-8000-000000000041",
+    "task_id": "00000000-0000-4000-8000-000000000051",
+    "attempt_no": 1,
+    "worker_id": "worker_m4",
+    "worker_session_id": "00000000-0000-4000-8000-000000000001",
+    "task_type": "asr.file.v1",
+    "profile_id": "asr.default.v1",
+    "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "input_artifact_id": "artifact_audio_1",
+    "parameters": {
+      "language": "auto"
+    },
+    "timeout_seconds": 300
+  },
+  "execution_succeeded_ocr": {
+    "execution_id": "00000000-0000-4000-8000-000000000030",
+    "job_id": "00000000-0000-4000-8000-000000000040",
+    "task_id": "00000000-0000-4000-8000-000000000050",
+    "attempt_no": 1,
+    "worker_id": "worker_m4",
+    "worker_session_id": "00000000-0000-4000-8000-000000000001",
+    "task_type": "ocr.image.v1",
+    "profile_id": "ocr.default.v1",
+    "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "input_artifact_id": "artifact_image_1",
+    "parameters": {
+      "language": "auto"
+    },
+    "timeout_seconds": 120,
+    "status": "SUCCEEDED",
+    "input_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "created_at": "2026-11-14T04:00:00Z",
+    "accepted_at": "2026-11-14T04:00:00Z",
+    "started_at": "2026-11-14T04:00:01Z",
+    "finished_at": "2026-11-14T04:00:03Z",
+    "lease_expires_at": "2026-11-14T04:00:15Z",
+    "hard_deadline_at": "2026-11-14T04:02:00Z",
+    "result_artifact": {
+      "artifact_id": "artifact_result_1",
+      "kind": "RESULT",
+      "original_name": "MOCK_result.json",
+      "content_type": "application/json",
+      "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "size_bytes": 1024,
+      "media_info": {
+        "width": null,
+        "height": null,
+        "duration_ms": null,
+        "sample_rate_hz": null,
+        "channels": null,
+        "audio_encoding": null
+      },
+      "download_path": "/api/resource/v1/artifacts/artifact_result_1/content",
+      "created_at": "2026-11-14T04:00:00Z"
+    },
+    "timings": {
+      "download_ms": 10,
+      "inference_ms": 1000,
+      "postprocess_ms": 10,
+      "write_output_ms": 5,
+      "total_worker_ms": 1025
+    },
+    "error": null
+  },
+  "execution_succeeded_asr": {
+    "execution_id": "00000000-0000-4000-8000-000000000031",
+    "job_id": "00000000-0000-4000-8000-000000000041",
+    "task_id": "00000000-0000-4000-8000-000000000051",
+    "attempt_no": 1,
+    "worker_id": "worker_m4",
+    "worker_session_id": "00000000-0000-4000-8000-000000000001",
+    "task_type": "asr.file.v1",
+    "profile_id": "asr.default.v1",
+    "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "input_artifact_id": "artifact_audio_1",
+    "parameters": {
+      "language": "auto"
+    },
+    "timeout_seconds": 300,
+    "status": "SUCCEEDED",
+    "input_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "created_at": "2026-11-14T04:00:00Z",
+    "accepted_at": "2026-11-14T04:00:00Z",
+    "started_at": "2026-11-14T04:00:01Z",
+    "finished_at": "2026-11-14T04:00:03Z",
+    "lease_expires_at": "2026-11-14T04:00:15Z",
+    "hard_deadline_at": "2026-11-14T04:05:00Z",
+    "result_artifact": {
+      "artifact_id": "artifact_asr_result",
+      "kind": "RESULT",
+      "original_name": "MOCK_asr.json",
+      "content_type": "application/json",
+      "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "size_bytes": 1024,
+      "media_info": {
+        "width": null,
+        "height": null,
+        "duration_ms": null,
+        "sample_rate_hz": null,
+        "channels": null,
+        "audio_encoding": null
+      },
+      "download_path": "/api/resource/v1/artifacts/artifact_asr_result/content",
+      "created_at": "2026-11-14T04:00:00Z"
+    },
+    "timings": {
+      "download_ms": 10,
+      "inference_ms": 1000,
+      "postprocess_ms": 10,
+      "write_output_ms": 5,
+      "total_worker_ms": 1025
+    },
+    "error": null
+  },
+  "execution_accepted": {
+    "execution_id": "00000000-0000-4000-8000-000000000030",
+    "job_id": "00000000-0000-4000-8000-000000000040",
+    "task_id": "00000000-0000-4000-8000-000000000050",
+    "attempt_no": 1,
+    "worker_id": "worker_m4",
+    "worker_session_id": "00000000-0000-4000-8000-000000000001",
+    "task_type": "ocr.image.v1",
+    "profile_id": "ocr.default.v1",
+    "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "input_artifact_id": "artifact_image_1",
+    "parameters": {
+      "language": "auto"
+    },
+    "timeout_seconds": 120,
+    "status": "ACCEPTED",
+    "input_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "created_at": "2026-11-14T04:00:00Z",
+    "accepted_at": "2026-11-14T04:00:00Z",
+    "started_at": null,
+    "finished_at": null,
+    "lease_expires_at": "2026-11-14T04:00:15Z",
+    "hard_deadline_at": "2026-11-14T04:02:00Z",
+    "result_artifact": null,
+    "timings": null,
+    "error": null
+  },
+  "execution_running": {
+    "execution_id": "00000000-0000-4000-8000-000000000030",
+    "job_id": "00000000-0000-4000-8000-000000000040",
+    "task_id": "00000000-0000-4000-8000-000000000050",
+    "attempt_no": 1,
+    "worker_id": "worker_m4",
+    "worker_session_id": "00000000-0000-4000-8000-000000000001",
+    "task_type": "ocr.image.v1",
+    "profile_id": "ocr.default.v1",
+    "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "input_artifact_id": "artifact_image_1",
+    "parameters": {
+      "language": "auto"
+    },
+    "timeout_seconds": 120,
+    "status": "RUNNING",
+    "input_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "created_at": "2026-11-14T04:00:00Z",
+    "accepted_at": "2026-11-14T04:00:00Z",
+    "started_at": "2026-11-14T04:00:01Z",
+    "finished_at": null,
+    "lease_expires_at": "2026-11-14T04:00:15Z",
+    "hard_deadline_at": "2026-11-14T04:02:00Z",
+    "result_artifact": null,
+    "timings": null,
+    "error": null
+  },
+  "execution_cancelling": {
+    "execution_id": "00000000-0000-4000-8000-000000000030",
+    "job_id": "00000000-0000-4000-8000-000000000040",
+    "task_id": "00000000-0000-4000-8000-000000000050",
+    "attempt_no": 1,
+    "worker_id": "worker_m4",
+    "worker_session_id": "00000000-0000-4000-8000-000000000001",
+    "task_type": "ocr.image.v1",
+    "profile_id": "ocr.default.v1",
+    "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "input_artifact_id": "artifact_image_1",
+    "parameters": {
+      "language": "auto"
+    },
+    "timeout_seconds": 120,
+    "status": "CANCEL_REQUESTED",
+    "input_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "created_at": "2026-11-14T04:00:00Z",
+    "accepted_at": "2026-11-14T04:00:00Z",
+    "started_at": "2026-11-14T04:00:01Z",
+    "finished_at": null,
+    "lease_expires_at": "2026-11-14T04:00:15Z",
+    "hard_deadline_at": "2026-11-14T04:02:00Z",
+    "result_artifact": null,
+    "timings": null,
+    "error": null
+  },
+  "execution_rejected": {
+    "execution_id": "00000000-0000-4000-8000-000000000030",
+    "job_id": "00000000-0000-4000-8000-000000000040",
+    "task_id": "00000000-0000-4000-8000-000000000050",
+    "attempt_no": 1,
+    "worker_id": "worker_m4",
+    "worker_session_id": "00000000-0000-4000-8000-000000000001",
+    "task_type": "ocr.image.v1",
+    "profile_id": "ocr.default.v1",
+    "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "input_artifact_id": "artifact_image_1",
+    "parameters": {
+      "language": "auto"
+    },
+    "timeout_seconds": 120,
+    "status": "REJECTED",
+    "input_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "created_at": "2026-11-14T04:00:00Z",
+    "accepted_at": null,
+    "started_at": null,
+    "finished_at": "2026-11-14T04:00:00Z",
+    "lease_expires_at": null,
+    "hard_deadline_at": null,
+    "result_artifact": null,
+    "timings": null,
+    "error": {
+      "code": "RESOURCE_BUSY",
+      "message": "MOCK资源忙碌",
+      "retryable": true,
+      "request_id": "00000000-0000-4000-8000-000000000999",
+      "details": {
+        "execution_id": "00000000-0000-4000-8000-000000000030"
+      }
+    }
+  },
+  "execution_failed": {
+    "execution_id": "00000000-0000-4000-8000-000000000030",
+    "job_id": "00000000-0000-4000-8000-000000000040",
+    "task_id": "00000000-0000-4000-8000-000000000050",
+    "attempt_no": 1,
+    "worker_id": "worker_m4",
+    "worker_session_id": "00000000-0000-4000-8000-000000000001",
+    "task_type": "ocr.image.v1",
+    "profile_id": "ocr.default.v1",
+    "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "input_artifact_id": "artifact_image_1",
+    "parameters": {
+      "language": "auto"
+    },
+    "timeout_seconds": 120,
+    "status": "FAILED",
+    "input_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "created_at": "2026-11-14T04:00:00Z",
+    "accepted_at": "2026-11-14T04:00:00Z",
+    "started_at": "2026-11-14T04:00:01Z",
+    "finished_at": "2026-11-14T04:00:03Z",
+    "lease_expires_at": "2026-11-14T04:00:15Z",
+    "hard_deadline_at": "2026-11-14T04:02:00Z",
+    "result_artifact": null,
+    "timings": null,
+    "error": {
+      "code": "NODE_OFFLINE",
+      "message": "MOCK节点失联",
+      "retryable": true,
+      "request_id": "00000000-0000-4000-8000-000000000999",
+      "details": {}
+    }
+  },
+  "execution_cancelled": {
+    "execution_id": "00000000-0000-4000-8000-000000000030",
+    "job_id": "00000000-0000-4000-8000-000000000040",
+    "task_id": "00000000-0000-4000-8000-000000000050",
+    "attempt_no": 1,
+    "worker_id": "worker_m4",
+    "worker_session_id": "00000000-0000-4000-8000-000000000001",
+    "task_type": "ocr.image.v1",
+    "profile_id": "ocr.default.v1",
+    "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "input_artifact_id": "artifact_image_1",
+    "parameters": {
+      "language": "auto"
+    },
+    "timeout_seconds": 120,
+    "status": "CANCELLED",
+    "input_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "created_at": "2026-11-14T04:00:00Z",
+    "accepted_at": "2026-11-14T04:00:00Z",
+    "started_at": "2026-11-14T04:00:01Z",
+    "finished_at": "2026-11-14T04:00:03Z",
+    "lease_expires_at": "2026-11-14T04:00:15Z",
+    "hard_deadline_at": "2026-11-14T04:02:00Z",
+    "result_artifact": null,
+    "timings": null,
+    "error": null
+  },
+  "events_page": {
+    "events": [
+      {
+        "event_id": 1,
+        "occurred_at": "2026-11-14T04:00:03Z",
+        "type": "execution.succeeded",
+        "worker_id": "worker_m4",
+        "job_id": "00000000-0000-4000-8000-000000000040",
+        "task_id": "00000000-0000-4000-8000-000000000050",
+        "execution_id": "00000000-0000-4000-8000-000000000030",
+        "preparation_id": null,
+        "message": "MOCK成功事件"
+      }
+    ],
+    "next_after": 1,
+    "has_more": false
+  },
+  "ocr_result": {
+    "schema_version": "1.0",
+    "task_type": "ocr.image.v1",
+    "input_artifact_id": "artifact_image_1",
+    "image_width": 640,
+    "image_height": 480,
+    "text": "合成文字",
+    "blocks": [
+      {
+        "text": "合成文字",
+        "bbox": [
+          10,
+          10,
+          120,
+          50
+        ],
+        "confidence": null
+      }
+    ]
+  },
+  "asr_result": {
+    "schema_version": "1.0",
+    "task_type": "asr.file.v1",
+    "input_artifact_id": "artifact_audio_1",
+    "duration_ms": 3000,
+    "language": "zh",
+    "text": "合成语音文本",
+    "segments": [
+      {
+        "start_ms": 0,
+        "end_ms": 2900,
+        "text": "合成语音文本"
+      }
+    ]
+  },
+  "job_create_ocr": {
+    "client_request_id": "00000000-0000-4000-8000-000000000060",
+    "task_type": "ocr.image.v1",
+    "profile_id": "ocr.default.v1",
+    "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "input_artifact_ids": [
+      "artifact_image_1"
+    ],
+    "parameters": {
+      "language": "auto"
+    }
+  },
+  "job_create_asr": {
+    "client_request_id": "00000000-0000-4000-8000-000000000061",
+    "task_type": "asr.file.v1",
+    "profile_id": "asr.default.v1",
+    "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "input_artifact_ids": [
+      "artifact_audio_1"
+    ],
+    "parameters": {
+      "language": "auto"
+    }
+  },
+  "job_succeeded_ocr": {
+    "job_id": "00000000-0000-4000-8000-000000000040",
+    "client_request_id": "00000000-0000-4000-8000-000000000060",
+    "task_type": "ocr.image.v1",
+    "profile_id": "ocr.default.v1",
+    "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "parameters": {
+      "language": "auto"
+    },
+    "status": "SUCCEEDED",
+    "created_at": "2026-11-14T04:00:00Z",
+    "started_at": "2026-11-14T04:00:01Z",
+    "finished_at": "2026-11-14T04:00:03Z",
+    "cancel_requested": false,
+    "dependency_status": "AVAILABLE",
+    "counts": {
+      "total": 1,
+      "queued": 0,
+      "waiting_for_resources": 0,
+      "dispatching": 0,
+      "running": 0,
+      "cancelling": 0,
+      "succeeded": 1,
+      "failed": 0,
+      "cancelled": 0
+    },
+    "tasks": [
+      {
+        "task_id": "00000000-0000-4000-8000-000000000050",
+        "input_index": 0,
+        "input": {
+          "artifact_id": "artifact_image_1",
+          "kind": "INPUT",
+          "original_name": "MOCK_image.png",
+          "content_type": "image/png",
+          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "size_bytes": 1024,
+          "media_info": {
+            "width": 640,
+            "height": 480,
+            "duration_ms": null,
+            "sample_rate_hz": null,
+            "channels": null,
+            "audio_encoding": null
+          },
+          "download_path": "/api/resource/v1/artifacts/artifact_image_1/content",
+          "created_at": "2026-11-14T04:00:00Z"
+        },
+        "status": "SUCCEEDED",
+        "attempts_used": 1,
+        "current_execution_id": "00000000-0000-4000-8000-000000000030",
+        "dispatches": [
+          {
+            "execution_id": "00000000-0000-4000-8000-000000000030",
+            "attempt_no": 1,
+            "worker_id": "worker_m4",
+            "status": "SUCCEEDED",
+            "accepted_at": "2026-11-14T04:00:00Z",
+            "finished_at": "2026-11-14T04:00:03Z",
+            "error": null
+          }
+        ],
+        "result_artifact": {
+          "artifact_id": "artifact_result_1",
+          "kind": "RESULT",
+          "original_name": "MOCK_result.json",
+          "content_type": "application/json",
+          "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "size_bytes": 1024,
+          "media_info": {
+            "width": null,
+            "height": null,
+            "duration_ms": null,
+            "sample_rate_hz": null,
+            "channels": null,
+            "audio_encoding": null
+          },
+          "download_path": "/api/resource/v1/artifacts/artifact_result_1/content",
+          "created_at": "2026-11-14T04:00:00Z"
+        },
+        "waiting_reason": null,
+        "error": null
+      }
+    ],
+    "download_path": "/api/task/v1/jobs/00000000-0000-4000-8000-000000000040/download"
+  },
+  "job_succeeded_asr": {
+    "job_id": "00000000-0000-4000-8000-000000000041",
+    "client_request_id": "00000000-0000-4000-8000-000000000061",
+    "task_type": "asr.file.v1",
+    "profile_id": "asr.default.v1",
+    "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "parameters": {
+      "language": "auto"
+    },
+    "status": "SUCCEEDED",
+    "created_at": "2026-11-14T04:00:00Z",
+    "started_at": "2026-11-14T04:00:01Z",
+    "finished_at": "2026-11-14T04:00:03Z",
+    "cancel_requested": false,
+    "dependency_status": "AVAILABLE",
+    "counts": {
+      "total": 1,
+      "queued": 0,
+      "waiting_for_resources": 0,
+      "dispatching": 0,
+      "running": 0,
+      "cancelling": 0,
+      "succeeded": 1,
+      "failed": 0,
+      "cancelled": 0
+    },
+    "tasks": [
+      {
+        "task_id": "00000000-0000-4000-8000-000000000051",
+        "input_index": 0,
+        "input": {
+          "artifact_id": "artifact_audio_1",
+          "kind": "INPUT",
+          "original_name": "MOCK_audio.wav",
+          "content_type": "audio/wav",
+          "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "size_bytes": 96044,
+          "media_info": {
+            "width": null,
+            "height": null,
+            "duration_ms": 3000,
+            "sample_rate_hz": 16000,
+            "channels": 1,
+            "audio_encoding": "PCM_S16LE"
+          },
+          "download_path": "/api/resource/v1/artifacts/artifact_audio_1/content",
+          "created_at": "2026-11-14T04:00:00Z"
+        },
+        "status": "SUCCEEDED",
+        "attempts_used": 1,
+        "current_execution_id": "00000000-0000-4000-8000-000000000031",
+        "dispatches": [
+          {
+            "execution_id": "00000000-0000-4000-8000-000000000031",
+            "attempt_no": 1,
+            "worker_id": "worker_m4",
+            "status": "SUCCEEDED",
+            "accepted_at": "2026-11-14T04:00:00Z",
+            "finished_at": "2026-11-14T04:00:03Z",
+            "error": null
+          }
+        ],
+        "result_artifact": {
+          "artifact_id": "artifact_asr_result",
+          "kind": "RESULT",
+          "original_name": "MOCK_asr.json",
+          "content_type": "application/json",
+          "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "size_bytes": 1024,
+          "media_info": {
+            "width": null,
+            "height": null,
+            "duration_ms": null,
+            "sample_rate_hz": null,
+            "channels": null,
+            "audio_encoding": null
+          },
+          "download_path": "/api/resource/v1/artifacts/artifact_asr_result/content",
+          "created_at": "2026-11-14T04:00:00Z"
+        },
+        "waiting_reason": null,
+        "error": null
+      }
+    ],
+    "download_path": "/api/task/v1/jobs/00000000-0000-4000-8000-000000000041/download"
+  },
+  "job_queued": {
+    "job_id": "00000000-0000-4000-8000-000000000040",
+    "client_request_id": "00000000-0000-4000-8000-000000000060",
+    "task_type": "ocr.image.v1",
+    "profile_id": "ocr.default.v1",
+    "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "parameters": {
+      "language": "auto"
+    },
+    "status": "QUEUED",
+    "created_at": "2026-11-14T04:00:00Z",
+    "started_at": null,
+    "finished_at": null,
+    "cancel_requested": false,
+    "dependency_status": "AVAILABLE",
+    "counts": {
+      "total": 1,
+      "queued": 1,
+      "waiting_for_resources": 0,
+      "dispatching": 0,
+      "running": 0,
+      "cancelling": 0,
+      "succeeded": 0,
+      "failed": 0,
+      "cancelled": 0
+    },
+    "tasks": [
+      {
+        "task_id": "00000000-0000-4000-8000-000000000050",
+        "input_index": 0,
+        "input": {
+          "artifact_id": "artifact_image_1",
+          "kind": "INPUT",
+          "original_name": "MOCK_image.png",
+          "content_type": "image/png",
+          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "size_bytes": 1024,
+          "media_info": {
+            "width": 640,
+            "height": 480,
+            "duration_ms": null,
+            "sample_rate_hz": null,
+            "channels": null,
+            "audio_encoding": null
+          },
+          "download_path": "/api/resource/v1/artifacts/artifact_image_1/content",
+          "created_at": "2026-11-14T04:00:00Z"
+        },
+        "status": "QUEUED",
+        "attempts_used": 0,
+        "current_execution_id": null,
+        "dispatches": [],
+        "result_artifact": null,
+        "waiting_reason": null,
+        "error": null
+      }
+    ],
+    "download_path": null
+  },
+  "job_waiting": {
+    "job_id": "00000000-0000-4000-8000-000000000040",
+    "client_request_id": "00000000-0000-4000-8000-000000000060",
+    "task_type": "ocr.image.v1",
+    "profile_id": "ocr.default.v1",
+    "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "parameters": {
+      "language": "auto"
+    },
+    "status": "WAITING_FOR_RESOURCES",
+    "created_at": "2026-11-14T04:00:00Z",
+    "started_at": null,
+    "finished_at": null,
+    "cancel_requested": false,
+    "dependency_status": "AVAILABLE",
+    "counts": {
+      "total": 1,
+      "queued": 0,
+      "waiting_for_resources": 1,
+      "dispatching": 0,
+      "running": 0,
+      "cancelling": 0,
+      "succeeded": 0,
+      "failed": 0,
+      "cancelled": 0
+    },
+    "tasks": [
+      {
+        "task_id": "00000000-0000-4000-8000-000000000050",
+        "input_index": 0,
+        "input": {
+          "artifact_id": "artifact_image_1",
+          "kind": "INPUT",
+          "original_name": "MOCK_image.png",
+          "content_type": "image/png",
+          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "size_bytes": 1024,
+          "media_info": {
+            "width": 640,
+            "height": 480,
+            "duration_ms": null,
+            "sample_rate_hz": null,
+            "channels": null,
+            "audio_encoding": null
+          },
+          "download_path": "/api/resource/v1/artifacts/artifact_image_1/content",
+          "created_at": "2026-11-14T04:00:00Z"
+        },
+        "status": "WAITING_FOR_RESOURCES",
+        "attempts_used": 0,
+        "current_execution_id": null,
+        "dispatches": [],
+        "result_artifact": null,
+        "waiting_reason": "没有兼容READY节点",
+        "error": null
+      }
+    ],
+    "download_path": null
+  },
+  "job_dispatching": {
+    "job_id": "00000000-0000-4000-8000-000000000040",
+    "client_request_id": "00000000-0000-4000-8000-000000000060",
+    "task_type": "ocr.image.v1",
+    "profile_id": "ocr.default.v1",
+    "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "parameters": {
+      "language": "auto"
+    },
+    "status": "RUNNING",
+    "created_at": "2026-11-14T04:00:00Z",
+    "started_at": null,
+    "finished_at": null,
+    "cancel_requested": false,
+    "dependency_status": "AVAILABLE",
+    "counts": {
+      "total": 1,
+      "queued": 0,
+      "waiting_for_resources": 0,
+      "dispatching": 1,
+      "running": 0,
+      "cancelling": 0,
+      "succeeded": 0,
+      "failed": 0,
+      "cancelled": 0
+    },
+    "tasks": [
+      {
+        "task_id": "00000000-0000-4000-8000-000000000050",
+        "input_index": 0,
+        "input": {
+          "artifact_id": "artifact_image_1",
+          "kind": "INPUT",
+          "original_name": "MOCK_image.png",
+          "content_type": "image/png",
+          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "size_bytes": 1024,
+          "media_info": {
+            "width": 640,
+            "height": 480,
+            "duration_ms": null,
+            "sample_rate_hz": null,
+            "channels": null,
+            "audio_encoding": null
+          },
+          "download_path": "/api/resource/v1/artifacts/artifact_image_1/content",
+          "created_at": "2026-11-14T04:00:00Z"
+        },
+        "status": "DISPATCHING",
+        "attempts_used": 0,
+        "current_execution_id": "00000000-0000-4000-8000-000000000030",
+        "dispatches": [],
+        "result_artifact": null,
+        "waiting_reason": "接单结果未知，正在对账",
+        "error": null
+      }
+    ],
+    "download_path": null
+  },
+  "job_running": {
+    "job_id": "00000000-0000-4000-8000-000000000040",
+    "client_request_id": "00000000-0000-4000-8000-000000000060",
+    "task_type": "ocr.image.v1",
+    "profile_id": "ocr.default.v1",
+    "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "parameters": {
+      "language": "auto"
+    },
+    "status": "RUNNING",
+    "created_at": "2026-11-14T04:00:00Z",
+    "started_at": "2026-11-14T04:00:01Z",
+    "finished_at": null,
+    "cancel_requested": false,
+    "dependency_status": "AVAILABLE",
+    "counts": {
+      "total": 1,
+      "queued": 0,
+      "waiting_for_resources": 0,
+      "dispatching": 0,
+      "running": 1,
+      "cancelling": 0,
+      "succeeded": 0,
+      "failed": 0,
+      "cancelled": 0
+    },
+    "tasks": [
+      {
+        "task_id": "00000000-0000-4000-8000-000000000050",
+        "input_index": 0,
+        "input": {
+          "artifact_id": "artifact_image_1",
+          "kind": "INPUT",
+          "original_name": "MOCK_image.png",
+          "content_type": "image/png",
+          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "size_bytes": 1024,
+          "media_info": {
+            "width": 640,
+            "height": 480,
+            "duration_ms": null,
+            "sample_rate_hz": null,
+            "channels": null,
+            "audio_encoding": null
+          },
+          "download_path": "/api/resource/v1/artifacts/artifact_image_1/content",
+          "created_at": "2026-11-14T04:00:00Z"
+        },
+        "status": "RUNNING",
+        "attempts_used": 1,
+        "current_execution_id": "00000000-0000-4000-8000-000000000030",
+        "dispatches": [
+          {
+            "execution_id": "00000000-0000-4000-8000-000000000030",
+            "attempt_no": 1,
+            "worker_id": "worker_m4",
+            "status": "RUNNING",
+            "accepted_at": "2026-11-14T04:00:00Z",
+            "finished_at": null,
+            "error": null
+          }
+        ],
+        "result_artifact": null,
+        "waiting_reason": null,
+        "error": null
+      }
+    ],
+    "download_path": null
+  },
+  "job_cancelling": {
+    "job_id": "00000000-0000-4000-8000-000000000040",
+    "client_request_id": "00000000-0000-4000-8000-000000000060",
+    "task_type": "ocr.image.v1",
+    "profile_id": "ocr.default.v1",
+    "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "parameters": {
+      "language": "auto"
+    },
+    "status": "CANCELLING",
+    "created_at": "2026-11-14T04:00:00Z",
+    "started_at": "2026-11-14T04:00:01Z",
+    "finished_at": null,
+    "cancel_requested": true,
+    "dependency_status": "AVAILABLE",
+    "counts": {
+      "total": 1,
+      "queued": 0,
+      "waiting_for_resources": 0,
+      "dispatching": 0,
+      "running": 0,
+      "cancelling": 1,
+      "succeeded": 0,
+      "failed": 0,
+      "cancelled": 0
+    },
+    "tasks": [
+      {
+        "task_id": "00000000-0000-4000-8000-000000000050",
+        "input_index": 0,
+        "input": {
+          "artifact_id": "artifact_image_1",
+          "kind": "INPUT",
+          "original_name": "MOCK_image.png",
+          "content_type": "image/png",
+          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "size_bytes": 1024,
+          "media_info": {
+            "width": 640,
+            "height": 480,
+            "duration_ms": null,
+            "sample_rate_hz": null,
+            "channels": null,
+            "audio_encoding": null
+          },
+          "download_path": "/api/resource/v1/artifacts/artifact_image_1/content",
+          "created_at": "2026-11-14T04:00:00Z"
+        },
+        "status": "CANCELLING",
+        "attempts_used": 1,
+        "current_execution_id": "00000000-0000-4000-8000-000000000030",
+        "dispatches": [
+          {
+            "execution_id": "00000000-0000-4000-8000-000000000030",
+            "attempt_no": 1,
+            "worker_id": "worker_m4",
+            "status": "CANCEL_REQUESTED",
+            "accepted_at": "2026-11-14T04:00:00Z",
+            "finished_at": null,
+            "error": null
+          }
+        ],
+        "result_artifact": null,
+        "waiting_reason": null,
+        "error": null
+      }
+    ],
+    "download_path": null
+  },
+  "job_cancelled": {
+    "job_id": "00000000-0000-4000-8000-000000000040",
+    "client_request_id": "00000000-0000-4000-8000-000000000060",
+    "task_type": "ocr.image.v1",
+    "profile_id": "ocr.default.v1",
+    "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "parameters": {
+      "language": "auto"
+    },
+    "status": "CANCELLED",
+    "created_at": "2026-11-14T04:00:00Z",
+    "started_at": null,
+    "finished_at": "2026-11-14T04:00:03Z",
+    "cancel_requested": true,
+    "dependency_status": "AVAILABLE",
+    "counts": {
+      "total": 1,
+      "queued": 0,
+      "waiting_for_resources": 0,
+      "dispatching": 0,
+      "running": 0,
+      "cancelling": 0,
+      "succeeded": 0,
+      "failed": 0,
+      "cancelled": 1
+    },
+    "tasks": [
+      {
+        "task_id": "00000000-0000-4000-8000-000000000050",
+        "input_index": 0,
+        "input": {
+          "artifact_id": "artifact_image_1",
+          "kind": "INPUT",
+          "original_name": "MOCK_image.png",
+          "content_type": "image/png",
+          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "size_bytes": 1024,
+          "media_info": {
+            "width": 640,
+            "height": 480,
+            "duration_ms": null,
+            "sample_rate_hz": null,
+            "channels": null,
+            "audio_encoding": null
+          },
+          "download_path": "/api/resource/v1/artifacts/artifact_image_1/content",
+          "created_at": "2026-11-14T04:00:00Z"
+        },
+        "status": "CANCELLED",
+        "attempts_used": 1,
+        "current_execution_id": "00000000-0000-4000-8000-000000000030",
+        "dispatches": [
+          {
+            "execution_id": "00000000-0000-4000-8000-000000000030",
+            "attempt_no": 1,
+            "worker_id": "worker_m4",
+            "status": "CANCELLED",
+            "accepted_at": "2026-11-14T04:00:00Z",
+            "finished_at": "2026-11-14T04:00:03Z",
+            "error": null
+          }
+        ],
+        "result_artifact": null,
+        "waiting_reason": null,
+        "error": null
+      }
+    ],
+    "download_path": "/api/task/v1/jobs/00000000-0000-4000-8000-000000000040/download"
+  },
+  "job_partial_failed": {
+    "job_id": "00000000-0000-4000-8000-000000000040",
+    "client_request_id": "00000000-0000-4000-8000-000000000060",
+    "task_type": "ocr.image.v1",
+    "profile_id": "ocr.default.v1",
+    "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "parameters": {
+      "language": "auto"
+    },
+    "status": "PARTIAL_FAILED",
+    "created_at": "2026-11-14T04:00:00Z",
+    "started_at": "2026-11-14T04:00:01Z",
+    "finished_at": "2026-11-14T04:00:03Z",
+    "cancel_requested": false,
+    "dependency_status": "AVAILABLE",
+    "counts": {
+      "total": 2,
+      "queued": 0,
+      "waiting_for_resources": 0,
+      "dispatching": 0,
+      "running": 0,
+      "cancelling": 0,
+      "succeeded": 1,
+      "failed": 1,
+      "cancelled": 0
+    },
+    "tasks": [
+      {
+        "task_id": "00000000-0000-4000-8000-000000000050",
+        "input_index": 0,
+        "input": {
+          "artifact_id": "artifact_image_1",
+          "kind": "INPUT",
+          "original_name": "MOCK_image.png",
+          "content_type": "image/png",
+          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "size_bytes": 1024,
+          "media_info": {
+            "width": 640,
+            "height": 480,
+            "duration_ms": null,
+            "sample_rate_hz": null,
+            "channels": null,
+            "audio_encoding": null
+          },
+          "download_path": "/api/resource/v1/artifacts/artifact_image_1/content",
+          "created_at": "2026-11-14T04:00:00Z"
+        },
+        "status": "SUCCEEDED",
+        "attempts_used": 1,
+        "current_execution_id": "00000000-0000-4000-8000-000000000030",
+        "dispatches": [
+          {
+            "execution_id": "00000000-0000-4000-8000-000000000030",
+            "attempt_no": 1,
+            "worker_id": "worker_m4",
+            "status": "SUCCEEDED",
+            "accepted_at": "2026-11-14T04:00:00Z",
+            "finished_at": "2026-11-14T04:00:03Z",
+            "error": null
+          }
+        ],
+        "result_artifact": {
+          "artifact_id": "artifact_result_1",
+          "kind": "RESULT",
+          "original_name": "MOCK_result.json",
+          "content_type": "application/json",
+          "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "size_bytes": 1024,
+          "media_info": {
+            "width": null,
+            "height": null,
+            "duration_ms": null,
+            "sample_rate_hz": null,
+            "channels": null,
+            "audio_encoding": null
+          },
+          "download_path": "/api/resource/v1/artifacts/artifact_result_1/content",
+          "created_at": "2026-11-14T04:00:00Z"
+        },
+        "waiting_reason": null,
+        "error": null
+      },
+      {
+        "task_id": "00000000-0000-4000-8000-000000000052",
+        "input_index": 1,
+        "input": {
+          "artifact_id": "artifact_image_2",
+          "kind": "INPUT",
+          "original_name": "MOCK_second.png",
+          "content_type": "image/png",
+          "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "size_bytes": 1024,
+          "media_info": {
+            "width": 640,
+            "height": 480,
+            "duration_ms": null,
+            "sample_rate_hz": null,
+            "channels": null,
+            "audio_encoding": null
+          },
+          "download_path": "/api/resource/v1/artifacts/artifact_image_2/content",
+          "created_at": "2026-11-14T04:00:00Z"
+        },
+        "status": "FAILED",
+        "attempts_used": 1,
+        "current_execution_id": "00000000-0000-4000-8000-000000000032",
+        "dispatches": [
+          {
+            "execution_id": "00000000-0000-4000-8000-000000000032",
+            "attempt_no": 1,
+            "worker_id": "worker_m4",
+            "status": "FAILED",
+            "accepted_at": "2026-11-14T04:00:00Z",
+            "finished_at": "2026-11-14T04:00:03Z",
+            "error": {
+              "code": "INPUT_INVALID",
+              "message": "MOCK不可重试输入错误",
+              "retryable": false,
+              "request_id": "00000000-0000-4000-8000-000000000999",
+              "details": {}
+            }
+          }
+        ],
+        "result_artifact": null,
+        "waiting_reason": null,
+        "error": {
+          "code": "INPUT_INVALID",
+          "message": "MOCK不可重试输入错误",
+          "retryable": false,
+          "request_id": "00000000-0000-4000-8000-000000000999",
+          "details": {}
+        }
+      }
+    ],
+    "download_path": "/api/task/v1/jobs/00000000-0000-4000-8000-000000000040/download"
+  },
+  "job_results_ocr": {
+    "job_id": "00000000-0000-4000-8000-000000000040",
+    "task_type": "ocr.image.v1",
+    "status": "SUCCEEDED",
+    "items": [
+      {
+        "input_index": 0,
+        "task_id": "00000000-0000-4000-8000-000000000050",
+        "input_artifact_id": "artifact_image_1",
+        "original_name": "MOCK_image.png",
+        "status": "SUCCEEDED",
+        "result": {
+          "schema_version": "1.0",
+          "task_type": "ocr.image.v1",
+          "input_artifact_id": "artifact_image_1",
+          "image_width": 640,
+          "image_height": 480,
+          "text": "合成文字",
+          "blocks": [
+            {
+              "text": "合成文字",
+              "bbox": [
+                10,
+                10,
+                120,
+                50
+              ],
+              "confidence": null
+            }
+          ]
+        },
+        "error": null
+      }
+    ],
+    "combined_text": "合成文字"
+  },
+  "job_results_asr": {
+    "job_id": "00000000-0000-4000-8000-000000000041",
+    "task_type": "asr.file.v1",
+    "status": "SUCCEEDED",
+    "items": [
+      {
+        "input_index": 0,
+        "task_id": "00000000-0000-4000-8000-000000000051",
+        "input_artifact_id": "artifact_audio_1",
+        "original_name": "MOCK_audio.wav",
+        "status": "SUCCEEDED",
+        "result": {
+          "schema_version": "1.0",
+          "task_type": "asr.file.v1",
+          "input_artifact_id": "artifact_audio_1",
+          "duration_ms": 3000,
+          "language": "zh",
+          "text": "合成语音文本",
+          "segments": [
+            {
+              "start_ms": 0,
+              "end_ms": 2900,
+              "text": "合成语音文本"
+            }
+          ]
+        },
+        "error": null
+      }
+    ],
+    "combined_text": "合成语音文本"
+  },
+  "job_results_partial": {
+    "job_id": "00000000-0000-4000-8000-000000000040",
+    "task_type": "ocr.image.v1",
+    "status": "PARTIAL_FAILED",
+    "items": [
+      {
+        "input_index": 0,
+        "task_id": "00000000-0000-4000-8000-000000000050",
+        "input_artifact_id": "artifact_image_1",
+        "original_name": "MOCK_image.png",
+        "status": "SUCCEEDED",
+        "result": {
+          "schema_version": "1.0",
+          "task_type": "ocr.image.v1",
+          "input_artifact_id": "artifact_image_1",
+          "image_width": 640,
+          "image_height": 480,
+          "text": "合成文字",
+          "blocks": [
+            {
+              "text": "合成文字",
+              "bbox": [
+                10,
+                10,
+                120,
+                50
+              ],
+              "confidence": null
+            }
+          ]
+        },
+        "error": null
+      },
+      {
+        "input_index": 1,
+        "task_id": "00000000-0000-4000-8000-000000000052",
+        "input_artifact_id": "artifact_image_2",
+        "original_name": "MOCK_second.png",
+        "status": "FAILED",
+        "result": null,
+        "error": {
+          "code": "INPUT_INVALID",
+          "message": "MOCK不可重试输入错误",
+          "retryable": false,
+          "request_id": "00000000-0000-4000-8000-000000000999",
+          "details": {}
+        }
+      }
+    ],
+    "combined_text": "合成文字"
+  },
+  "error_unauthorized": {
+    "code": "UNAUTHORIZED",
+    "message": "MOCK无效令牌",
+    "retryable": false,
+    "request_id": "00000000-0000-4000-8000-000000000999",
+    "details": {}
+  },
+  "error_forbidden": {
+    "code": "FORBIDDEN",
+    "message": "MOCK角色错误",
+    "retryable": false,
+    "request_id": "00000000-0000-4000-8000-000000000999",
+    "details": {}
+  },
+  "error_busy": {
+    "code": "RESOURCE_BUSY",
+    "message": "MOCK节点忙碌",
+    "retryable": true,
+    "request_id": "00000000-0000-4000-8000-000000000999",
+    "details": {
+      "execution_id": "00000000-0000-4000-8000-000000000030"
+    }
+  },
+  "error_conflict": {
+    "code": "IDEMPOTENCY_CONFLICT",
+    "message": "MOCK同ID不同载荷",
+    "retryable": false,
+    "request_id": "00000000-0000-4000-8000-000000000999",
+    "details": {}
+  },
+  "error_dependency": {
+    "code": "DEPENDENCY_UNAVAILABLE",
+    "message": "MOCK资源服务不可达",
+    "retryable": true,
+    "request_id": "00000000-0000-4000-8000-000000000999",
+    "details": {}
+  },
+  "error_profile_unconfigured": {
+    "code": "PROFILE_UNCONFIGURED",
+    "message": "MOCK模型尚未配置",
+    "retryable": false,
+    "request_id": "00000000-0000-4000-8000-000000000999",
+    "details": {}
+  },
+  "baseline_input": {
+    "input_index": 0,
+    "input_artifact_id": "artifact_image_1",
+    "local_path": "/MOCK/inputs/image.png",
+    "input_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  },
+  "baseline_record": {
+    "record_type": "file",
+    "run_id": "MOCK_run_1",
+    "worker_id": "worker_m4",
+    "task_type": "ocr.image.v1",
+    "profile_id": "ocr.default.v1",
+    "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "input_index": 0,
+    "input_artifact_id": "artifact_image_1",
+    "input_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "backend": "cpu",
+    "started_at": "2026-11-14T04:00:00Z",
+    "finished_at": "2026-11-14T04:00:01Z",
+    "elapsed_ms": 1000,
+    "status": "SUCCEEDED",
+    "result_path": "/MOCK/results/image.json",
+    "result_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "error": null
+  },
+  "baseline_summary": {
+    "record_type": "summary",
+    "run_id": "MOCK_run_1",
+    "started_at": "2026-11-14T04:00:00Z",
+    "finished_at": "2026-11-14T04:00:01Z",
+    "wall_ms": 1000,
+    "warmup_ms": 500,
+    "total": 1,
+    "succeeded": 1,
+    "failed": 0
+  },
+  "runtime_profile_synthetic": {
+    "task_type": "ocr.image.v1",
+    "profile_id": "ocr.default.v1",
+    "model_id": "MOCK_MODEL",
+    "model_source": "MOCK_SOURCE_NOT_A_DOWNLOAD_ADDRESS",
+    "model_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "weights_license_verified": true,
+    "dependencies": {
+      "python": "MOCK_VERSION"
+    },
+    "preprocessing": "MOCK_PREPROCESSING",
+    "postprocessing": "MOCK_POSTPROCESSING",
+    "minimum_ram_bytes": 1073741824,
+    "supported_languages": [
+      "auto",
+      "zh",
+      "en"
+    ],
+    "allowed_backends": [
+      "cpu"
+    ],
+    "output_schema": "OCRResult",
+    "frozen_at": "2026-11-14T04:00:00Z"
+  }
+}
