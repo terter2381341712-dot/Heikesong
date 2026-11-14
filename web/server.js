@@ -22,7 +22,7 @@ const controlOrigin = Number.isInteger(controlPort) && controlPort > 0 && contro
   ? `http://127.0.0.1:${controlPort}` : null;
 const controlRoutes = {
   GET: new Set(['availability', 'status', 'result.zip']),
-  POST: new Set(['center', 'connect', 'join', 'reconnect', 'discover', 'code', 'on', 'off', 'test', 'stop', 'workbench-token']),
+  POST: new Set(['center', 'connect', 'join', 'reconnect', 'discover', 'code', 'on', 'off', 'test', 'test-images', 'stop', 'workbench-token']),
 };
 const controlPrefix = '/api/p4/';
 const managedWorkbench = process.env.P4_MANAGED_WORKBENCH === '1';
@@ -158,11 +158,16 @@ async function control(request, response, action) {
     const headers = { 'X-P4-Session': session };
     let body;
     if (request.method === 'POST') {
+      const limit = action === 'test-images' ? 29 * 1024 * 1024 : 8192;
+      if (Number(request.headers['content-length']) > limit) {
+        problem(response, 413, 'INVALID_REQUEST', '请求过大。');
+        return;
+      }
       const chunks = [];
       let size = 0;
       for await (const chunk of request) {
         size += chunk.length;
-        if (size > 8192) {
+        if (size > limit) {
           problem(response, 413, 'INVALID_REQUEST', '请求过大。');
           return;
         }
@@ -173,7 +178,7 @@ async function control(request, response, action) {
     }
     const reply = await fetch(controlOrigin + '/api/' + action, { ...init, method: request.method, headers, body });
     if (action === 'result.zip' && reply.ok) {
-      response.writeHead(reply.status, { 'Content-Type': 'application/zip', 'Content-Disposition': 'attachment; filename="p4-results.zip"' });
+      response.writeHead(reply.status, { 'Content-Type': 'application/zip' });
       const stream = Readable.fromWeb(reply.body);
       stream.on('error', () => response.destroy());
       response.on('close', () => stream.destroy());

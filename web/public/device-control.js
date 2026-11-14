@@ -9,6 +9,15 @@ const labels = {
   操作记录: ['操作记录', 'Activity'],
 };
 
+function encodeImage(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve({ name: file.name, data: reader.result.split(',')[1] });
+    reader.onerror = () => reject(new Error(t(`无法读取图片：${file.name}`, `Could not read image: ${file.name}`)));
+    reader.readAsDataURL(file);
+  });
+}
+
 async function request(action, body, signal) {
   const response = await fetch('/api/p4/' + action, {
     cache: 'no-store',
@@ -39,6 +48,13 @@ export function setupDeviceControl({ authenticate, unauthenticate, navigate }) {
   let addressList = '';
   let centers = [];
   let usingLocalCredential = false;
+  const tokenField = $('p4-token-value');
+
+  function hideToken() {
+    tokenField.value = '';
+    $('p4-token-fallback').hidden = true;
+  }
+
   const validJobId = (id) => /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(id || '');
 
   function renderLogs() {
@@ -117,12 +133,14 @@ export function setupDeviceControl({ authenticate, unauthenticate, navigate }) {
     notice.dataset.tone = feedback?.error || availability?.reason === 'offline' || disconnected ? 'error' : '';
     if (!available || !snapshot) {
       constellation.show(false);
+      hideToken();
       return;
     }
 
     const { mode, processes, workbench, ocr_test: test } = snapshot;
     const idle = mode === 'idle';
     const center = mode === 'center';
+    if (!center) hideToken();
     const busy = pending || snapshot.busy;
     const healthy = Object.values(processes).every(Boolean);
     if (usingLocalCredential && !center && !busy) {
@@ -151,12 +169,16 @@ export function setupDeviceControl({ authenticate, unauthenticate, navigate }) {
     $('p4-workbench-panel').hidden = !center || !workbench;
     constellation.show(center && Boolean(workbench) && !section.hidden);
     $('p4-zip').hidden = busy || !snapshot.has_result;
+    $('p4-zip').download = snapshot.result_filename || 'p4-results.zip';
+    $('p4-test-title').hidden = !snapshot.has_result || !snapshot.result_title;
+    $('p4-test-title').textContent = snapshot.result_title || '';
+    $('p4-images').disabled = busy;
     const testState = $('p4-test-state');
     testState.hidden = !test;
     testState.textContent = {
       running: validJobId(test?.job_id) ? t('已创建真实 OCR 任务。', 'Live OCR job created.') :
-        t('正在准备并上传两张测试图。', 'Preparing and uploading two test images.'),
-      passed: t('两图 OCR 和 ZIP 校验通过。', 'Two-image OCR and ZIP verification passed.'),
+        t('正在准备并上传测试图片。', 'Preparing and uploading test images.'),
+      passed: t('OCR 和 ZIP 校验通过。', 'OCR and ZIP verification passed.'),
       failed: t('验收未通过，详情见服务日志。', 'Verification failed. See the service logs.'),
     }[test?.state] || '';
     if (snapshot.last_center) $('p4-address').placeholder = snapshot.last_center;
@@ -230,6 +252,7 @@ export function setupDeviceControl({ authenticate, unauthenticate, navigate }) {
 
   function stop() {
     constellation.show(false);
+    hideToken();
     controller?.abort();
     clearTimeout(timer);
     controller = undefined;
@@ -259,9 +282,12 @@ export function setupDeviceControl({ authenticate, unauthenticate, navigate }) {
     feedback = undefined;
     render();
     try {
-      const result = await request(endpoint, data, run.signal);
+      const body = typeof data === 'function' ? await data() : data;
       if (run.signal.aborted) return;
-      onDone?.(result);
+      const result = await request(endpoint, body, run.signal);
+      if (run.signal.aborted) return;
+      await onDone?.(result);
+      if (run.signal.aborted) return;
       const status = await request('status', undefined, run.signal);
       if (!run.signal.aborted) snapshot = status;
     } catch (error) {
@@ -313,6 +339,35 @@ export function setupDeviceControl({ authenticate, unauthenticate, navigate }) {
     usingLocalCredential = true;
     feedback = { message: ['令牌已应用到当前工作台会话。', 'The credential was applied to this workbench session.'] };
   }));
+  $('p4-copy-token').addEventListener('click', () => void action('workbench-token', {}, async ({ token }) => {
+    hideToken();
+    const run = controller;
+    try {
+      await navigator.clipboard.writeText(token);
+      if (!run.signal.aborted) feedback = { message: ['工作台令牌已复制。', 'Workbench token copied.'] };
+    } catch {
+      if (run.signal.aborted) return;
+      tokenField.value = token;
+      $('p4-token-fallback').hidden = false;
+      tokenField.select();
+      feedback = { message: ['已选中工作台令牌，可手动复制。', 'The workbench token is selected for copying.'] };
+    }
+  }));
+  $('p4-hide-token').addEventListener('click', hideToken);
+  $('p4-test-images').addEventListener('submit', (event) => {
+    event.preventDefault();
+    const input = $('p4-images');
+    const files = [...input.files];
+    if (!files.length || files.length > 20 || files.reduce((size, file) => size + file.size, 0) > 20 * 1024 * 1024 ||
+        files.some(file => !/\.(png|jpe?g)$/i.test(file.name))) {
+      feedback = { message: ['请选择 1–20 张 JPG 或 PNG，合计不超过 20 MB。', 'Select 1–20 JPG or PNG files, up to 20 MB total.'], error: true };
+      render();
+      return;
+    }
+    void action('test-images', async () => ({ images: await Promise.all(files.map(encodeImage)) }), () => {
+      input.value = '';
+    });
+  });
   for (const [id, target] of [
     ['p4-upload', () => '#submit/upload'],
     ['p4-test-job', () => `#jobs/${snapshot.ocr_test.job_id}`],

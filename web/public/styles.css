@@ -586,6 +586,10 @@ summary { cursor: pointer; font-weight: 700; color: var(--green); }
 .device-control-check input { accent-color: #37658d; }
 .device-control-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; width: 100%; }
 #p4-pair-fields { display: grid; gap: 10px; width: 100%; min-width: 0; }
+.p4-card-details, #p4-token-fallback { width: 100%; min-width: 0; }
+#p4-test-images, #p4-token-fallback { display: grid; justify-items: start; gap: 7px; font-size: 12px; }
+#p4-images { width: 100%; min-width: 0; }
+#p4-images::file-selector-button { font: inherit; }
 .device-control-actions select { flex: 1 1 150px; width: auto; }
 .device-control .button { white-space: normal; }
 #view-resources .button.primary { --accent: #28557c; }

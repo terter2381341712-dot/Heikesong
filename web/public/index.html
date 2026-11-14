@@ -247,15 +247,30 @@
                   <button id="p4-test-outputs" class="button secondary" type="button" data-en="View test results" hidden>查看测试结果</button>
                   <a id="p4-zip" class="button secondary" href="/api/p4/result.zip" download="p4-results.zip" data-en="Download test ZIP" hidden>下载测试 ZIP</a>
                 </div>
+                <details class="p4-card-details">
+                  <summary data-en="Test your own images">测试自选图片</summary>
+                  <form id="p4-test-images">
+                    <label for="p4-images" data-en="JPG or PNG · up to 20 files and 20 MB total">JPG 或 PNG · 最多 20 张、合计 20 MB</label>
+                    <input id="p4-images" type="file" accept=".png,.jpg,.jpeg,image/png,image/jpeg" multiple required>
+                    <button class="button secondary" type="submit" data-en="Upload and test">上传并测试</button>
+                  </form>
+                </details>
+                <small id="p4-test-title" class="muted" hidden></small>
               </section>
               <section id="p4-workbench-panel" class="device-glass-card" hidden>
                 <h3 data-en="Live workbench">真实工作台</h3>
                 <div class="device-control-actions">
                   <button id="p4-use-token" class="button secondary" type="button" data-en="Connect this workbench">连接此工作台</button>
+                  <button id="p4-copy-token" class="button secondary" type="button" data-en="Copy workbench token">复制工作台令牌</button>
                   <button id="p4-upload" class="button primary" type="button" data-en="Upload images" hidden>上传图片</button>
                   <a id="p4-workbench-link" class="button secondary" target="_blank" rel="noopener noreferrer" data-en="Open center workbench" hidden>打开中心工作台</a>
                 </div>
                 <small id="p4-lan" class="mono muted" hidden></small>
+                <div id="p4-token-fallback" hidden>
+                  <label for="p4-token-value" data-en="Workbench token">工作台令牌</label>
+                  <input id="p4-token-value" class="mono" type="text" readonly autocomplete="off" spellcheck="false">
+                  <button id="p4-hide-token" class="button subtle" type="button" data-en="Hide token">隐藏令牌</button>
+                </div>
               </section>
             </div>
             <details id="p4-logs" class="device-control-logs">
