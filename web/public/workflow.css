@@ -1,0 +1,145 @@
+.workflow {
+  --graph-ink: #32231e;
+  --graph-muted: #67534b;
+  --graph-accent: #a34b31;
+  --graph-line: #e8ddd6;
+  margin-bottom: 18px;
+  border: 1px solid var(--graph-line);
+  border-radius: 15px;
+  overflow: clip;
+  background: #fff;
+  color: var(--graph-ink);
+}
+
+.workflow-toolbar {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  min-height: 45px;
+  padding: 3px 21px;
+}
+
+.workflow-toolbar h2 { font-size: 14px; font-weight: 680; }
+.workflow-playback {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 44px;
+  padding: 4px 0 4px 10px;
+  border: 0;
+  background: transparent;
+  color: var(--graph-muted);
+  font-size: 12px;
+}
+.workflow-playback:hover { color: var(--graph-accent); }
+.workflow-playback svg { width: 14px; height: 14px; }
+
+.workflow-stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  container-type: inline-size;
+  --stage-width: min(100cqw, 790px);
+}
+.workflow-art {
+  position: relative;
+  width: min(100%, 790px);
+  aspect-ratio: 16 / 9;
+  margin-block: calc(-1 * 0.05 * var(--stage-width));
+  pointer-events: none;
+}
+.workflow-art > * { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+.workflow-poster, #workflow-video { object-fit: contain; }
+#workflow-video { opacity: 0; }
+.workflow[data-video-ready="true"] #workflow-video { opacity: 1; }
+
+.workflow-branch {
+  opacity: .20;
+  color: #ab562f;
+  transition: opacity 160ms ease-out;
+}
+.workflow-branch path, .workflow-branch circle { vector-effect: non-scaling-stroke; }
+.workflow-branch path { fill: none; stroke: currentColor; stroke-width: 1.35; stroke-linecap: round; }
+.workflow-branch circle { fill: #fff4e8; stroke: currentColor; stroke-width: 1.45; }
+.workflow[data-highlight]:not([data-highlight=""]) .workflow-branch { opacity: .08; }
+.workflow[data-highlight="upload"] .workflow-branch.branch-upload,
+.workflow[data-highlight="progress"] .workflow-branch.branch-progress,
+.workflow[data-highlight="results"] .workflow-branch.branch-results,
+.workflow[data-highlight="resources"] .workflow-branch.branch-resources { opacity: .93; }
+
+.workflow-nodes { display: contents; }
+.workflow-node {
+  position: absolute;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  column-gap: 8px;
+  width: max-content;
+  max-width: 175px;
+  min-height: 50px;
+  align-content: center;
+  padding: 6px 9px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: #fffffff2;
+  color: var(--graph-ink);
+  transition: border-color 160ms ease-out, background-color 160ms ease-out;
+}
+.workflow-node-icon {
+  grid-row: span 2;
+  display: grid;
+  place-items: center;
+  align-self: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid #eedbd0;
+  border-radius: 50%;
+  background: #fbf3ed;
+  color: #97462d;
+  transition: background-color 160ms ease-out, border-color 160ms ease-out;
+}
+.workflow-node-icon svg { width: 13px; height: 13px; }
+.workflow-node-name { font-size: 13px; font-weight: 710; line-height: 1.4; }
+.workflow-node small { margin-top: 2px; color: var(--graph-muted); font-size: 11px; line-height: 1.4; }
+.workflow-node:active { background: #fff2e9; }
+.workflow-node:hover { border-color: #d7a894; }
+.workflow-node:focus-visible, .workflow-playback:focus-visible { outline: 2px solid var(--graph-accent); outline-offset: 2px; }
+.workflow[data-highlight="upload"] .workflow-node.branch-upload,
+.workflow[data-highlight="progress"] .workflow-node.branch-progress,
+.workflow[data-highlight="results"] .workflow-node.branch-results,
+.workflow[data-highlight="resources"] .workflow-node.branch-resources {
+  border-color: #d7a894;
+  background: #fff8f3;
+}
+
+/* Match the endpoints in the 1280 × 720 source frame at the width of the art. */
+.workflow-node.branch-upload { right: calc(50% + .29141 * var(--stage-width)); top: calc(.1125 * var(--stage-width) - 25px); }
+.workflow-node.branch-progress { right: calc(50% + .26328 * var(--stage-width)); top: calc(.29375 * var(--stage-width) - 25px); }
+.workflow-node.branch-results { left: calc(50% + .26797 * var(--stage-width)); top: calc(.09922 * var(--stage-width) - 25px); }
+.workflow-node.branch-resources { left: calc(50% + .3 * var(--stage-width)); top: calc(.27969 * var(--stage-width) - 25px); }
+
+#submit-form, #job-history-panel, #job-results-panel, #resources-title { scroll-margin-top: 18px; }
+
+@container (max-width: 775px) {
+  .workflow-art { width: min(calc(100% - 28px), 540px); margin-block: 0; }
+  .workflow-branches { display: none; }
+  .workflow-nodes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; width: calc(100% - 28px); margin-bottom: 14px; }
+  .workflow-node[class] {
+    position: static;
+    width: auto;
+    max-width: none;
+    border-color: var(--graph-line);
+    background: #fff;
+  }
+}
+
+@media (max-width: 900px) {
+  .workflow-toolbar { padding-inline: 14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workflow-branch, .workflow-node, .workflow-node-icon { transition: none; }
+}

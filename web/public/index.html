@@ -7,7 +7,9 @@
   <title>校园算力网 · Edge Fabric</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/workflow.css">
   <script type="module" src="/app.js"></script>
+  <script type="module" src="/workflow.js"></script>
 </head>
 <body>
   <aside class="rail">
@@ -42,8 +44,60 @@
           <h1 id="submit-title">新建识别任务</h1>
           <p>一批任务使用同一种输入格式，结果按文件顺序返回。</p>
         </div>
+        <section id="workflow-graph" class="workflow" aria-label="识别流程图谱">
+          <div class="workflow-toolbar">
+            <h2>任务流程</h2>
+            <button id="workflow-playback" class="workflow-playback" type="button" hidden></button>
+          </div>
+          <div class="workflow-stage">
+            <div class="workflow-art" aria-hidden="true">
+              <img class="workflow-poster" src="/assets/ether-node.png" width="1920" height="1080" alt="">
+              <video id="workflow-video" data-src="/assets/ether-node.mp4" width="1280" height="720" muted loop playsinline preload="none" aria-hidden="true"></video>
+              <svg class="workflow-branches" viewBox="0 0 1280 720" width="1280" height="720" focusable="false">
+                <g class="workflow-branch branch-upload">
+                  <path d="M478 286 C404 273 323 241 267 208"></path>
+                  <circle cx="267" cy="208" r="4"></circle>
+                </g>
+                <g class="workflow-branch branch-progress">
+                  <path d="M478 362 C415 365 353 399 303 440"></path>
+                  <circle cx="303" cy="440" r="4"></circle>
+                </g>
+                <g class="workflow-branch branch-results">
+                  <path d="M802 248 C850 204 927 191 983 191"></path>
+                  <circle cx="983" cy="191" r="4"></circle>
+                </g>
+                <g class="workflow-branch branch-resources">
+                  <path d="M801 385 C864 415 954 424 1024 422"></path>
+                  <circle cx="1024" cy="422" r="4"></circle>
+                </g>
+              </svg>
+            </div>
+            <nav class="workflow-nodes" aria-label="流程入口">
+              <a class="workflow-node branch-upload" href="#submit/upload" data-workflow-node="upload">
+                <span class="workflow-node-icon" data-icon="upload" aria-hidden="true"></span>
+                <span class="workflow-node-name">上传图片</span>
+                <small>批量选择 JPG、PNG</small>
+              </a>
+              <a class="workflow-node branch-progress" href="#jobs" data-workflow-node="progress">
+                <span class="workflow-node-icon" data-icon="jobs" aria-hidden="true"></span>
+                <span class="workflow-node-name">任务进度</span>
+                <small>查询逐图状态</small>
+              </a>
+              <a class="workflow-node branch-results" href="#jobs/results" data-workflow-node="results">
+                <span class="workflow-node-icon" data-icon="download" aria-hidden="true"></span>
+                <span class="workflow-node-name">识别结果</span>
+                <small>预览与下载 ZIP</small>
+              </a>
+              <a class="workflow-node branch-resources" href="#resources" data-workflow-node="resources">
+                <span class="workflow-node-icon" data-icon="devices" aria-hidden="true"></span>
+                <span class="workflow-node-name">设备资源</span>
+                <small>查看节点与槽位</small>
+              </a>
+            </nav>
+          </div>
+        </section>
         <div class="submit-layout">
-          <form id="submit-form" class="panel composer">
+          <form id="submit-form" class="panel composer" tabindex="-1" aria-label="提交识别任务">
             <fieldset class="form-section">
               <legend>任务类型</legend>
               <div id="type-options" class="type-options"><p class="muted">正在读取任务类型…</p></div>
@@ -91,7 +145,7 @@
           <a class="button primary" href="#submit"><span data-icon="plus"></span>新建任务</a>
         </div>
         <div class="job-layout">
-          <aside class="panel compact job-history" aria-label="本地任务记录">
+          <aside class="panel compact job-history" id="job-history-panel" tabindex="-1" aria-label="本地任务记录">
             <div class="panel-heading"><h2>任务批次</h2></div>
             <div id="job-history"></div>
             <form id="lookup-form" class="lookup-form">
@@ -106,7 +160,7 @@
 
       <section id="view-resources" aria-labelledby="resources-title" hidden>
         <div class="page-heading heading-actions">
-          <div><h1 id="resources-title">设备资源</h1><p id="snapshot-time">正在读取资源快照…</p></div>
+          <div><h1 id="resources-title" tabindex="-1">设备资源</h1><p id="snapshot-time">正在读取资源快照…</p></div>
         </div>
         <div id="resource-detail"></div>
       </section>

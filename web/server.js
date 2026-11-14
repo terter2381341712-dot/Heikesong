@@ -1,6 +1,7 @@
 import { createServer, request as httpRequest } from 'node:http';
 import { request as httpsRequest } from 'node:https';
-import { readFile } from 'node:fs/promises';
+import { createReadStream } from 'node:fs';
+import { readFile, stat } from 'node:fs/promises';
 import { loadEnvFile } from 'node:process';
 import { randomUUID } from 'node:crypto';
 
@@ -48,11 +49,46 @@ const taskRoutes = {
 const staticFiles = new Map([
   ['/', ['index.html', 'text/html; charset=utf-8']],
   ['/styles.css', ['styles.css', 'text/css; charset=utf-8']],
+  ['/workflow.css', ['workflow.css', 'text/css; charset=utf-8']],
+  ['/workflow.js', ['workflow.js', 'text/javascript; charset=utf-8']],
+  ['/assets/ether-node.png', ['assets/ether-node.png', 'image/png']],
   ['/app.js', ['app.js', 'text/javascript; charset=utf-8']],
   ['/api.js', ['api.js', 'text/javascript; charset=utf-8']],
   ['/media.js', ['media.js', 'text/javascript; charset=utf-8']],
   ['/render.js', ['render.js', 'text/javascript; charset=utf-8']],
 ]);
+const workflowVideo = new URL('./public/assets/ether-node.mp4', import.meta.url);
+
+async function serveWorkflowVideo(request, response) {
+  const { size } = await stat(workflowVideo);
+  const headers = { 'Content-Type': 'video/mp4', 'Accept-Ranges': 'bytes', 'Cache-Control': 'no-cache' };
+  let start = 0;
+  let end = size - 1;
+  let status = 200;
+  if (request.headers.range) {
+    const match = /^bytes=(\d*)-(\d*)$/.exec(request.headers.range);
+    const firstByte = match?.[1];
+    const lastByte = match?.[2];
+    start = firstByte ? Number(firstByte) : Math.max(0, size - Number(lastByte));
+    if (firstByte && lastByte) end = Math.min(end, Number(lastByte));
+    if ((!firstByte && !lastByte) || start >= size || end < start) {
+      response.writeHead(416, { ...headers, 'Content-Range': `bytes */${size}` });
+      response.end();
+      return;
+    }
+    status = 206;
+    headers['Content-Range'] = `bytes ${start}-${end}/${size}`;
+  }
+  response.writeHead(status, { ...headers, 'Content-Length': end - start + 1 });
+  if (request.method === 'HEAD') {
+    response.end();
+    return;
+  }
+  const stream = createReadStream(workflowVideo, { start, end });
+  stream.on('error', () => response.destroy());
+  response.on('close', () => stream.destroy());
+  stream.pipe(response);
+}
 
 function problem(response, status, code, message, retryable = false) {
   response.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -105,7 +141,7 @@ function proxy(request, response, path, baseUrl, service) {
 const server = createServer(async (request, response) => {
   response.setHeader('Cache-Control', 'no-store');
   response.setHeader('X-Content-Type-Options', 'nosniff');
-  response.setHeader('Content-Security-Policy', "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'self'");
+  response.setHeader('Content-Security-Policy', "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; media-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'self'");
   try {
     const authority = request.headers.host;
     if (!authority || ((host === '127.0.0.1' || host === 'localhost') && !/^(?:localhost|127\.0\.0\.1)(?::\d+)?$/.test(authority))) {
@@ -120,7 +156,9 @@ const server = createServer(async (request, response) => {
     }
     const path = new URL(request.url, 'http://localhost').pathname;
     const file = staticFiles.get(path);
-    if (request.method === 'GET' && file) {
+    if (path === '/assets/ether-node.mp4' && ['GET', 'HEAD'].includes(request.method)) {
+      await serveWorkflowVideo(request, response);
+    } else if (request.method === 'GET' && file) {
       const [filename, type] = file;
       const content = await readFile(new URL(`./public/${filename}`, import.meta.url));
       response.writeHead(200, { 'Content-Type': type });

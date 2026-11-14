@@ -37,6 +37,7 @@ const state = {
 let activePoll;
 let toastTimer;
 let storageAvailable = true;
+let resultsFocusPending = false;
 
 function storageKey(part) {
   return `edge-fabric:0.2:${state.mode}:${part}`;
@@ -196,6 +197,13 @@ function renderJobs() {
   updateHtml(detail, content);
   drawIcons(detail);
   for (const segment of detail.querySelectorAll('[data-share]')) segment.style.width = `${Number(segment.dataset.share)}%`;
+  if (resultsFocusPending && state.results && $('job-results-panel')) {
+    const { activeElement } = document;
+    if (activeElement === document.body || activeElement === $('job-history-panel') || activeElement.closest('#job-history, #lookup-form')) {
+      moveTo($('job-results-panel'));
+    }
+    resultsFocusPending = false;
+  }
 }
 
 function rememberJob(job) {
@@ -321,11 +329,18 @@ function restartPoll() {
   void tick();
 }
 
-function route() {
-  const [requested, id] = location.hash.slice(1).split('/');
+function moveTo(element) {
+  element.focus({ preventScroll: true });
+  element.scrollIntoView({ block: 'start' });
+}
+
+function route(placeFocus = false) {
+  const [requested, id, action] = location.hash.slice(1).split('/');
+  const previousView = state.view;
   state.view = views.has(requested) ? requested : 'submit';
   const nextId = state.view === 'jobs' ? (jobIdPattern.test(id ?? '') ? id : state.history[0]?.id ?? null) : null;
   if (nextId !== state.jobId) {
+    resultsFocusPending = false;
     state.jobId = nextId;
     state.job = state.results = null;
     state.jobError = state.resultsError = '';
@@ -339,15 +354,25 @@ function route() {
     if (link.dataset.view === state.view) link.setAttribute('aria-current', 'page');
     else link.removeAttribute('aria-current');
   }
+  const showResults = state.view === 'jobs' && (id === 'results' || action === 'results');
+  if (placeFocus) resultsFocusPending = showResults && Boolean(nextId);
   renderForm();
   renderJobs();
   renderResources();
+  if (placeFocus) {
+    if (state.view === 'submit' && id === 'upload') moveTo($('submit-form'));
+    else if (state.view === 'jobs' && showResults) moveTo(state.results ? $('job-results-panel') : $('job-history-panel'));
+    else if (state.view === 'resources') moveTo($('resources-title'));
+    else if (state.view !== previousView || !id) window.scrollTo(0, 0);
+  }
   restartPoll();
 }
 
 function openJob(id) {
-  const hash = `#jobs/${id}`;
-  if (location.hash === hash) route();
+  const [view, section, action] = location.hash.slice(1).split('/');
+  const focusResults = view === 'jobs' && (section === 'results' || action === 'results');
+  const hash = `#jobs/${id}${focusResults ? '/results' : ''}`;
+  if (location.hash === hash) route(true);
   else location.hash = hash;
 }
 
@@ -536,7 +561,7 @@ async function changeMode(event) {
 }
 
 function bind() {
-  window.addEventListener('hashchange', route);
+  window.addEventListener('hashchange', () => route(true));
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) {
       if (state.job && Date.now() - state.jobChecked > 6000 && !state.jobError) {
@@ -544,6 +569,14 @@ function bind() {
       }
       route();
     } else restartPoll();
+  });
+  $('workflow-graph').addEventListener('click', (event) => {
+    const link = event.target.closest('[data-workflow-node]');
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
+    if (link?.hash === location.hash) {
+      event.preventDefault();
+      route(true);
+    }
   });
   $('submit-form').addEventListener('submit', submit);
   $('type-options').addEventListener('change', (event) => {
@@ -617,6 +650,14 @@ function bind() {
     setNotice($('lookup-error'), valid ? '' : '请填写完整 Job ID（UUID）。');
     if (valid) openJob(id);
   });
+  $('job-history').addEventListener('click', (event) => {
+    if (!location.hash.endsWith('/results')) return;
+    const link = event.target.closest('a');
+    const jobId = link?.hash.split('/')[1];
+    if (!jobId || event.button !== 0 || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
+    event.preventDefault();
+    openJob(jobId);
+  });
   $('job-detail').addEventListener('click', jobAction);
   $('resource-detail').addEventListener('click', changeMode);
   $('open-settings').addEventListener('click', async () => {
@@ -673,7 +714,7 @@ async function boot() {
   $('live-settings').hidden = mock;
   $('dialog-title').textContent = mock ? '模拟场景' : '连接设置';
   bind();
-  route();
+  route(Boolean(location.hash));
   if (mock) {
     try { state.scenario = (await getScenario()).scenario; }
     catch (error) { toast(errorText(error)); }

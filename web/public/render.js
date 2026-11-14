@@ -138,7 +138,7 @@ export function jobPanel(job, results, resourceNames, { jobError, resultsError, 
       ${canCancel ? `<button class="button danger" type="button" data-action="cancel-job" data-focus-key="cancel-job"${cancelling || jobError ? ' disabled' : ''}>${cancelling ? '请求中…' : '取消任务'}</button>` : ''}
     </div>
   </section>
-  <section class="panel compact" aria-label="输入与结果">
+  <section id="job-results-panel" class="panel compact" tabindex="-1" data-focus-key="job-results-panel" aria-label="输入与结果">
     <div class="panel-heading"><h2>输入与结果</h2></div>
     ${message(resultsError && `${results ? '结果快照已过期' : '结果读取失败'} · ${resultsError}`, 'error')}
     <ul class="task-list">${orderedInputs.map((task) => taskRow(task, items.get(task.task_id), resourceNames)).join('')}</ul>
