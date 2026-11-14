@@ -24,7 +24,7 @@ def model_files() -> list[Path]:
     import rapidocr
 
     models_dir = Path(rapidocr.__file__).parent / "models"
-    return sorted(models_dir / name for name in MODEL_NAMES.values())
+    return sorted((models_dir / name for name in MODEL_NAMES.values()), key=lambda path: path.name)
 
 
 def combined_model_sha256() -> str:

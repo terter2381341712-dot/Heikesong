@@ -1,0 +1,34 @@
+{
+  "status": "FAIL",
+  "mode": "REAL_SINGLE_MACHINE_BUTTON_HTTP",
+  "checks": [
+    {
+      "name": "initial idle",
+      "status": "PASS"
+    },
+    {
+      "name": "automatic environment detection and center + local node",
+      "status": "PASS"
+    },
+    {
+      "name": "UDP center discovery",
+      "status": "PASS"
+    },
+    {
+      "name": "pairing returns only node credentials",
+      "status": "PASS"
+    },
+    {
+      "name": "sharing off confirmed by P1",
+      "status": "PASS"
+    },
+    {
+      "name": "sharing on confirmed by P1",
+      "status": "PASS"
+    }
+  ],
+  "physical_multinode": "NOT_RUN",
+  "macos_live": "NOT_RUN",
+  "error": "button submits real OCR and verifies result / ZIP",
+  "cleanup": "PASS"
+}

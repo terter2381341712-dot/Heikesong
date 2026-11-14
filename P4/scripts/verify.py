@@ -183,7 +183,7 @@ class Probe:
         require(descriptor["configuration_state"] == "CONFIGURED", "OCR 未配置")
         require(descriptor in catalogs[0]["task_types"], "两端 OCR 目录不一致")
         digest = hashlib.sha256(
-            (ROOT / "P1/profiles/ocr.default.v1.lock.json").read_bytes()
+            (args.profiles_dir / "ocr.default.v1.lock.json").read_bytes()
         ).hexdigest()
         require(descriptor["profile_digest"] == digest, "profile 与本地锁文件不一致")
         self.report["profile_digest"] = digest
@@ -410,6 +410,7 @@ def main():
     parser.add_argument("--timeout", type=float, default=600)
     parser.add_argument("--min-workers", type=int, default=0)
     parser.add_argument("--devices")
+    parser.add_argument("--profiles-dir", type=Path, default=ROOT / "P1/profiles")
     args = parser.parse_args()
     output = Path(args.out).resolve()
     output.mkdir(parents=True, exist_ok=False)

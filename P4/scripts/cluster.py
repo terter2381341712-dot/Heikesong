@@ -237,6 +237,8 @@ def run(args):
             # Bind check never kills an existing service.
             if role != "node":
                 with socket.socket() as probe:
+                    if os.name == "nt":
+                        probe.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
                     probe.bind(
                         (args.bind, args.task_port if role == "task" else args.resource_port)
                     )

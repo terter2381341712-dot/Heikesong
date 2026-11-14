@@ -1,5 +1,7 @@
 # P1-WIN-001：Windows 的模型组合 SHA 与锁文件不一致
 
+**后续状态：已修复。** 用户进一步要求按钮化自动跨系统运行后，已把明确文件名排序正式纳入P1源码并增加PureWindowsPath/PurePosixPath顺序回归；不再需要用户执行下文历史patch命令。按钮真实单机OCR闭环通过；当前回归见p1-buttons-pytest.xml。以下保留早期隔离验证和交接过程。
+
 状态：生产 P1 未修复；最小补丁已在隔离副本验证。负责人：P1。不依赖第二台设备。
 
 实际环境 Python 3.9.6、RapidOCR 3.10.0、ONNX Runtime 1.19.2、Pillow 11.3.0、Windows。模型文件未改变。源码 `P1/runners/rapidocr_runner.py` 的 model_files 使用 `sorted(Path...)`；WindowsPath 按不区分大小写的路径语义比较，Linux PosixPath 顺序不同。
