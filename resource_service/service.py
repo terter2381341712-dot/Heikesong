@@ -16,7 +16,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, Optional
 
-from fastapi import FastAPI, Form, Request, UploadFile
+from fastapi import Depends, FastAPI, Form, Request, UploadFile
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse
 
@@ -363,6 +363,13 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
             raise internal_error("服务尚未完成初始化")
         return s
 
+    # 鉴权用 FastAPI 依赖：依赖先于 body 校验执行，保证角色错误一律 403（R03）
+    def auth_demo_or_task(request: Request) -> str:
+        return require_demo_or_task(request, state().config)
+
+    def auth_task(request: Request) -> str:
+        return require_task(request, state().config)
+
     @app.exception_handler(ApiError)
     async def handle_api_error(request: Request, exc: ApiError):
         return exc.to_response()
@@ -392,9 +399,8 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
     # ---------------- resources ----------------
 
     @app.get("/api/resource/v1/resources")
-    def get_resources(request: Request):
+    def get_resources(role: str = Depends(auth_demo_or_task)):
         s = state()
-        require_demo_or_task(request, s.config)
         rows = s.db.query("SELECT * FROM nodes ORDER BY registered_at")
         return {
             "contract_version": CONTRACT_VERSION,
@@ -403,10 +409,9 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
         }
 
     @app.post("/api/resource/v1/resources/{worker_id}/mode")
-    def set_mode(worker_id: str, body: ModeRequest, request: Request):
+    def set_mode(worker_id: str, body: ModeRequest, role: str = Depends(auth_demo_or_task)):
         s = state()
-        require_demo_or_task(request, s.config)
-        if request_state_role(request, s.config) != ROLE_DEMO:
+        if role != ROLE_DEMO:
             raise forbidden()
         node = _get_node_or_404(s, worker_id)
         now = iso_now()
@@ -422,9 +427,8 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
     # ---------------- task types ----------------
 
     @app.get("/api/resource/v1/task-types")
-    def get_task_types(request: Request):
+    def get_task_types(role: str = Depends(auth_demo_or_task)):
         s = state()
-        require_demo_or_task(request, s.config)
         return {
             "contract_version": CONTRACT_VERSION,
             "server_time": iso_now(),
@@ -434,9 +438,8 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
     # ---------------- artifacts ----------------
 
     @app.post("/api/resource/v1/artifacts")
-    async def upload_artifact(request: Request, upload_id: str = Form(...), file: UploadFile = Form(...)):
+    async def upload_artifact(upload_id: str = Form(...), file: UploadFile = Form(...), role: str = Depends(auth_demo_or_task)):
         s = state()
-        role = require_demo_or_task(request, s.config)
         try:
             as_uuid(upload_id)
         except ValueError:
@@ -506,18 +509,16 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
         return JSONResponse(status_code=201, content=s.artifact_dict(row))
 
     @app.get("/api/resource/v1/artifacts/{artifact_id}")
-    def get_artifact(artifact_id: str, request: Request):
+    def get_artifact(artifact_id: str, role: str = Depends(auth_demo_or_task)):
         s = state()
-        require_demo_or_task(request, s.config)
         row = s.db.query_one("SELECT * FROM artifacts WHERE artifact_id=?", (artifact_id,))
         if row is None:
             raise not_found(f"artifact {artifact_id} 不存在")
         return s.artifact_dict(row)
 
     @app.get("/api/resource/v1/artifacts/{artifact_id}/content")
-    def download_artifact(artifact_id: str, request: Request):
+    def download_artifact(artifact_id: str, role: str = Depends(auth_demo_or_task)):
         s = state()
-        require_demo_or_task(request, s.config)
         row = s.db.query_one("SELECT * FROM artifacts WHERE artifact_id=?", (artifact_id,))
         if row is None:
             raise not_found(f"artifact {artifact_id} 不存在")
@@ -529,9 +530,8 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
     # ---------------- preparations ----------------
 
     @app.post("/api/resource/v1/preparations")
-    def create_preparation(body: PreparationRequest, request: Request):
+    def create_preparation(body: PreparationRequest, role: str = Depends(auth_task)):
         s = state()
-        require_task(request, s.config)
         preparation_id = as_uuid(body.preparation_id)
         fingerprint = canonical_json(body.model_dump())
 
@@ -639,9 +639,8 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
         return JSONResponse(status_code=202, content=s.preparation_dict(row))
 
     @app.get("/api/resource/v1/preparations/{preparation_id}")
-    def get_preparation(preparation_id: str, request: Request):
+    def get_preparation(preparation_id: str, role: str = Depends(auth_task)):
         s = state()
-        require_task(request, s.config)
         try:
             pid = as_uuid(preparation_id)
         except ValueError:
@@ -654,9 +653,8 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
     # ---------------- executions ----------------
 
     @app.post("/api/resource/v1/executions")
-    def create_execution(body: ExecutionRequest, request: Request):
+    def create_execution(body: ExecutionRequest, role: str = Depends(auth_task)):
         s = state()
-        require_task(request, s.config)
         execution_id = as_uuid(body.execution_id)
         fingerprint = canonical_json(body.model_dump())
 
@@ -772,18 +770,16 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
         return JSONResponse(status_code=201, content=s.execution_dict(row))
 
     @app.get("/api/resource/v1/executions/{execution_id}")
-    def get_execution(execution_id: str, request: Request):
+    def get_execution(execution_id: str, role: str = Depends(auth_task)):
         s = state()
-        require_task(request, s.config)
         row = s.db.query_one("SELECT * FROM executions WHERE execution_id=?", (execution_id,))
         if row is None:
             raise not_found("execution 不存在")
         return s.execution_dict(row)
 
     @app.post("/api/resource/v1/executions/{execution_id}/cancel")
-    def cancel_execution(execution_id: str, request: Request):
+    def cancel_execution(execution_id: str, role: str = Depends(auth_task)):
         s = state()
-        require_task(request, s.config)
         row = s.db.query_one("SELECT * FROM executions WHERE execution_id=?", (execution_id,))
         if row is None:
             raise not_found("execution 不存在")
@@ -836,9 +832,8 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
     # ---------------- events ----------------
 
     @app.get("/api/resource/v1/events")
-    def get_events(request: Request, after: int = 0, limit: int = 100):
+    def get_events(after: int = 0, limit: int = 100, role: str = Depends(auth_demo_or_task)):
         s = state()
-        require_demo_or_task(request, s.config)
         if after < 0 or not (1 <= limit <= 100):
             raise ApiError(422, "INVALID_REQUEST", "after/limit 超出范围")
         rows = s.db.query(
