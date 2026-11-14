@@ -132,6 +132,9 @@ export function setupDeviceControl({ authenticate, unauthenticate, navigate }) {
       if (snapshot.discovery_error && snapshot.mode === 'center' && snapshot.address !== '127.0.0.1') {
         status = [status, t('自动发现暂不可用，可使用连接码。', 'Discovery is unavailable. Use the connection code.')].filter(Boolean).join(' · ');
       }
+      if (snapshot.mode === 'node' && !snapshot.workbench_connected) {
+        status = [status, t('当前配对记录缺少中心任务地址，请让中心更新后重新复制连接码配对；无需在本机启动中心。', 'The pairing record has no task address. Update the center and pair again; do not start a second center.')].filter(Boolean).join(' · ');
+      }
     }
     const text = feedback ? (Array.isArray(feedback.message) ? t(...feedback.message) : feedback.message) : status;
     if (notice.textContent !== (text || '')) notice.textContent = text || '';
@@ -172,7 +175,7 @@ export function setupDeviceControl({ authenticate, unauthenticate, navigate }) {
     $('p4-pair-local').hidden = !localOnly;
     $('p4-pair-fields').hidden = localOnly;
     $('p4-test-panel').hidden = !center;
-    $('p4-workbench-panel').hidden = !center || !workbench;
+    $('p4-workbench-panel').hidden = !workbench || idle;
     constellation.show(center && Boolean(workbench) && !section.hidden);
     $('p4-zip').hidden = busy || !snapshot.has_result;
     $('p4-zip').download = snapshot.result_filename || 'p4-results.zip';
@@ -213,7 +216,8 @@ export function setupDeviceControl({ authenticate, unauthenticate, navigate }) {
       addressList = addresses;
     }
     const thisWorkbench = workbench && new URL(workbench.local_url).port === location.port;
-    $('p4-use-token').hidden = !thisWorkbench;
+    $('p4-use-token').hidden = !thisWorkbench || !center;
+    $('p4-copy-token').hidden = !center;
     $('p4-upload').hidden = !thisWorkbench;
     $('p4-test-job').hidden = !thisWorkbench || !validJobId(test?.job_id);
     $('p4-test-outputs').hidden = $('p4-test-job').hidden || test.state === 'running';
@@ -381,6 +385,10 @@ export function setupDeviceControl({ authenticate, unauthenticate, navigate }) {
   ]) {
     $(id).addEventListener('click', () => {
       const destination = target();
+      if (snapshot.mode === 'node') {
+        navigate(destination);
+        return;
+      }
       void action('workbench-token', {}, ({ token }) => {
         authenticate(token);
         usingLocalCredential = true;

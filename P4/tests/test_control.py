@@ -225,6 +225,7 @@ def test_real_http_pair_and_automatic_node_configuration(panel, server, tmp_path
     node.join_connection(connection_code)
     stored = control.read_json(node.directory / "node.json")
     assert stored["tokens"] == {"JOIN_TOKEN": "join-private"}
+    assert stored["task_url"] == panel.config["task_url"]
     assert node.mode == "node" and commands == ["node"]
     assert control.read_json(node.directory / "node-control.json")["enabled"] is True
     assert (node.directory / "last-center.json").exists()

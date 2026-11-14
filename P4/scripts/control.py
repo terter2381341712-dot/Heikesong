@@ -579,6 +579,7 @@ class Panel:
             return {
                 "protocol": PROTOCOL,
                 "resource_url": self.config["resource_url"],
+                "task_url": self.config["task_url"],
                 "tokens": {"JOIN_TOKEN": self.config["tokens"]["JOIN_TOKEN"]},
             }
 
@@ -607,6 +608,8 @@ class Panel:
         if config.get("protocol") != PROTOCOL or set(config.get("tokens", {})) != {"JOIN_TOKEN"}:
             raise ValueError("配对响应不符合协议。")
         cluster.base_url(config["resource_url"])
+        if config.get("task_url"):
+            cluster.base_url(config["task_url"])
         self.runtime.ensure("P1", self.progress)
         config["local_fingerprint"] = fingerprint()
         config["paired_device_id"] = self.identity
@@ -915,6 +918,9 @@ class Panel:
             if state["code"]
             else ""
         )
+        state["workbench_connected"] = self.mode in {"center", "node"} and bool(
+            self.config and self.config.get("task_url")
+        )
         state["logs"] = {"操作记录": "\n".join(self.events)}
         for role in ("resource", "task", "node", "web", "test", "env/setup"):
             path = self.directory / (role + ".log")
@@ -1110,13 +1116,13 @@ def handler_for(panel):
                 return self.send(200, {"session": panel.session})
             if self.path == "/api/bridge-upstreams" and self.headers.get("X-P4-Bridge") == "1":
                 with panel.lock:
-                    if panel.mode == "center" and panel.config:
+                    if panel.mode in {"center", "node"} and panel.config:
                         return self.send(
                             200,
                             {
                                 "resource": panel.config["resource_url"],
-                                "task": panel.config["task_url"],
-                                "lan": panel.address != "127.0.0.1",
+                                "task": panel.config.get("task_url"),
+                                "lan": panel.mode == "center" and panel.address != "127.0.0.1",
                             },
                         )
                 return self.send(503, {"error": "中心服务未连接"})
