@@ -42,11 +42,11 @@
   display: grid;
   place-items: center;
   container-type: inline-size;
-  --stage-width: min(100cqw, 790px);
+  --stage-width: min(calc(100cqw - 48px), 790px);
 }
 .workflow-art {
   position: relative;
-  width: min(100%, 790px);
+  width: var(--stage-width);
   aspect-ratio: 16 / 9;
   margin-block: calc(-1 * 0.05 * var(--stage-width));
   pointer-events: none;
@@ -123,7 +123,7 @@
 
 #submit-form, #job-history-panel, #job-results-panel, #resources-title { scroll-margin-top: 18px; }
 
-@container (max-width: 775px) {
+@container (max-width: 735px) {
   .workflow-art { width: min(calc(100% - 28px), 540px); margin-block: 0; }
   .workflow-branches { display: none; }
   .workflow-nodes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; width: calc(100% - 28px); margin-bottom: 14px; }
