@@ -1,0 +1,315 @@
+"""节点程序主循环：注册 → 心跳(3s) → 认领 → 执行 → 提交；DRAINING/SIGINT 优雅退出。
+
+用法：
+    python -m node_agent --server http://192.168.x.x:8001 --name M4-MacBook
+
+JOIN_TOKEN 从环境变量读取；日志不打印令牌。
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import signal
+import socket
+import sys
+import time
+from pathlib import Path
+from typing import Any, Optional
+
+import httpx
+
+from .hardware import detect_hardware
+from .telemetry import sample
+
+
+class Agent:
+    HEARTBEAT_INTERVAL = 3.0
+    CLAIM_INTERVAL = 1.0
+
+    def __init__(self, server: str, name: str) -> None:
+        self.server = server.rstrip("/")
+        self.name = name
+        self.join_token = os.environ.get("JOIN_TOKEN", "")
+        if not self.join_token:
+            print("[agent] 缺少 JOIN_TOKEN 环境变量", file=sys.stderr)
+            sys.exit(2)
+        self.data_dir = Path(os.environ.get("NODE_AGENT_DATA_DIR", "./data/agent")).resolve()
+        self.data_dir.mkdir(parents=True, exist_ok=True)
+        self.worker_id: Optional[str] = None
+        self.session_id: Optional[str] = None
+        self._stop = False
+        self._draining = False
+        self._current_execution: Optional[str] = None
+        self._abort_current = False
+        self._client = httpx.Client(timeout=10.0)
+
+    # ---------- 注册与状态 ----------
+
+    def _install_file(self) -> Path:
+        return self.data_dir / f"install-{self.name}.json"
+
+    def _load_worker_id(self) -> Optional[str]:
+        f = self._install_file()
+        if f.exists():
+            try:
+                return json.loads(f.read_text()).get("worker_id")
+            except (OSError, json.JSONDecodeError):
+                return None
+        return None
+
+    def _save_worker_id(self, worker_id: str) -> None:
+        self._install_file().write_text(json.dumps({"worker_id": worker_id}))
+
+    def register(self) -> None:
+        backoff = 1.0
+        while not self._stop:
+            try:
+                resp = self._client.post(
+                    f"{self.server}/api/resource/internal/v1/nodes/register",
+                    headers={"Authorization": f"Bearer {self.join_token}"},
+                    json={
+                        "worker_id": self._load_worker_id(),
+                        "name": self.name,
+                        "hardware": detect_hardware(),
+                    },
+                )
+                resp.raise_for_status()
+                data = resp.json()
+                self.worker_id = data["worker_id"]
+                self.session_id = data["session_id"]
+                self._save_worker_id(self.worker_id)
+                print(f"[agent] 注册成功 worker_id={self.worker_id}", file=sys.stderr)
+                return
+            except (httpx.HTTPError, ValueError, KeyError) as e:
+                print(f"[agent] 注册失败，{backoff:.0f}s 后重试：{e}", file=sys.stderr)
+                time.sleep(backoff)
+                backoff = min(backoff * 2, 30.0)
+
+    def _internal(self, path: str, payload: dict) -> Optional[dict]:
+        try:
+            resp = self._client.post(
+                f"{self.server}{path}", json=payload, timeout=10.0
+            )
+            if resp.status_code == 409:
+                detail = resp.json()
+                if detail.get("code") == "SESSION_CHANGED":
+                    print("[agent] 会话失效，重新注册", file=sys.stderr)
+                    self.register()
+                return None
+            resp.raise_for_status()
+            return resp.json()
+        except (httpx.HTTPError, ValueError) as e:
+            print(f"[agent] 请求失败 {path}: {e}", file=sys.stderr)
+            return None
+
+    # ---------- 主循环 ----------
+
+    def run(self) -> None:
+        signal.signal(signal.SIGINT, self._handle_sigint)
+        signal.signal(signal.SIGTERM, self._handle_sigint)
+        self.register()
+        last_heartbeat = 0.0
+        while not self._stop:
+            now = time.monotonic()
+            if now - last_heartbeat >= self.HEARTBEAT_INTERVAL:
+                self._heartbeat()
+                last_heartbeat = now
+            if self._draining:
+                if self._current_execution is None:
+                    time.sleep(0.5)
+                    continue
+            self._try_claim_and_work()
+            time.sleep(self.CLAIM_INTERVAL)
+
+    def _handle_sigint(self, signum, frame) -> None:
+        print("[agent] 收到退出信号：完成当前任务后停止", file=sys.stderr)
+        self._stop = True
+        self._draining = True
+
+    def _heartbeat(self) -> None:
+        data = self._internal(
+            f"/api/resource/internal/v1/nodes/{self.worker_id}/heartbeat",
+            {"session_id": self.session_id, "telemetry": sample()},
+        )
+        if data is None:
+            return
+        if data.get("mode") == "DRAINING" or self._draining:
+            self._draining = True
+        cancelled = data.get("cancel_requested") or []
+        if self._current_execution in cancelled:
+            print(f"[agent] 执行 {self._current_execution} 被请求取消", file=sys.stderr)
+            self._abort_current = True
+
+    def _try_claim_and_work(self) -> None:
+        if self._current_execution is not None:
+            return
+        data = self._internal(
+            f"/api/resource/internal/v1/nodes/{self.worker_id}/claim",
+            {"session_id": self.session_id},
+        )
+        if not data:
+            return
+        prep = data.get("preparation")
+        if prep:
+            self._do_preparation(prep)
+            return
+        execution = data.get("execution")
+        if execution:
+            self._do_execution(execution)
+
+    # ---------- 模型准备 ----------
+
+    def _prep_status(self, prep_id: str, payload: dict) -> None:
+        self._internal(
+            f"/api/resource/internal/v1/nodes/{self.worker_id}/preparations/{prep_id}/status",
+            {"session_id": self.session_id, **payload},
+        )
+
+    def _do_preparation(self, prep: dict) -> None:
+        """模型准备：当前执行器注册表未配置真实模型时如实报 FAILED。"""
+        from runners.base import load_runner
+
+        prep_id = prep["preparation_id"]
+        try:
+            load_runner(prep["task_type"])
+        except Exception as e:
+            self._prep_status(
+                prep_id,
+                {
+                    "status": "FAILED",
+                    "error_code": "MODEL_LOAD_FAILED",
+                    "error_message": f"执行器未配置或加载失败：{e}",
+                    "error_retryable": True,
+                },
+            )
+            return
+        # 真实模型的下载/校验/自测由具体执行器的 prepare 钩子完成（待模型定稿）
+        self._prep_status(
+            prep_id,
+            {
+                "status": "FAILED",
+                "error_code": "MODEL_LOAD_FAILED",
+                "error_message": "真实模型准备流程尚未配置（profiles/ 未发布锁文件）",
+                "error_retryable": True,
+            },
+        )
+
+    # ---------- 单次执行 ----------
+
+    def _do_execution(self, execution: dict) -> None:
+        from runners.base import load_runner
+
+        execution_id = execution["execution_id"]
+        self._current_execution = execution_id
+        self._abort_current = False
+        timings: dict[str, float] = {
+            "download_ms": 0.0,
+            "inference_ms": 0.0,
+            "postprocess_ms": 0.0,
+            "write_output_ms": 0.0,
+            "total_worker_ms": 0.0,
+        }
+        workdir = self.data_dir / "work" / execution_id
+        workdir.mkdir(parents=True, exist_ok=True)
+        try:
+            t0 = time.monotonic()
+            input_path = self._download_input(execution)
+            timings["download_ms"] = (time.monotonic() - t0) * 1000
+
+            t0 = time.monotonic()
+            runner = load_runner(execution["task_type"])
+            media_info = self._input_media_info(execution["input_artifact_id"])
+            result = runner.execute(
+                Path(input_path), media_info, execution.get("parameters", {}), workdir
+            )
+            timings["inference_ms"] = (time.monotonic() - t0) * 1000
+
+            result["input_artifact_id"] = execution["input_artifact_id"]
+            if self._abort_current:
+                self._ack_cancel(execution_id)
+                return
+
+            t0 = time.monotonic()
+            out_file = workdir / "result.json"
+            out_file.write_text(json.dumps(result, ensure_ascii=False), encoding="utf-8")
+            timings["write_output_ms"] = (time.monotonic() - t0) * 1000
+            timings["postprocess_ms"] = 0.0
+            timings["total_worker_ms"] = sum(v for k, v in timings.items() if k != "total_worker_ms")
+
+            data = self._internal(
+                f"/api/resource/internal/v1/nodes/{self.worker_id}/executions/{execution_id}/complete",
+                {
+                    "session_id": self.session_id,
+                    "outcome": "SUCCEEDED",
+                    "result": result,
+                    "timings": timings,
+                },
+            )
+            if data is not None:
+                print(
+                    f"[agent] 执行 {execution_id} 完成 status={data.get('status')}",
+                    file=sys.stderr,
+                )
+        except Exception as e:
+            if self._abort_current:
+                self._ack_cancel(execution_id)
+                return
+            print(f"[agent] 执行 {execution_id} 失败：{e}", file=sys.stderr)
+            self._internal(
+                f"/api/resource/internal/v1/nodes/{self.worker_id}/executions/{execution_id}/complete",
+                {
+                    "session_id": self.session_id,
+                    "outcome": "FAILED",
+                    "error_code": "EXECUTION_ERROR",
+                    "error_message": str(e)[:500],
+                    "error_retryable": True,
+                },
+            )
+        finally:
+            self._current_execution = None
+
+    def _download_input(self, execution: dict) -> str:
+        path = execution.get("input_download_path")
+        if not path:
+            raise RuntimeError("执行缺少输入下载路径")
+        resp = self._client.get(
+            f"{self.server}/api/resource/internal/v1/nodes/{self.worker_id}/artifacts/"
+            f"{execution['input_artifact_id']}/content",
+            headers={"Authorization": f"Bearer {self.session_id}"},
+            timeout=60.0,
+        )
+        resp.raise_for_status()
+        target = self.data_dir / "work" / execution["execution_id"] / "input.bin"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(resp.content)
+        return str(target)
+
+    def _input_media_info(self, artifact_id: str) -> dict:
+        try:
+            resp = self._client.get(
+                f"{self.server}/api/resource/v1/artifacts/{artifact_id}",
+                headers={"Authorization": f"Bearer {self.join_token}"},
+            )
+            resp.raise_for_status()
+            return resp.json().get("media_info") or {}
+        except (httpx.HTTPError, ValueError):
+            return {}
+
+    def _ack_cancel(self, execution_id: str) -> None:
+        self._internal(
+            f"/api/resource/internal/v1/nodes/{self.worker_id}/executions/{execution_id}/cancel_ack",
+            {"session_id": self.session_id},
+        )
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="节点程序：接入 P1 资源服务")
+    parser.add_argument("--server", default=os.environ.get("RESOURCE_BASE_URL", "http://127.0.0.1:8001"))
+    parser.add_argument("--name", default=socket.gethostname()[:80])
+    args = parser.parse_args()
+    Agent(server=args.server, name=args.name).run()
+
+
+if __name__ == "__main__":
+    main()
