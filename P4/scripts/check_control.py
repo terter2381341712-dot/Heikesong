@@ -73,7 +73,11 @@ def main():
         )
         report["shared_python"] = "3.9.6"
         response = call("/api/discover", {})
-        checked(bool(response["centers"]), "UDP center discovery")
+        checked(
+            all(c["name"] != state["node_name"] for c in response["centers"]),
+            "self center excluded from join list",
+        )
+        checked(bool(control.discover()), "UDP center discovery diagnostic")
         paired = call(
             "/api/pair",
             {

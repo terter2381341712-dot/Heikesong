@@ -162,6 +162,30 @@ def test_background_failure_is_visible_and_releases_busy(panel):
     assert panel.busy is False and "expected-failure" in panel.message
 
 
+def test_center_can_enable_compute_after_start_without_local_node(panel, monkeypatch):
+    started = []
+    monkeypatch.setattr(panel.runtime, "ensure", lambda *args: None)
+
+    def spawn(role):
+        started.append(role)
+        panel.processes[role] = SimpleNamespace(poll=lambda: None)
+
+    monkeypatch.setattr(panel, "spawn", spawn)
+    panel.set_computing(True)
+    panel.set_computing(False)
+    panel.set_computing(True)
+    assert started == ["node"]
+    assert panel.sharing_requested is True
+    assert all(panel.name in line for line in panel.events)
+
+
+def test_compute_request_rejects_conflicting_background_operation(panel, server):
+    panel.busy = True
+    code, _ = call(server, "/api/on", {}, headers={"X-P4-Session": panel.session})
+    assert code == 400
+    assert panel.sharing_requested is False
+
+
 def test_closed_panel_cannot_start_late_process(panel):
     panel.closed.set()
     with pytest.raises(ValueError, match="关闭"):

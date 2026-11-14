@@ -13,7 +13,7 @@
 <label><input type="checkbox" id="localNode" checked> 本机也提供计算</label>
 <details><summary>网络选项</summary><label>中心使用的局域网地址 <select id="network"></select></label></details>
 <button data-action id="startCenter">启动中心 P1 + P2</button>
-<div id="pairBox" hidden><div class="sub">在另一台电脑输入这个配对码，有效期 10 分钟</div><div id="pairCode" class="code"></div><button class="secondary" data-action id="newCode">刷新配对码</button></div>
+<div id="pairBox" hidden><div class="sub">中心地址：<strong id="centerAddress"></strong><br>在另一台电脑输入这个配对码，有效期 10 分钟</div><div id="pairCode" class="code"></div><button class="secondary" data-action id="newCode">刷新配对码</button></div>
 </section>
 <section class="card"><h2>这台只提供 P1 计算</h2><p class="sub">适合另一台 Mac、Windows 或 Linux。自动查找中心，输入配对码后连接。</p>
 <button class="secondary" data-action id="find">查找中心</button><select id="centers" aria-label="已发现中心"><option value="">尚未发现中心</option></select>
@@ -23,30 +23,34 @@
 <button data-action class="secondary" id="reconnect" hidden>重新连接已配对中心</button>
 </section></div>
 <section class="card"><h2>本机状态</h2><div id="status" class="status" aria-live="polite"></div>
-<button data-action class="secondary" id="on">开启本机共享</button><button data-action class="secondary" id="off">关闭本机共享</button><button data-action id="test">测试两张图片</button><button data-action class="danger" id="stop">停止本机角色</button>
+<button data-action class="secondary" id="on">开启这台电脑的计算</button><button data-action class="secondary" id="off">暂停这台电脑的计算</button><button data-action id="test">测试两张图片</button><button data-action class="danger" id="stop">停止本机服务</button>
 <button class="secondary" id="download" hidden>下载最近测试结果 ZIP</button>
-<p class="sub">关闭共享会请求停止本机计算，保留中心服务。状态以节点确认和中心资源列表为准。停止本机角色会结束本次启动的服务；关闭浏览器页面不会停止后台程序。</p>
+<p class="sub">暂停计算会保留中心服务，执行中的任务需等待节点确认停止。“停止本机服务”会关闭本页启动的计算节点和中心服务。中心运行时也可勾选或取消“本机也提供计算”。关闭网页不会停止服务。</p>
 </section>
 <section class="card"><h2>中心已连接的设备</h2><div id="nodes" class="sub">启动中心后显示。</div></section>
 <details class="card"><summary>查看启动、计算和测试日志</summary><div id="logs"></div></details>
 <p class="sub">首次点击会自动检测并准备对应依赖。如缺少Python解释器，页面会提示需要安装的版本；不会更改模型锁定要求。首次配对后连接信息只保存在本机，不需要复制令牌或配置文件。</p>
 </main>
 <script>
-const session=__SESSION__; let lastMode='', networks='';
+const session=__SESSION__; let lastMode='', networks='', refreshing=false, requesting=false;
 const $=id=>document.getElementById(id);
-async function api(path,body){let r=await fetch(path,{method:body===undefined?'GET':'POST',headers:{'Content-Type':'application/json','X-P4-Session':session},body:body===undefined?undefined:JSON.stringify(body)});let d=await r.json();if(!r.ok)throw Error(d.error||'请求失败');return d}
-async function action(path,body={}){try{$('error').textContent='';await api(path,body);await refresh()}catch(e){$('error').textContent=e.message}}
+async function api(path,body){let controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);try{let r=await fetch(path,{signal:controller.signal,method:body===undefined?'GET':'POST',headers:{'Content-Type':'application/json','X-P4-Session':session},body:body===undefined?undefined:JSON.stringify(body)});let d=await r.json();if(!r.ok)throw Error(d.error||'请求失败');return d}finally{clearTimeout(timer)}}
+async function action(path,body={}){if(requesting)return;requesting=true;try{$('status').textContent='正在发送操作…';$('error').textContent='';await api(path,body);await refresh()}catch(e){$('error').textContent=e.name==='AbortError'?'请求超时，请查看状态确认操作结果。':e.message}finally{requesting=false}}
 async function find(){try{$('error').textContent='';$('find').disabled=true;let d=await api('/api/discover',{});$('centers').replaceChildren();for(let c of d.centers){let o=new Option(c.name+' · '+c.address,c.address);$('centers').add(o)}if(!d.centers.length)$('centers').add(new Option('未发现中心，可展开输入地址',''))}catch(e){$('error').textContent=e.message}finally{$('find').disabled=false}}
-async function refresh(){try{let d=await api('/api/status');$('system').textContent=d.system+' · 本机节点 '+d.node_name+(d.python_paths&&d.python_paths.P1&&d.python_paths.P1===d.python_paths.P2?' · P1/P2 共用 Python 3.9.6':'');$('status').textContent=d.message+'\n当前角色：'+({idle:'未启动',center:'中心 P1 + P2',node:'P1 计算节点'}[d.mode]||d.mode)+(d.processes.node?'\n本机共享请求：'+(d.sharing_requested?'开启':'关闭'):'');
-for(let b of document.querySelectorAll('[data-action]'))b.disabled=d.busy;
-$('startCenter').disabled=d.busy||d.mode!=='idle';$('join').disabled=d.busy||d.mode!=='idle';$('test').disabled=d.busy||d.mode!=='center';$('on').disabled=$('off').disabled=!d.processes.node;$('stop').disabled=d.busy||d.mode==='idle';$('reconnect').hidden=!d.saved_pair;$('reconnect').disabled=d.busy||d.mode!=='idle';
+const logViews=new Map();
+function renderLogs(logs,device){for(let [name,text]of Object.entries(logs)){let view=logViews.get(name);if(!view){let h=document.createElement('h3'),p=document.createElement('pre');$('logs').append(h,p);view={h,p};logViews.set(name,view)}view.h.textContent=device+' · '+({resource:'设备管理',task:'任务分配',node:'本机计算',test:'图片测试','env/setup':'环境准备'}[name]||name);let p=view.p;if(p.textContent!==text){let top=p.scrollTop,follow=p.scrollHeight-p.clientHeight-top<16;p.textContent=text;p.scrollTop=follow?p.scrollHeight:top}}}
+async function refresh(){if(refreshing)return;refreshing=true;try{let d=await api('/api/status');$('system').textContent=d.system+' · 本机节点 '+d.node_name+(d.python_paths&&d.python_paths.P1&&d.python_paths.P1===d.python_paths.P2?' · P1/P2 共用 Python 3.9.6':'');$('status').textContent=d.message+'\n当前角色：'+({idle:'未启动',center:'中心 P1 + P2',node:'P1 计算节点'}[d.mode]||d.mode)+(d.processes.node?'\n本机共享请求：'+(d.sharing_requested?'开启':'关闭'):'');
+if(d.busy)$('status').textContent+='\n操作进行中：已等待 '+d.operation_seconds+' 秒';$('localNode').disabled=d.busy||d.mode==='node';if(d.mode==='center')$('localNode').checked=d.sharing_requested;for(let b of document.querySelectorAll('[data-action]'))b.disabled=d.busy;
+$('startCenter').disabled=d.busy||d.mode!=='idle';$('join').disabled=d.busy||d.mode!=='idle';$('test').disabled=d.busy||d.mode!=='center';$('on').disabled=d.busy||d.mode==='idle';$('off').disabled=d.busy||!d.processes.node;$('stop').disabled=d.busy||d.mode==='idle';$('reconnect').hidden=!d.saved_pair;$('reconnect').disabled=d.busy||d.mode!=='idle';
 $('pairBox').hidden=d.mode!=='center';$('pairCode').textContent=d.code||'已过期';
+$('centerAddress').textContent=d.address+':'+(d.control_port||8003);
 $('download').hidden=!d.has_result;
 let ns=JSON.stringify(d.addresses);if(ns!==networks){networks=ns;$('network').replaceChildren();for(let a of d.addresses)$('network').add(new Option(a,a));$('network').value=d.address}
 if(d.last_center)$('manual').placeholder=d.last_center;
 $('nodes').replaceChildren();for(let n of d.nodes||[]){let row=document.createElement('div');row.className='node';let cap=(n.capabilities||[]).find(c=>c.task_type==='ocr.image.v1');row.textContent=n.name+' · '+n.connection+' / '+n.mode+' · OCR '+(cap?cap.state:'未知');$('nodes').append(row)}if(!(d.nodes||[]).length)$('nodes').textContent=d.mode==='center'?'等待设备加入…':'在中心电脑查看实际设备状态。';
-$('logs').replaceChildren();for(let [name,text]of Object.entries(d.logs)){let h=document.createElement('h3');h.textContent=name;let p=document.createElement('pre');p.textContent=text;$('logs').append(h,p)}lastMode=d.mode;
-}catch(e){$('error').textContent='控制台暂不可达：'+e.message}}
+renderLogs(d.logs,d.node_name);lastMode=d.mode;
+}catch(e){$('error').textContent='控制台暂不可达：'+e.message}finally{refreshing=false}}
+$('localNode').onchange=()=>{if(lastMode==='center')action($('localNode').checked?'/api/on':'/api/off')};
 $('startCenter').onclick=()=>action('/api/center',{local_node:$('localNode').checked,address:$('network').value});$('newCode').onclick=()=>action('/api/code');$('find').onclick=find;
 $('join').onclick=async()=>{let address=$('manual').value.trim()||$('centers').value;let code=$('code').value.trim();if(!/^\d{6}$/.test(code)){$('error').textContent='请填写中心显示的六位配对码。';return}if(!address){await find();address=$('centers').value}if(!address){$('error').textContent='未发现中心，请确认中心已启动；也可展开输入中心地址。';return}action('/api/join',{address,code})};
 for(let key of ['on','off','test','stop'])$(key).onclick=()=>action('/api/'+key);

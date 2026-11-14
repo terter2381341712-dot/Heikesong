@@ -12,6 +12,7 @@ import os
 import platform
 import re
 import secrets
+import select
 import shutil
 import signal
 import socket
@@ -376,10 +377,14 @@ class Panel:
         self.worker = None
         self.last_result = None
         self.profile_dir = self.directory / "profiles"
+        self.operation_started = None
+        self.events = []
 
     def progress(self, message):
         with self.lock:
             self.message = message
+            self.events.append(f"{time.strftime('%H:%M:%S')} [{self.name}] {message}")
+            self.events = self.events[-200:]
 
     def spawn(self, role):
         if self.closed.is_set():
@@ -408,6 +413,7 @@ class Panel:
         env = cluster.environment(
             self.config, role, self.directory / "data", "0.0.0.0", 8001, 8002, self.name
         )
+        env["PYTHONUNBUFFERED"] = "1"
         if role in {"resource", "node"}:
             materialize_profiles(ROOT / "P1/profiles", self.profile_dir)
             env["RESOURCE_PROFILES_DIR"] = str(self.profile_dir)
@@ -568,6 +574,13 @@ class Panel:
         self.start_node()
         self.progress("已使用本机保存的配对信息重连，并请求开启共享。")
 
+    def set_computing(self, enabled):
+        if self.mode == "center" and enabled and "node" not in self.processes:
+            self.progress("正在启动这台电脑的计算节点…")
+            self.runtime.ensure("P1", self.progress)
+            self.spawn("node")
+        self.sharing(enabled)
+
     def sharing(self, enabled):
         process = self.processes.get("node")
         if not process or process.poll() is not None:
@@ -585,13 +598,17 @@ class Panel:
                 self.sharing(False)
             except OSError:
                 pass
-        for process in reversed(list(self.processes.values())):
+        for role, process in reversed(list(self.processes.items())):
+            self.progress(
+                f"正在停止 {dict(node='本机计算', task='任务分配服务', resource='设备管理服务').get(role, role)}…"
+            )
             if process.poll() is None:
                 if os.name == "nt":
                     subprocess.run(
                         ["taskkill", "/PID", str(process.pid), "/T", "/F"],
                         stdout=subprocess.DEVNULL,
                         stderr=subprocess.DEVNULL,
+                        timeout=10,
                     )
                 else:
                     os.killpg(process.pid, signal.SIGTERM)
@@ -602,7 +619,7 @@ class Panel:
                         process.kill()
                     else:
                         os.killpg(process.pid, signal.SIGKILL)
-                    process.wait()
+                    process.wait(timeout=5)
             if process.stdin:
                 process.stdin.close()
         self.processes.clear()
@@ -641,10 +658,22 @@ class Panel:
                 ],
                 stdout=log,
                 stderr=log,
+                timeout=210,
             )
         if result.returncode:
             raise ValueError(f"测试未通过，证据保留于 {output}；查看测试日志。")
         report = read_json(output / "report.json")
+        resources = request_json(
+            self.config["resource_url"] + "/api/resource/v1/resources",
+            token=self.config["tokens"]["DEMO_TOKEN"],
+            timeout=3,
+        )["resources"]
+        names = {n["worker_id"]: n.get("name", n["worker_id"]) for n in resources}
+        for execution in read_json(output / "executions.json"):
+            worker = execution["worker_id"]
+            self.progress(
+                f"设备 {names.get(worker, worker)}：执行 {execution['execution_id']}，输入 {execution.get('input_sha256', '')[:12]}，结果 {execution['status']}"
+            )
         self.last_result = output / "results.zip"
         self.progress(
             f"真实OCR/结果/ZIP验证通过；贡献节点数 {len(report.get('successful_workers', []))}。证据：{output}"
@@ -655,6 +684,8 @@ class Panel:
             if self.busy:
                 raise ValueError("当前操作尚未完成，请稍候。")
             self.busy = True
+            self.operation_started = time.monotonic()
+            self.message = "正在处理操作，请稍候；下方日志会显示进度。"
 
         def work():
             try:
@@ -673,6 +704,7 @@ class Panel:
             finally:
                 with self.lock:
                     self.busy = False
+                    self.operation_started = None
 
         self.worker = threading.Thread(target=work, daemon=True)
         self.worker.start()
@@ -684,8 +716,12 @@ class Panel:
                 "mode": self.mode,
                 "message": self.message,
                 "busy": self.busy,
+                "operation_seconds": int(time.monotonic() - self.operation_started)
+                if self.operation_started is not None
+                else 0,
                 "addresses": self.addresses,
                 "address": self.address,
+                "control_port": self.port,
                 "node_name": self.name,
                 "sharing_requested": self.sharing_requested,
                 "code": self.code
@@ -696,7 +732,7 @@ class Panel:
                 "processes": {k: p.poll() is None for k, p in self.processes.items()},
                 "python_paths": dict(self.runtime.selected),
             }
-        state["logs"] = {}
+        state["logs"] = {"操作记录": "\n".join(self.events)}
         for role in ("resource", "task", "node", "test", "env/setup"):
             path = self.directory / (role + ".log")
             if path.exists():
@@ -713,7 +749,7 @@ class Panel:
         state["has_result"] = self.last_result is not None and self.last_result.exists()
         if any(not running for running in state["processes"].values()):
             state["message"] = (
-                "有子进程已退出，请查看下方日志。停止本机角色后可以重试。\n" + state["message"]
+                "有服务已退出，请查看下方日志。点击“停止本机服务”后可以重试。\n" + state["message"]
             )
         if self.mode == "center" and self.config:
             try:
@@ -727,27 +763,75 @@ class Panel:
         return state
 
 
-def discover(timeout=1.2):
+def usable_lan_ip(value):
+    try:
+        address = ipaddress.ip_address(value)
+        return any(
+            address in ipaddress.ip_network(n)
+            for n in ("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16")
+        )
+    except (ValueError, TypeError):
+        return False
+
+
+def discovered_center(body, peer, nonce, exclude_id=None, exclude_name=None):
+    if not isinstance(body, dict) or body.get("protocol") != PROTOCOL or body.get("nonce") != nonce:
+        return None
+    if (exclude_id and body.get("center_id") == exclude_id) or (
+        not body.get("center_id") and exclude_name and body.get("name") == exclude_name
+    ):
+        return None
+    # A reply can arrive through VMware/WSL. Use the center's chosen LAN address.
+    address = body.get("address", peer[0])
+    if not usable_lan_ip(address):
+        return None
+    try:
+        port = int(body["port"])
+        if not 1 <= port <= 65535:
+            return None
+    except (TypeError, ValueError, KeyError):
+        return None
+    return {"address": f"{address}:{port}", "name": str(body.get("name", "中心"))[:100]}
+
+
+def discover(timeout=1.2, exclude_id=None, exclude_name=None):
     found = {}
     nonce = secrets.token_hex(12)
-    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as client:
-        client.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        client.settimeout(0.2)
-        message = json.dumps({"protocol": PROTOCOL, "nonce": nonce}).encode()
-        for target in ("255.255.255.255", "127.0.0.1"):
-            client.sendto(message, (target, DISCOVERY_PORT))
-        until = time.monotonic() + timeout
-        while time.monotonic() < until:
+    clients = []
+    message = json.dumps({"protocol": PROTOCOL, "nonce": nonce}).encode()
+    try:
+        # Bind one request socket to each LAN interface instead of trusting the OS
+        # route for a single global broadcast (which can select a virtual adapter).
+        for local in dict.fromkeys(
+            [a for a in lan_addresses() if usable_lan_ip(a)] + ["127.0.0.1"]
+        ):
+            client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             try:
-                raw, peer = client.recvfrom(4096)
-                body = json.loads(raw)
-                if not isinstance(body, dict):
-                    continue
-                if body.get("protocol") == PROTOCOL and body.get("nonce") == nonce:
-                    key = peer[0] + ":" + str(int(body["port"]))
-                    found[key] = {"address": key, "name": str(body.get("name", "中心"))[:100]}
-            except (OSError, ValueError, KeyError):
-                pass
+                client.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+                client.bind((local, 0))
+                client.sendto(
+                    message,
+                    ("127.0.0.1" if local == "127.0.0.1" else "255.255.255.255", DISCOVERY_PORT),
+                )
+                clients.append(client)
+            except OSError:
+                client.close()
+        until = time.monotonic() + timeout
+        while clients and time.monotonic() < until:
+            readable, _, _ = select.select(clients, [], [], max(0, until - time.monotonic()))
+            for client in readable:
+                try:
+                    raw, peer = client.recvfrom(4096)
+                    center = discovered_center(
+                        json.loads(raw), peer, nonce, exclude_id, exclude_name
+                    )
+                    if center:
+                        found[center["address"]] = center
+                except (OSError, ValueError):
+                    pass
+    finally:
+        for client in clients:
+            client.close()
     return list(found.values())
 
 
@@ -776,6 +860,8 @@ def discovery_server(panel):
                                 "nonce": body["nonce"][:64],
                                 "port": panel.port,
                                 "name": panel.name,
+                                "address": panel.address,
+                                "center_id": panel.identity,
                             }
                         ).encode(),
                         peer,
@@ -858,10 +944,13 @@ def handler_for(panel):
                 if origin and origin != "http://" + self.headers.get("Host", ""):
                     return self.send(403, {"error": "跨站请求被拒绝"})
                 if self.path == "/api/discover":
-                    return self.send(200, {"centers": discover()})
+                    return self.send(
+                        200,
+                        {"centers": discover(exclude_id=panel.identity, exclude_name=panel.name)},
+                    )
                 if self.path in {"/api/on", "/api/off"}:
-                    panel.sharing(self.path == "/api/on")
-                    return self.send(200, {"requested": True})
+                    panel.background(lambda: panel.set_computing(self.path == "/api/on"))
+                    return self.send(202, {"requested": True})
                 actions = {
                     "/api/center": lambda: panel.start_center(
                         bool(body.get("local_node", True)), body.get("address")
