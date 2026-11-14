@@ -1,0 +1,17 @@
+[
+  {
+    "branch": "main",
+    "code": 0,
+    "tail": "........................................................................ [ 96%]\n...                                                                      [100%]\n75 passed in 7.79s\n"
+  },
+  {
+    "branch": "lt",
+    "code": 0,
+    "tail": "........................................................................ [ 98%]\n.                                                                        [100%]\n73 passed in 6.15s\n"
+  },
+  {
+    "branch": "naive-candidate",
+    "code": 1,
+    "tail": ".........................................................F.............. [ 96%]\n...                                                                      [100%]\n=================================== FAILURES ===================================\n____________________________ test_static_contracts _____________________________\n\n    def test_static_contracts():\n>       result = verify.static_check()\n                 ^^^^^^^^^^^^^^^^^^^^^\n\n/var/folders/cq/221nrrs97lgchcfpmw9hs5500000gn/T/heikesong-branch-audit-poeddbdn/naive-candidate/P4/tests/test_tools.py:61: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \nP4/scripts/verify.py:60: in static_check\n    require(types[\"contract_version\"] == \"0.2.0\", \"类型目录契约版本不一致\")\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\ncondition = False, message = '类型目录契约版本不一致'\n\n    def require(condition, message):\n        if not condition:\n>           raise ValueError(message)\nE           ValueError: 类型目录契约版本不一致\n\nP4/scripts/verify.py:29: ValueError\n=========================== short test summary info ============================\nFAILED ../../../../../../../../var/folders/cq/221nrrs97lgchcfpmw9hs5500000gn/T/heikesong-branch-audit-poeddbdn/naive-candidate/P4/tests/test_tools.py::test_static_contracts\n1 failed, 74 passed in 7.82s\n"
+  }
+]

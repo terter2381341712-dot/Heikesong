@@ -1,0 +1,84 @@
+{
+  "job_id": "2430ae6f-5f6e-47b2-9c93-e02928a8d7e8",
+  "task_type": "ocr.image.v1",
+  "status": "SUCCEEDED",
+  "items": [
+    {
+      "input_index": 0,
+      "task_id": "9820140a-f7c6-4bb9-8728-0e0a1468bc95",
+      "input_artifact_id": "aeb1780fa0057476da99e1c0241fa8406",
+      "original_name": "sample-00.png",
+      "status": "SUCCEEDED",
+      "result": {
+        "blocks": [
+          {
+            "bbox": [
+              30.0,
+              70.0,
+              267.0,
+              108.0
+            ],
+            "confidence": 0.98429,
+            "text": "CAMPUS OCR 000"
+          },
+          {
+            "bbox": [
+              32.0,
+              109.0,
+              324.0,
+              147.0
+            ],
+            "confidence": 0.99718,
+            "text": "TASK 1000 APPROVED"
+          }
+        ],
+        "image_height": 300,
+        "image_width": 900,
+        "input_artifact_id": "aeb1780fa0057476da99e1c0241fa8406",
+        "schema_version": "1.0",
+        "task_type": "ocr.image.v1",
+        "text": "CAMPUS OCR 000\nTASK 1000 APPROVED"
+      },
+      "error": null
+    },
+    {
+      "input_index": 1,
+      "task_id": "957259f3-c3eb-4de8-b669-a60f87ca7683",
+      "input_artifact_id": "aad0a45e767f84c06a7fa7bd561223797",
+      "original_name": "sample-01.jpg",
+      "status": "SUCCEEDED",
+      "result": {
+        "blocks": [
+          {
+            "bbox": [
+              32.0,
+              62.0,
+              340.0,
+              102.0
+            ],
+            "confidence": 0.97792,
+            "text": "CAMPUS OCR 001"
+          },
+          {
+            "bbox": [
+              31.0,
+              110.0,
+              414.0,
+              147.0
+            ],
+            "confidence": 0.98168,
+            "text": "TASK 1001 APPROVED"
+          }
+        ],
+        "image_height": 300,
+        "image_width": 900,
+        "input_artifact_id": "aad0a45e767f84c06a7fa7bd561223797",
+        "schema_version": "1.0",
+        "task_type": "ocr.image.v1",
+        "text": "CAMPUS OCR 001\nTASK 1001 APPROVED"
+      },
+      "error": null
+    }
+  ],
+  "combined_text": "CAMPUS OCR 000\nTASK 1000 APPROVED\n\nCAMPUS OCR 001\nTASK 1001 APPROVED"
+}

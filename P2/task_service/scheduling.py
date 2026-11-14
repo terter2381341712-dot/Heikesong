@@ -86,6 +86,12 @@ class Scheduler:
         cap = capability(node, job)
         target = features(task)
         key = resource_key(node, job)
+        if self.settings.scheduler_policy == "round_robin":
+            return {"policy": "round-robin-v1", "worker_id": node["worker_id"],
+                    "backend": cap["backend"], "resource_key": key, **target,
+                    "source": "rotation", "samples": 0, "last_sample_at": None,
+                    "predicted_ms": None, "score_ms": None,
+                    "remaining_slots": remaining, "exploration": False}
         observed = self.store.scheduling_samples(
             key,
             target["bucket"],
@@ -140,8 +146,11 @@ class Scheduler:
         def rotation(item):
             return (item[0]["worker_id"] <= last_worker, item[0]["worker_id"])
 
-        explore = len(candidates) > 1 and sequence % self.settings.exploration_interval == 0
-        if explore:
+        explore = (self.settings.scheduler_policy == "resource_aware" and
+                   len(candidates) > 1 and sequence % self.settings.exploration_interval == 0)
+        if self.settings.scheduler_policy == "round_robin":
+            selected = min(candidates, key=rotation)
+        elif explore:
             selected = min(
                 candidates,
                 key=lambda c: (c[1]["samples"], c[1]["last_sample_at"] or 0, *rotation(c)),

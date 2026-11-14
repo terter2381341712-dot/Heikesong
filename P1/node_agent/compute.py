@@ -68,12 +68,12 @@ def compute_lanes(connection, server, name, identity, options, lane_count):
     消息协议（parent -> child）：
       ("load", preparation)                        加载共享 runner，回 "load_evidence"
       ("execution", execution)                     派发到一路线程，回 "accepted"
-      ("stop_lane", {slot_id, execution_id})       确认取消意图，回 "stopped"
+      ("stop_lane", {slot_id, execution_id})       确认取消意图，回 "cancel_requested"
       ("stop", None)                               整进程退出
-    child -> parent：("load_evidence" | "accepted" | "done" | "stopped", payload)
+    child -> parent：("load_evidence" | "accepted" | "done" | "cancel_requested", payload)
 
-    取消为"路级 + P1 仲裁"：无法强杀线程，真正的结束由父进程上报
-    slots/{slot_id}/stopped 完成；该路晚到的结果会被 P1 以 STALE_EXECUTION 拒收。
+    取消为"路级 + P1 仲裁"：无法强杀线程，父进程等待 done 后才上报
+    slots/{slot_id}/stopped；超时回收整个共享进程，禁止提前重用槽位。
     """
     import queue
     import threading
@@ -158,7 +158,9 @@ def compute_lanes(connection, server, name, identity, options, lane_count):
                     t.start()
                     connection.send(("accepted", {"slot_id": payload.get("slot_id")}))
                 elif kind == "stop_lane":
-                    connection.send(("stopped", {"slot_id": payload.get("slot_id")}))
+                    # Request received only. The actual done message is sent by
+                    # run_lane's finally block; the parent must wait for it.
+                    connection.send(("cancel_requested", {"slot_id": payload.get("slot_id")}))
                 elif kind == "stop":
                     break
     except EOFError:

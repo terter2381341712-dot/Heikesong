@@ -1,0 +1,582 @@
+{
+  "mode": "REAL_HTTP_OCR_THROUGHPUT",
+  "status": "MEASURED_NOT_ACCEPTED",
+  "group": "cpu",
+  "source_digest": "9fcceab7c73f0b311726551330ec9e87bd0f47597dccc5beb86c0e1afc2d5812",
+  "input_manifest": [
+    {
+      "name": "sample-00.png",
+      "sha256": "7c64c727c2dce797a43448a57c7839c627b13406c218989e42c6d9e48edc6269"
+    },
+    {
+      "name": "sample-01.jpg",
+      "sha256": "8e946153a8f27e8a1f67ac3d94e3d1430f63b47a8c9e2cde63bd4498b31d002b"
+    },
+    {
+      "name": "sample-02.png",
+      "sha256": "04ea54800c96c06573e5b56d60fd505b76d48c58314394d41ab0b8291b858810"
+    },
+    {
+      "name": "sample-03.jpg",
+      "sha256": "cc0d1c662f3e5c4f0152e03475bc512a3f7e302ba4f1f99cd69dd951686cedc0"
+    },
+    {
+      "name": "sample-04.png",
+      "sha256": "60c04eecb2d28f04d6bbbed991cdf048cf2294a5431f008f9c60a82d473226cd"
+    },
+    {
+      "name": "sample-05.jpg",
+      "sha256": "f29f836a05c6d8a9039a89cf7221fa0a3c592870db78223843825a0cd537f13d"
+    },
+    {
+      "name": "sample-06.png",
+      "sha256": "67205fbf9f94baf2d73d4fcc71f349a72e40198c40316d79e454f130b574ba1b"
+    },
+    {
+      "name": "sample-07.jpg",
+      "sha256": "5d8b038adecf8f999683b1e5a912e7ddd586d0ef637e87e84597ae4efce330ff"
+    },
+    {
+      "name": "sample-08.png",
+      "sha256": "455927bc3f716b4345119c48bcc8a7d2ab1aaa70c5f2b6c622505c1fb1c32eb1"
+    },
+    {
+      "name": "sample-09.jpg",
+      "sha256": "b074503be0b1269ea49cb02ce31bf54dd82f2def4549709b8c1e18fa81edfcc0"
+    },
+    {
+      "name": "sample-10.png",
+      "sha256": "a92ec747dee2b19a444402cc9fc09375a6baec1b59eb646cff044dece97104c6"
+    },
+    {
+      "name": "sample-11.jpg",
+      "sha256": "7b92d81aebaba0507320b45df61adc3332a8a1d5d2374bda38a210dcc6b3d77f"
+    },
+    {
+      "name": "sample-12.png",
+      "sha256": "4c93fbdd336ff46b753606d23cf80b1c31bb90aeab56cfc1de989c6cbad5319b"
+    },
+    {
+      "name": "sample-13.jpg",
+      "sha256": "2715da4081586a2313ccc51556db6735d575dc428670be05dc28d820f5a4a5f5"
+    },
+    {
+      "name": "sample-14.png",
+      "sha256": "3def6621dacb2b286c0280ca5710d814d43ebcff3d8c8f9a181e10563da8682d"
+    },
+    {
+      "name": "sample-15.jpg",
+      "sha256": "85dbf8e22e6eba9ff5fa294f3250d721b4274855b944ab2496cd68c2ee5ce1e6"
+    },
+    {
+      "name": "sample-16.png",
+      "sha256": "3016f708e568a9db318a9363e9f1008f5ade2c0348ecbc6839223b3b8d41eda7"
+    },
+    {
+      "name": "sample-17.jpg",
+      "sha256": "e45e42b3048540cc24815aaa8fa6233ceb65b2cd00e7da39ba200c7af59b38b4"
+    },
+    {
+      "name": "sample-18.png",
+      "sha256": "82a342c577125e50d574f21ebe172b76d425a9782a499b37ac08a43904094459"
+    },
+    {
+      "name": "sample-19.jpg",
+      "sha256": "ee73ab11b20167f725ff1dede61d1c9a08638b6e8ecdba638176acc65e535f5c"
+    },
+    {
+      "name": "sample-20.png",
+      "sha256": "03af09926822a704614ff8caf0d9013d8a9b2051dd840fd2472840d8c79364c0"
+    },
+    {
+      "name": "sample-21.jpg",
+      "sha256": "d45272ef973d5d5280e4978421adc468e608d0b5ff3a7a54bac116e0ae6b8698"
+    },
+    {
+      "name": "sample-22.png",
+      "sha256": "a2f779d5ec17c7a5b406bad89b7cef3cd6d9e09b0fb763086ecd7328592b53a9"
+    },
+    {
+      "name": "sample-23.jpg",
+      "sha256": "8ad751a1d846db6913c8f28d97be31a830d0549bb833324795052299dba853ed"
+    }
+  ],
+  "compute": {
+    "profile_set": "default",
+    "node": {
+      "backend": "cpu",
+      "slots": 1,
+      "threads": 0,
+      "cpu_budget": null,
+      "device_id": 0,
+      "prefetch": 0,
+      "gpu_lane_vram_bytes": null,
+      "python": null
+    },
+    "scheduler": {
+      "policy": "round_robin"
+    }
+  },
+  "references_sha256": null,
+  "reference_status": "NOT_RUN",
+  "cold": {
+    "job_id": "58a9990a-eef8-4ceb-b7d2-53bceccec7a4",
+    "job_status": "SUCCEEDED",
+    "inputs": 24,
+    "counts": {
+      "SUCCEEDED": 24,
+      "FAILED": 0,
+      "CANCELLED": 0
+    },
+    "server_job_seconds": 35.047,
+    "observed_job_seconds": 36.11809787499806,
+    "observed_with_upload_seconds": 36.21177375000116,
+    "successful_images_per_second": 0.6847947042542871,
+    "observed_successful_images_per_second": 0.6644868199610662,
+    "correct_images_per_second": null,
+    "quality_status": "NOT_RUN",
+    "workers": [
+      "wc405f540408e4697"
+    ],
+    "physical_collaboration": "NOT_RUN",
+    "profile_digest": "1290c0523d80e5f02d5ed8021ea5f6363d598468c542d60dbf47cb9e1a9cb6a9",
+    "parameters": {
+      "language": "auto"
+    },
+    "sampled_device_peaks": {
+      "wc405f540408e4697": {
+        "samples": 14,
+        "cpu_percent": 29.9,
+        "ram_used_bytes": 6023168000
+      }
+    },
+    "peak_notice": "约 3 秒采样的整机观测峰值，可能漏掉尖峰；未采到的字段不填 0。",
+    "run": "initial",
+    "verification_exit_code": 0,
+    "cold_start_confirmed": false
+  },
+  "warmup": {
+    "job_id": "251116d9-0924-495e-be58-d7a231d40269",
+    "job_status": "SUCCEEDED",
+    "inputs": 24,
+    "counts": {
+      "SUCCEEDED": 24,
+      "FAILED": 0,
+      "CANCELLED": 0
+    },
+    "server_job_seconds": 37.073,
+    "observed_job_seconds": 38.14580770799512,
+    "observed_with_upload_seconds": 38.23884908400214,
+    "successful_images_per_second": 0.6473714023683004,
+    "observed_successful_images_per_second": 0.629164813699036,
+    "correct_images_per_second": null,
+    "quality_status": "NOT_RUN",
+    "workers": [
+      "wc405f540408e4697"
+    ],
+    "physical_collaboration": "NOT_RUN",
+    "profile_digest": "1290c0523d80e5f02d5ed8021ea5f6363d598468c542d60dbf47cb9e1a9cb6a9",
+    "parameters": {
+      "language": "auto"
+    },
+    "sampled_device_peaks": {
+      "wc405f540408e4697": {
+        "samples": 15,
+        "cpu_percent": 30.9,
+        "ram_used_bytes": 5997658112
+      }
+    },
+    "peak_notice": "约 3 秒采样的整机观测峰值，可能漏掉尖峰；未采到的字段不填 0。",
+    "run": "warmup",
+    "verification_exit_code": 0,
+    "observed_backends": [
+      "cpu"
+    ],
+    "resources": [
+      {
+        "worker_id": "wc405f540408e4697",
+        "hardware": {
+          "arch": "arm64",
+          "cpu_name": "Apple M4",
+          "detection_errors": [],
+          "gpu_info_source": "unavailable",
+          "gpu_name": null,
+          "gpu_vram_bytes": null,
+          "logical_cores": 10,
+          "manual_labels": {},
+          "os": "Darwin 24.4.0",
+          "ram_available_bytes": 3204399104,
+          "ram_total_bytes": 17179869184
+        },
+        "max_slots": 1,
+        "threads_per_slot": 0,
+        "cpu_thread_budget": 0,
+        "prefetch_capacity": 0,
+        "capabilities": [
+          {
+            "backend": null,
+            "calibration": null,
+            "model_cached": false,
+            "model_sha256": null,
+            "profile_digest": null,
+            "profile_id": "asr.default.v1",
+            "reason": "计划类型；模型、许可和依赖待P1验证发布。",
+            "runtime_provider": null,
+            "state": "UNAVAILABLE",
+            "task_type": "asr.file.v1",
+            "verified": false
+          },
+          {
+            "backend": "cpu",
+            "calibration": {
+              "finished_at": "2026-11-14T17:57:46Z",
+              "median_compute_ms": 407.988,
+              "passed": true,
+              "sample_count": 3
+            },
+            "model_cached": true,
+            "model_sha256": "3358ac6b2a0919cf5c72159265440ba62fb496b504d1fc6fb92a4ffc4fc0edc5",
+            "profile_digest": "1290c0523d80e5f02d5ed8021ea5f6363d598468c542d60dbf47cb9e1a9cb6a9",
+            "profile_id": "ocr.default.v1",
+            "reason": null,
+            "runtime_provider": "CPUExecutionProvider",
+            "state": "READY",
+            "task_type": "ocr.image.v1",
+            "verified": true
+          }
+        ]
+      }
+    ],
+    "execution_attempts": 24,
+    "median_execution_timings_ms": {
+      "download_ms": 5.488792000001297,
+      "decode_ms": 2.231041499989317,
+      "inference_ms": 391.37110400000097,
+      "postprocess_ms": 0.0,
+      "total_worker_ms": 397.9178534999974
+    },
+    "prefetch_hits": 0,
+    "model_load_seconds": null,
+    "model_load_note": "模型加载与校准时间从节点日志单独提取；Job 时间包含调度/准备，不能当作纯加载时间。"
+  },
+  "rounds": [
+    {
+      "job_id": "0e5e2fcf-aba2-42b1-9700-1f59379ab350",
+      "job_status": "SUCCEEDED",
+      "inputs": 24,
+      "counts": {
+        "SUCCEEDED": 24,
+        "FAILED": 0,
+        "CANCELLED": 0
+      },
+      "server_job_seconds": 35.092,
+      "observed_job_seconds": 36.154515624999476,
+      "observed_with_upload_seconds": 36.263782916998025,
+      "successful_images_per_second": 0.6839165621794141,
+      "observed_successful_images_per_second": 0.6638174951348238,
+      "correct_images_per_second": null,
+      "quality_status": "NOT_RUN",
+      "workers": [
+        "wc405f540408e4697"
+      ],
+      "physical_collaboration": "NOT_RUN",
+      "profile_digest": "1290c0523d80e5f02d5ed8021ea5f6363d598468c542d60dbf47cb9e1a9cb6a9",
+      "parameters": {
+        "language": "auto"
+      },
+      "sampled_device_peaks": {
+        "wc405f540408e4697": {
+          "samples": 14,
+          "cpu_percent": 32.5,
+          "ram_used_bytes": 5876973568
+        }
+      },
+      "peak_notice": "约 3 秒采样的整机观测峰值，可能漏掉尖峰；未采到的字段不填 0。",
+      "run": "round-1",
+      "verification_exit_code": 0,
+      "observed_backends": [
+        "cpu"
+      ],
+      "resources": [
+        {
+          "worker_id": "wc405f540408e4697",
+          "hardware": {
+            "arch": "arm64",
+            "cpu_name": "Apple M4",
+            "detection_errors": [],
+            "gpu_info_source": "unavailable",
+            "gpu_name": null,
+            "gpu_vram_bytes": null,
+            "logical_cores": 10,
+            "manual_labels": {},
+            "os": "Darwin 24.4.0",
+            "ram_available_bytes": 3204399104,
+            "ram_total_bytes": 17179869184
+          },
+          "max_slots": 1,
+          "threads_per_slot": 0,
+          "cpu_thread_budget": 0,
+          "prefetch_capacity": 0,
+          "capabilities": [
+            {
+              "backend": null,
+              "calibration": null,
+              "model_cached": false,
+              "model_sha256": null,
+              "profile_digest": null,
+              "profile_id": "asr.default.v1",
+              "reason": "计划类型；模型、许可和依赖待P1验证发布。",
+              "runtime_provider": null,
+              "state": "UNAVAILABLE",
+              "task_type": "asr.file.v1",
+              "verified": false
+            },
+            {
+              "backend": "cpu",
+              "calibration": {
+                "finished_at": "2026-11-14T17:57:46Z",
+                "median_compute_ms": 407.988,
+                "passed": true,
+                "sample_count": 3
+              },
+              "model_cached": true,
+              "model_sha256": "3358ac6b2a0919cf5c72159265440ba62fb496b504d1fc6fb92a4ffc4fc0edc5",
+              "profile_digest": "1290c0523d80e5f02d5ed8021ea5f6363d598468c542d60dbf47cb9e1a9cb6a9",
+              "profile_id": "ocr.default.v1",
+              "reason": null,
+              "runtime_provider": "CPUExecutionProvider",
+              "state": "READY",
+              "task_type": "ocr.image.v1",
+              "verified": true
+            }
+          ]
+        }
+      ],
+      "execution_attempts": 24,
+      "median_execution_timings_ms": {
+        "download_ms": 3.963021000004119,
+        "decode_ms": 1.6687294999897517,
+        "inference_ms": 381.25970799999465,
+        "postprocess_ms": 0.0,
+        "total_worker_ms": 388.3253115000116
+      },
+      "prefetch_hits": 0,
+      "model_load_seconds": null,
+      "model_load_note": "模型加载与校准时间从节点日志单独提取；Job 时间包含调度/准备，不能当作纯加载时间。"
+    },
+    {
+      "job_id": "f02527ce-9310-4263-a5ef-bd85342c2784",
+      "job_status": "SUCCEEDED",
+      "inputs": 24,
+      "counts": {
+        "SUCCEEDED": 24,
+        "FAILED": 0,
+        "CANCELLED": 0
+      },
+      "server_job_seconds": 34.934,
+      "observed_job_seconds": 35.800313834006374,
+      "observed_with_upload_seconds": 35.895263124999474,
+      "successful_images_per_second": 0.687009789889506,
+      "observed_successful_images_per_second": 0.6703851846461365,
+      "correct_images_per_second": null,
+      "quality_status": "NOT_RUN",
+      "workers": [
+        "wc405f540408e4697"
+      ],
+      "physical_collaboration": "NOT_RUN",
+      "profile_digest": "1290c0523d80e5f02d5ed8021ea5f6363d598468c542d60dbf47cb9e1a9cb6a9",
+      "parameters": {
+        "language": "auto"
+      },
+      "sampled_device_peaks": {
+        "wc405f540408e4697": {
+          "samples": 14,
+          "cpu_percent": 43.4,
+          "ram_used_bytes": 5843386368
+        }
+      },
+      "peak_notice": "约 3 秒采样的整机观测峰值，可能漏掉尖峰；未采到的字段不填 0。",
+      "run": "round-2",
+      "verification_exit_code": 0,
+      "observed_backends": [
+        "cpu"
+      ],
+      "resources": [
+        {
+          "worker_id": "wc405f540408e4697",
+          "hardware": {
+            "arch": "arm64",
+            "cpu_name": "Apple M4",
+            "detection_errors": [],
+            "gpu_info_source": "unavailable",
+            "gpu_name": null,
+            "gpu_vram_bytes": null,
+            "logical_cores": 10,
+            "manual_labels": {},
+            "os": "Darwin 24.4.0",
+            "ram_available_bytes": 3204399104,
+            "ram_total_bytes": 17179869184
+          },
+          "max_slots": 1,
+          "threads_per_slot": 0,
+          "cpu_thread_budget": 0,
+          "prefetch_capacity": 0,
+          "capabilities": [
+            {
+              "backend": null,
+              "calibration": null,
+              "model_cached": false,
+              "model_sha256": null,
+              "profile_digest": null,
+              "profile_id": "asr.default.v1",
+              "reason": "计划类型；模型、许可和依赖待P1验证发布。",
+              "runtime_provider": null,
+              "state": "UNAVAILABLE",
+              "task_type": "asr.file.v1",
+              "verified": false
+            },
+            {
+              "backend": "cpu",
+              "calibration": {
+                "finished_at": "2026-11-14T17:57:46Z",
+                "median_compute_ms": 407.988,
+                "passed": true,
+                "sample_count": 3
+              },
+              "model_cached": true,
+              "model_sha256": "3358ac6b2a0919cf5c72159265440ba62fb496b504d1fc6fb92a4ffc4fc0edc5",
+              "profile_digest": "1290c0523d80e5f02d5ed8021ea5f6363d598468c542d60dbf47cb9e1a9cb6a9",
+              "profile_id": "ocr.default.v1",
+              "reason": null,
+              "runtime_provider": "CPUExecutionProvider",
+              "state": "READY",
+              "task_type": "ocr.image.v1",
+              "verified": true
+            }
+          ]
+        }
+      ],
+      "execution_attempts": 24,
+      "median_execution_timings_ms": {
+        "download_ms": 2.179124999997839,
+        "decode_ms": 0.8356665000093244,
+        "inference_ms": 409.01256300000455,
+        "postprocess_ms": 0.0,
+        "total_worker_ms": 411.9580635000091
+      },
+      "prefetch_hits": 0,
+      "model_load_seconds": null,
+      "model_load_note": "模型加载与校准时间从节点日志单独提取；Job 时间包含调度/准备，不能当作纯加载时间。"
+    },
+    {
+      "job_id": "e185ad50-9aaf-4834-a413-b5316a50a27d",
+      "job_status": "SUCCEEDED",
+      "inputs": 24,
+      "counts": {
+        "SUCCEEDED": 24,
+        "FAILED": 0,
+        "CANCELLED": 0
+      },
+      "server_job_seconds": 35.107,
+      "observed_job_seconds": 36.16189154100721,
+      "observed_with_upload_seconds": 36.269829541000945,
+      "successful_images_per_second": 0.6836243484205429,
+      "observed_successful_images_per_second": 0.6636820967394432,
+      "correct_images_per_second": null,
+      "quality_status": "NOT_RUN",
+      "workers": [
+        "wc405f540408e4697"
+      ],
+      "physical_collaboration": "NOT_RUN",
+      "profile_digest": "1290c0523d80e5f02d5ed8021ea5f6363d598468c542d60dbf47cb9e1a9cb6a9",
+      "parameters": {
+        "language": "auto"
+      },
+      "sampled_device_peaks": {
+        "wc405f540408e4697": {
+          "samples": 14,
+          "cpu_percent": 52.1,
+          "ram_used_bytes": 5996478464
+        }
+      },
+      "peak_notice": "约 3 秒采样的整机观测峰值，可能漏掉尖峰；未采到的字段不填 0。",
+      "run": "round-3",
+      "verification_exit_code": 0,
+      "observed_backends": [
+        "cpu"
+      ],
+      "resources": [
+        {
+          "worker_id": "wc405f540408e4697",
+          "hardware": {
+            "arch": "arm64",
+            "cpu_name": "Apple M4",
+            "detection_errors": [],
+            "gpu_info_source": "unavailable",
+            "gpu_name": null,
+            "gpu_vram_bytes": null,
+            "logical_cores": 10,
+            "manual_labels": {},
+            "os": "Darwin 24.4.0",
+            "ram_available_bytes": 3204399104,
+            "ram_total_bytes": 17179869184
+          },
+          "max_slots": 1,
+          "threads_per_slot": 0,
+          "cpu_thread_budget": 0,
+          "prefetch_capacity": 0,
+          "capabilities": [
+            {
+              "backend": null,
+              "calibration": null,
+              "model_cached": false,
+              "model_sha256": null,
+              "profile_digest": null,
+              "profile_id": "asr.default.v1",
+              "reason": "计划类型；模型、许可和依赖待P1验证发布。",
+              "runtime_provider": null,
+              "state": "UNAVAILABLE",
+              "task_type": "asr.file.v1",
+              "verified": false
+            },
+            {
+              "backend": "cpu",
+              "calibration": {
+                "finished_at": "2026-11-14T17:57:46Z",
+                "median_compute_ms": 407.988,
+                "passed": true,
+                "sample_count": 3
+              },
+              "model_cached": true,
+              "model_sha256": "3358ac6b2a0919cf5c72159265440ba62fb496b504d1fc6fb92a4ffc4fc0edc5",
+              "profile_digest": "1290c0523d80e5f02d5ed8021ea5f6363d598468c542d60dbf47cb9e1a9cb6a9",
+              "profile_id": "ocr.default.v1",
+              "reason": null,
+              "runtime_provider": "CPUExecutionProvider",
+              "state": "READY",
+              "task_type": "ocr.image.v1",
+              "verified": true
+            }
+          ]
+        }
+      ],
+      "execution_attempts": 24,
+      "median_execution_timings_ms": {
+        "download_ms": 3.4836874999939482,
+        "decode_ms": 1.6538954999987254,
+        "inference_ms": 381.1829375000002,
+        "postprocess_ms": 0.0,
+        "total_worker_ms": 391.5745405000308
+      },
+      "prefetch_hits": 0,
+      "model_load_seconds": null,
+      "model_load_note": "模型加载与校准时间从节点日志单独提取；Job 时间包含调度/准备，不能当作纯加载时间。"
+    }
+  ],
+  "formal_benchmark": "NOT_RUN",
+  "notice": "服务端计时来自同一 P2 Job 时间线；成功不等于识别正确。未冻结人工参考时正确吞吐量为空。",
+  "median_successful_images_per_second": 0.6839165621794141,
+  "median_correct_images_per_second": null,
+  "median_server_job_seconds": 35.092,
+  "stable_configuration": true
+}

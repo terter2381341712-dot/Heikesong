@@ -5,10 +5,20 @@ import copy
 from dataclasses import replace
 
 import pytest
+import pytest_asyncio
 
 from task_service.contract import uid
 from task_service.scheduling import features, measurement, resource_key
 from tests.tasks.mock_p1 import CAPABILITIES
+
+
+@pytest_asyncio.fixture(autouse=True)
+async def enable_resource_aware_policy(rig):
+    # These tests explicitly exercise the opt-in policy; other suites exercise
+    # the production round-robin default.
+    rig.settings = replace(rig.settings, scheduler_policy="resource_aware")
+    rig.service.settings = rig.settings
+    rig.service.scheduler.settings = rig.settings
 
 
 def timing(compute=100, download=10, overhead=1):

@@ -76,8 +76,8 @@ class Agent:
                 raise ValueError("GPU 多逻辑路暂不启用输入预取")
             prefetch = 0
         else:
-            # 既有行为（CPU 多槽、GPU 单槽、预取）完全不变。
-            prefetch = int(backend == "cuda") if prefetch is None else prefetch
+            # CPU/GPU 均默认关闭预取，由调用方显式启用。
+            prefetch = 0 if prefetch is None else prefetch
             if prefetch not in (0, 1) or (prefetch and slots != 1):
                 raise ValueError("预取只支持单槽，容量为 0 或 1")
             if prefetch:
@@ -591,6 +591,13 @@ class Agent:
         self._reset_runtime()
 
 
+def control_sharing(agent: Agent, commands) -> None:
+    for line in commands:
+        command = line.strip()
+        if command in {"on", "off"}:
+            agent.set_sharing(command == "on")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="节点程序：接入 P1 资源服务")
     parser.add_argument("--server", default=os.environ.get("RESOURCE_BASE_URL", "http://127.0.0.1:8001"))
@@ -602,7 +609,7 @@ def main() -> None:
     parser.add_argument("--threads", type=int, default=0, help="CPU 推理线程预算；0 使用运行时默认")
     parser.add_argument("--slots", type=int, default=1, help="槽数：CPU 为常驻执行槽数；GPU 为逻辑推理路数")
     parser.add_argument("--prefetch", type=int, choices=[0, 1], default=None,
-                        help="输入预取；CUDA 单槽默认 1，CPU 默认 0；仅单槽，额外占 1 CPU 线程预算")
+                        help="输入预取；CPU/CUDA 均默认 0；仅单槽，额外占 1 CPU 线程预算")
     parser.add_argument("--cpu-budget", type=int, help="节点 CPU 总线程预算，不得超过逻辑核心数")
     parser.add_argument("--gpu-lane-vram-bytes", type=int, default=None,
                         help="GPU 逻辑多路时每路实测显存字节（可用 python -m node_agent.gpu_probe 报告的 lane_vram_estimate_bytes）")
@@ -618,11 +625,15 @@ def main() -> None:
         with lock_node_directory(agent.data_dir):
             if args.interactive:
                 agent._sharing_disabled = True
-                def controls():
-                    for line in sys.stdin:
-                        if line.strip() in {"on", "off"}:
-                            agent.set_sharing(line.strip() == "on")
-                threading.Thread(target=controls, daemon=True).start()
+                commands = sys.stdin
+                if os.name == "nt" and not commands.isatty():
+                    # Spawned Python processes must not inherit a pipe while this thread reads it.
+                    # https://github.com/python/cpython/issues/78961
+                    stdin_fd = commands.fileno()
+                    commands = os.fdopen(os.dup(stdin_fd), "r", encoding=commands.encoding, errors=commands.errors)
+                    with open(os.devnull, "r") as null:
+                        os.dup2(null.fileno(), stdin_fd)
+                threading.Thread(target=control_sharing, args=(agent, commands), daemon=True).start()
             agent.run()
     except BlockingIOError:
         parser.exit(2, "节点数据目录已被另一个 Agent 占用\n")

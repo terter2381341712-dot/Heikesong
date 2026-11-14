@@ -1,0 +1,4 @@
+PASS G1 subset: health/version and 401/403 roles
+PASS G1 subset: original-byte upload/download and upload replay
+PASS T02 subset: same request same Job; changed payload 409
+PASS G2/G3 API subset: OCR, input/execution/result links and ZIP

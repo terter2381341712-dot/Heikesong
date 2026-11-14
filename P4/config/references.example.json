@@ -1,0 +1,6 @@
+{
+  "frozen_before_run": false,
+  "license": "填写图片授权和人工转写来源；真实参考文件仅保存在验收电脑",
+  "max_cer": 0.05,
+  "texts_by_sha256": {"replace-with-original-input-sha256": "人工核对参考文本；0.05仅为示例，须在实验前确定"}
+}

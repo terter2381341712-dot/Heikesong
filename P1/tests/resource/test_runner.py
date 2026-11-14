@@ -33,10 +33,9 @@ def runner(tmp_path_factory):
     return r
 
 
-def test_combined_model_sha(runner):
-    sha = combined_model_sha256()
-    assert len(sha) == 64
-    int(sha, 16)  # 合法 hex
+def test_combined_model_sha():
+    profile = json.loads(Path("profiles/ocr.default.v1.lock.json").read_bytes())
+    assert combined_model_sha256() == profile["model_sha256"]
 
 
 @pytest.mark.parametrize(
@@ -87,3 +86,13 @@ def test_bbox_clamped_in_bounds(runner, tmp_path):
         x0, y0, x1, y1 = block["bbox"]
         assert 0 <= x0 <= x1 <= 120
         assert 0 <= y0 <= y1 <= 60
+
+
+def test_model_file_order_is_independent_of_path_platform(monkeypatch):
+    from pathlib import PurePosixPath, PureWindowsPath
+    from runners import rapidocr_runner
+
+    for path_type in (PurePosixPath, PureWindowsPath):
+        monkeypatch.setattr(rapidocr_runner, "Path", path_type)
+        names = [path.name for path in rapidocr_runner.model_files()]
+        assert names == sorted(rapidocr_runner.MODEL_NAMES.values())

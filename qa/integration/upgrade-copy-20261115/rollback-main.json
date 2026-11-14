@@ -1,0 +1,25 @@
+{
+  "status": "PASS",
+  "jobs": [
+    {
+      "job_id": "b7952dde-b5a4-4ee2-a6cb-a32e073db05c",
+      "tasks": 2,
+      "status": "PASS"
+    },
+    {
+      "job_id": "0019ae20-6849-4ae8-9fd3-4edcd951caff",
+      "tasks": 1,
+      "status": "PASS"
+    },
+    {
+      "job_id": "9471258f-5d69-4a07-83c1-8e07d3842971",
+      "tasks": 1,
+      "status": "PASS"
+    },
+    {
+      "job_id": "926afde7-512d-46df-864a-6b8d698acc79",
+      "tasks": 1,
+      "status": "PASS"
+    }
+  ]
+}

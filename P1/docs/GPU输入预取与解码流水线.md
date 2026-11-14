@@ -12,7 +12,7 @@ python -m node_agent --server http://<P1地址>:8001 --name windows-gpu --backen
 
 `on` 开启共享，`off` 停止共享。CPU/GPU 模型仍在独立进程常驻；额外一个常驻 CPU 进程负责下一张输入的 HTTP 下载、校验、EXIF 纠向和 RGB 解码，不加载 OCR/CUDA 模型。相邻任务正常完成后两个进程都可以复用；提示撤销、失效或失败恢复时，解码进程可能重建。
 
-- `--prefetch` 可选 0/1：CUDA 默认 1，CPU 默认 0；`--prefetch 0` 用于关闭与基线对照。
+- `--prefetch` 可选 0/1：CPU/CUDA 均默认 0，需显式开启；`--prefetch 0` 用于关闭与基线对照。
 - 预取只允许 `--slots 1`，且 `threads + 1 <= cpu-budget <= 逻辑核心数`。未指定 threads 时，为推理选择最多 2 个线程，至少为预取保留 1 个核心预算；不足两个逻辑核心时应关闭预取。预算是计算库并行度配置，不是操作系统硬配额。
 - Mac/Windows CPU 单槽可显式 `--backend cpu --threads 1 --cpu-budget 2 --prefetch 1` 验证同一输入流水线；CPU 多槽不启用预取。
 - 缓存只容纳一个未来输入，压缩文件最大 10 MiB、像素最大 2000 万，RGB 数组最大 60,000,000 字节。执行消费时将缓存移入自身工作目录，下一张缓存才可开始生成。每次预取使用独立临时目录，防止异常退出遗留的下载覆盖新请求。当前执行数组、Pillow 临时副本、校验缓冲及模型另占内存；这不是整个节点的内存硬上限。

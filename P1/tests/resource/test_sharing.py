@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import pytest
 
 from node_agent import compute
-from tests.resource.conftest import TASK
+from tests.resource.conftest import DEMO, TASK
 from tests.resource.test_executions import setup_ready, make_execution_request
 
 
@@ -96,7 +96,15 @@ def test_shutdown_retains_success_and_revokes_running(client_with_profile):
     assert cancelled["error"]["details"]["execution_id"] == ids[1]
     assert c.get("/api/resource/v1/executions/" + ids[0], headers=TASK).json() == saved
     assert c.post(prefix + "/confirm_idle", json=auth).status_code == 200
+    mode_path = f"/api/resource/v1/resources/{node['worker_id']}/mode"
+    for mode in ("ACTIVE", "DRAINING"):
+        response = c.post(mode_path, headers=DEMO, json={"mode": mode})
+        assert response.status_code == 409
+        assert response.json()["code"] == "NODE_UNAVAILABLE"
+    [snapshot] = c.get("/api/resource/v1/resources", headers=DEMO).json()["resources"]
+    assert snapshot["mode"] == "PAUSED" and snapshot["available_slots"] == 0
     assert c.post(prefix + "/sharing", json={**auth, "enabled": True}).status_code == 200
+    assert c.post(mode_path, headers=DEMO, json={"mode": "ACTIVE"}).status_code == 200
     assert (
         c.post(
             prefix + "/sharing", json={**auth, "node_secret": "wrong-secret", "enabled": False}

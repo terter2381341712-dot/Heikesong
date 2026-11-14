@@ -49,31 +49,33 @@
   },
   "local_modifications": {
     "resource_service/catalog.py": "cdcd8fe09c523392eb88118e4b113339a783bcc9133ad98827ca02337435edd8",
-    "resource_service/service.py": "bb18ce23d255e13abd03f4a67a0cbabd4a3321deed6a6c493aefd4546a685f75",
+    "resource_service/service.py": "22b5f0184a57e4c0dfe13eb78a412bc70e85bbf6aec4a34c2d84c4e5cfb0a701",
     "resource_service/db.py": "510dbf934ae8e1693e3b10b94f747f30d5e11b5e15407d1dfd0ac88d36ddf195",
     "resource_service/config.py": "8954e269007199b76e28396485317c15a8692e230ae0d9f8d8e2c5a9be9c3dd7",
-    "resource_service/models.py": "1a73e46e1cda57c983884114e4b28cd32cf21774d844ef112717e0b772b89c94",
+    "resource_service/models.py": "f3e5314beb3a1b45ca805f8c6985d58ff497a398c035c8c092dc0f836c9ee9a3",
     "node_agent/benchmark.py": "9ffaf87f9b92867751de02564fbb25a2f8f4255e2afef91b31b1a6bdce9673f9",
     "node_agent/telemetry.py": "86514cd30b22e236d30842616263de1d33eb3f459f9245e61c1510b4b14f965e",
-    "node_agent/agent.py": "a821552dab669a187032668542d7ab19fda45e5deaa20bda9a4287484c4ed631",
+    "node_agent/agent.py": "6929604a95d75193e8e9a58c389322286fcda4b221ad5bb191100f24ef168c24",
     "node_agent/hardware.py": "4e0a002779124ce0212adfeb456e01cd9be51c544cf37f1092a99ef989aa67db",
     "runners/profile.py": "4396dbfcbf9e188dfbd86ad1cd514db4aa66e4ac769a87efa57decfd786f9384",
-    "runners/rapidocr_runner.py": "bd96128b64953f22294da123ff2aba5509652566519de0874e813b78be8e6535",
+    "runners/rapidocr_runner.py": "378f709a321c86e44612052ccbb377bbdb183f662897645997488a6197672462",
     "profiles/task_types.json": "6503f9b6da4e5ad4c63d86bae1ca6974b98fcd6c4a973ef0e630feee6b82e533",
     "tests/resource/test_health.py": "865a87aa6f87f2d9ea0b6dbca8973cead8b491dd18cffd746a828c046be4cf3f",
     "scripts/verify_p1.py": "b39025b780237f9dcb5043252b38b77062e25bae3e20ea23115fbfd5b58fa146",
-    "contracts/openapi.yaml": "2efab40f7dfb4d55603dec577b73c1e7279ce8672977ede4a254cb74f63ed7c2"
+    "contracts/openapi.yaml": "2efab40f7dfb4d55603dec577b73c1e7279ce8672977ede4a254cb74f63ed7c2",
+    "resource_service/__main__.py": "0125e381b345aafb2f3f112183ea7acdbe752e121900435124d36438b214c775",
+    "tests/resource/test_runner.py": "7828dde4c14e7d46945a5569544d9458a2bf4baf986bdf677865269bf766b00d"
   },
-  "local_change_note": "共享开关、取消与迁移、CUDA/CPU 模型常驻、CPU 多槽与线程预算、第四阶段有界输入预取和 CPU 解码/推理重叠；公开契约 0.4.0。files 保留引入提交原始校验值，当前变更见 local_modifications/local_additions。Windows GPU 实机待验。",
+  "local_change_note": "共享开关、取消与迁移、CUDA/CPU 模型常驻、CPU 多槽与线程预算、第四阶段有界输入预取和 CPU 解码/推理重叠；公开契约 0.4.0。files 保留引入提交原始校验值，当前变更见 local_modifications/local_additions。Windows GPU 实机待验。 合入冻结 main 的 Windows 启动/模型顺序与共享保护；统一 0.4.0；预取改为显式启用；GPU 路取消等待真实完成或整进程回收。",
   "local_additions": {
-    "node_agent/compute.py": "93862a48c7fabb9dbb2c3b636a36644590df77a511f8a4b9d9669aa20ceb9540",
-    "tests/resource/test_sharing.py": "2217b3bd04c43f48e1f8bc7842749e074a3301b469f01b6c8dee7424d514554b",
-    "node_agent/gpu_probe.py": "246229437f0a67b98684b3789aeb5956974aab50fffaa37077790f7028703e8d",
+    "node_agent/compute.py": "2a84e8d67c11b82c2842abf573c0e551db1b33eeeb57282befba70bb61372e43",
+    "tests/resource/test_sharing.py": "991f2cb10f96235dad47bdc0c9768de9eaf77cf82b781fbb594a7ce51c4ce84f",
+    "node_agent/gpu_probe.py": "35c9eb64fd00ecf0cc604a9905f0a5b6e0ea474bf82daefe157d545564c81466",
     "tests/resource/test_gpu_resident.py": "db6b000a0ce1daeadc4df2d91e68c6a667f1d18564af31dd741c9a03d4a62743",
     "requirements-gpu.txt": "5b9043a9d19356d473568cc4571a1f43deb0b471342dff3b25ceece4eccb8c32",
     "profiles/heterogeneous/ocr.heterogeneous.v1.lock.json": "51925ad08491e8c29bb28baab127f7cefdc7d1fd96d4bb192a73e646493fc9ae",
     "profiles/heterogeneous/task_types.json": "2acb15dd7a547ac20e069587580f3755350607a5d8dbb69f520b67d1006b6099",
-    "docs/GPU与常驻模型启动.md": "d796904b424e8bf44da053b306c8216b1b5c6c9c9e671f119306d58b412661be",
+    "docs/GPU与常驻模型启动.md": "42c77c73f912cb1ef9c0d01fbba7707e5efdaf4b2cee3bab2a9a3ae509440b1c",
     "README.md": "0afd4b21ee44934c2ba586713d6d242dd562961e40ba53a767465ff49e38330a",
     "node_agent/pool.py": "028b91c5ba7708b17883723b356795195f82ba91e1f2ae896c37277595f7aa34",
     "resource_service/slots.py": "7889de8ff64b0a99a8d0239c0942fad31383eaa35e920b1f58d86ce373896fab",
@@ -82,6 +84,8 @@
     "node_agent/input_pipeline.py": "5a21bbacc4b984f99827929abaa4e5aab0810f22b839292216cb1a19c181b409",
     "resource_service/prefetch.py": "febdaf0517e6799a86110f5f2adceb5386f42d7b54503a713179e173bd6235fc",
     "tests/resource/test_prefetch.py": "78b4c674302771f635acb39b0437b5229fb20152daa9432390f522d6392d75fe",
-    "docs/GPU输入预取与解码流水线.md": "066afb37f57fb6cee12a4c8a037a6673aa528ed423cccd3940ac3c0f726200ab"
+    "docs/GPU输入预取与解码流水线.md": "687a9a09bf833a6e31a66b1e58f782a54d69c18bb241acbeae8c38ea6d28b241",
+    "node_agent/gpu_lanes.py": "c62839f3fe3a4812f8728779748a8e70582909e267d320fad511178778c09183",
+    "tests/resource/test_gpu_lanes.py": "74b5b06fa41c70d3221b22103cf42c2839589248feda94007955c8ad571771fb"
   }
 }

@@ -1,0 +1,50 @@
+[
+  {
+    "branch": "main",
+    "component": "P1",
+    "code": 0,
+    "tail": "........................................................                 [100%]\n- generated xml file: /var/folders/cq/221nrrs97lgchcfpmw9hs5500000gn/T/heikesong-branch-audit-poeddbdn/main-P1.xml -\n56 passed, 1 warning in 7.92s\n"
+  },
+  {
+    "branch": "main",
+    "component": "P2",
+    "code": 0,
+    "tail": "........................................................................ [ 70%]\n..............................                                           [100%]\n102 passed in 42.83s\n"
+  },
+  {
+    "branch": "main",
+    "component": "P4",
+    "code": 1,
+    "tail": "d=tmp_path,\n            capture_output=True,\n            timeout=20,\n        )\n>       assert result.returncode == 0, result.stderr.decode(errors=\"replace\")\nE       AssertionError: Traceback (most recent call last):\nE           File \"/private/var/folders/cq/221nrrs97lgchcfpmw9hs5500000gn/T/heikesong-branch-audit-poeddbdn/main/P4/scripts/managed_node.py\", line 16, in <module>\nE             from node_agent.agent import Agent, lock_node_directory  # noqa: E402\nE             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nE           File \"/private/var/folders/cq/221nrrs97lgchcfpmw9hs5500000gn/T/heikesong-branch-audit-poeddbdn/main/P1/node_agent/__init__.py\", line 1, in <module>\nE             from .agent import Agent, main\nE           File \"/private/var/folders/cq/221nrrs97lgchcfpmw9hs5500000gn/T/heikesong-branch-audit-poeddbdn/main/P1/node_agent/agent.py\", line 26, in <module>\nE             from resource_service.media import probe_image\nE           File \"/private/var/folders/cq/221nrrs97lgchcfpmw9hs5500000gn/T/heikesong-branch-audit-poeddbdn/main/P1/resource_service/media.py\", line 7, in <module>\nE             from PIL import Image, UnidentifiedImageError\nE         ModuleNotFoundError: No module named 'PIL'\nE         \nE       assert 1 == 0\nE        +  where 1 = CompletedProcess(args=['/Users/zhouyuechen/Documents/heikesong/P2/.venv/bin/python', '-I', '/private/var/folders/cq/22...ine 7, in <module>\\n    from PIL import Image, UnidentifiedImageError\\nModuleNotFoundError: No module named \\'PIL\\'\\n').returncode\n\ntests/test_control.py:25: AssertionError\n=========================== short test summary info ============================\nFAILED tests/test_control.py::test_managed_node_imports_in_isolated_python_from_other_directory\n1 failed, 74 passed in 6.73s\n/Users/zhouyuechen/Documents/heikesong/P2/.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:306: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to \"function\" scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\". Set it to \"fixture-scope\" to keep the current behavior.\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n"
+  },
+  {
+    "branch": "zyc",
+    "component": "P1",
+    "code": 0,
+    "tail": "........................................................................ [ 55%]\n..........................................................               [100%]\n- generated xml file: /var/folders/cq/221nrrs97lgchcfpmw9hs5500000gn/T/heikesong-branch-audit-poeddbdn/zyc-P1.xml -\n130 passed, 1 warning in 17.25s\n"
+  },
+  {
+    "branch": "zyc",
+    "component": "P2",
+    "code": 0,
+    "tail": "........................................................................ [ 48%]\n........................................................................ [ 96%]\n......                                                                   [100%]\n150 passed in 44.64s\n"
+  },
+  {
+    "branch": "lyj",
+    "component": "P1",
+    "code": 0,
+    "tail": "........................................................                 [100%]\n- generated xml file: /var/folders/cq/221nrrs97lgchcfpmw9hs5500000gn/T/heikesong-branch-audit-poeddbdn/lyj-P1.xml -\n56 passed, 1 warning in 7.69s\n"
+  },
+  {
+    "branch": "lyj",
+    "component": "P2",
+    "code": 0,
+    "tail": "........................................................................ [ 70%]\n..............................                                           [100%]\n102 passed in 40.76s\n"
+  },
+  {
+    "branch": "lyj",
+    "component": "P4",
+    "code": 0,
+    "tail": ".......................................................................  [100%]\n71 passed in 4.67s\n/Users/zhouyuechen/Documents/heikesong/P2/.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:306: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to \"function\" scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\". Set it to \"fixture-scope\" to keep the current behavior.\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n"
+  }
+]

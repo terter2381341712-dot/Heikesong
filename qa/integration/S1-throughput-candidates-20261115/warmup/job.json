@@ -1,0 +1,1374 @@
+{
+  "cancel_requested": false,
+  "client_request_id": "7800ff7d-cc70-402a-96e4-a6b6fd3dd9df",
+  "counts": {
+    "cancelled": 0,
+    "cancelling": 0,
+    "dispatching": 0,
+    "failed": 0,
+    "queued": 0,
+    "running": 0,
+    "succeeded": 24,
+    "total": 24,
+    "waiting_for_resources": 0
+  },
+  "created_at": "2026-11-14T17:59:01.036Z",
+  "dependency_status": "AVAILABLE",
+  "download_path": "/api/task/v1/jobs/251116d9-0924-495e-be58-d7a231d40269/download",
+  "finished_at": "2026-11-14T17:59:38.109Z",
+  "job_id": "251116d9-0924-495e-be58-d7a231d40269",
+  "parameters": {
+    "language": "auto"
+  },
+  "profile_digest": "1290c0523d80e5f02d5ed8021ea5f6363d598468c542d60dbf47cb9e1a9cb6a9",
+  "profile_id": "ocr.default.v1",
+  "started_at": "2026-11-14T17:59:01.042Z",
+  "status": "SUCCEEDED",
+  "task_type": "ocr.image.v1",
+  "tasks": [
+    {
+      "attempts_used": 1,
+      "current_execution_id": "72131139-43e4-4d8b-9d42-14f4eae6486e",
+      "dispatches": [
+        {
+          "accepted_at": "2026-11-14T17:59:01Z",
+          "attempt_no": 1,
+          "error": null,
+          "execution_id": "72131139-43e4-4d8b-9d42-14f4eae6486e",
+          "finished_at": "2026-11-14T17:59:01Z",
+          "status": "SUCCEEDED",
+          "worker_id": "wc405f540408e4697"
+        }
+      ],
+      "error": null,
+      "input": {
+        "artifact_id": "a48612a8613ad4294a1b5595e99e34e1e",
+        "content_type": "image/png",
+        "created_at": "2026-11-14T17:59:00Z",
+        "download_path": "/api/resource/v1/artifacts/a48612a8613ad4294a1b5595e99e34e1e/content",
+        "kind": "INPUT",
+        "media_info": {
+          "audio_encoding": null,
+          "channels": null,
+          "duration_ms": null,
+          "height": 300,
+          "sample_rate_hz": null,
+          "width": 900
+        },
+        "original_name": "sample-00.png",
+        "sha256": "7c64c727c2dce797a43448a57c7839c627b13406c218989e42c6d9e48edc6269",
+        "size_bytes": 10412
+      },
+      "input_index": 0,
+      "result_artifact": {
+        "artifact_id": "a7a0482e7dc3743f3ae467980f3c3d0f1",
+        "content_type": "application/json",
+        "created_at": "2026-11-14T17:59:01Z",
+        "download_path": "/api/resource/v1/artifacts/a7a0482e7dc3743f3ae467980f3c3d0f1/content",
+        "kind": "RESULT",
+        "media_info": {
+          "audio_encoding": null,
+          "channels": null,
+          "duration_ms": null,
+          "height": null,
+          "sample_rate_hz": null,
+          "width": null
+        },
+        "original_name": "execution-72131139-43e4-4d8b-9d42-14f4eae6486e.json",
+        "sha256": "d8dc7450fc63c750eab42c99d8541af5b26af5593760fb366d7ce6be39bbc7d3",
+        "size_bytes": 360
+      },
+      "status": "SUCCEEDED",
+      "task_id": "32297ab8-70e1-41c4-b764-3f61a35f4786",
+      "waiting_reason": null
+    },
+    {
+      "attempts_used": 1,
+      "current_execution_id": "faf1709b-7eb7-4d4b-b866-65eaeeb92eef",
+      "dispatches": [
+        {
+          "accepted_at": "2026-11-14T17:59:02Z",
+          "attempt_no": 1,
+          "error": null,
+          "execution_id": "faf1709b-7eb7-4d4b-b866-65eaeeb92eef",
+          "finished_at": "2026-11-14T17:59:03Z",
+          "status": "SUCCEEDED",
+          "worker_id": "wc405f540408e4697"
+        }
+      ],
+      "error": null,
+      "input": {
+        "artifact_id": "a6440bbe08c3d45f68519242ac880584b",
+        "content_type": "image/jpeg",
+        "created_at": "2026-11-14T17:59:00Z",
+        "download_path": "/api/resource/v1/artifacts/a6440bbe08c3d45f68519242ac880584b/content",
+        "kind": "INPUT",
+        "media_info": {
+          "audio_encoding": null,
+          "channels": null,
+          "duration_ms": null,
+          "height": 300,
+          "sample_rate_hz": null,
+          "width": 900
+        },
+        "original_name": "sample-01.jpg",
+        "sha256": "8e946153a8f27e8a1f67ac3d94e3d1430f63b47a8c9e2cde63bd4498b31d002b",
+        "size_bytes": 12852
+      },
+      "input_index": 1,
+      "result_artifact": {
+        "artifact_id": "aababbdb565254c1588b0a11790b18ab7",
+        "content_type": "application/json",
+        "created_at": "2026-11-14T17:59:03Z",
+        "download_path": "/api/resource/v1/artifacts/aababbdb565254c1588b0a11790b18ab7/content",
+        "kind": "RESULT",
+        "media_info": {
+          "audio_encoding": null,
+          "channels": null,
+          "duration_ms": null,
+          "height": null,
+          "sample_rate_hz": null,
+          "width": null
+        },
+        "original_name": "execution-faf1709b-7eb7-4d4b-b866-65eaeeb92eef.json",
+        "sha256": "70bd94df72e9698ecf2c4dbf93204946cb418507466beeaa598198f92de07951",
+        "size_bytes": 360
+      },
+      "status": "SUCCEEDED",
+      "task_id": "0bd33210-d8a6-4270-94e3-a95261b1151b",
+      "waiting_reason": null
+    },
+    {
+      "attempts_used": 1,
+      "current_execution_id": "5062736c-be9c-472f-ad9c-b1a3ea866fc8",
+      "dispatches": [
+        {
+          "accepted_at": "2026-11-14T17:59:04Z",
+          "attempt_no": 1,
+          "error": null,
+          "execution_id": "5062736c-be9c-472f-ad9c-b1a3ea866fc8",
+          "finished_at": "2026-11-14T17:59:05Z",
+          "status": "SUCCEEDED",
+          "worker_id": "wc405f540408e4697"
+        }
+      ],
+      "error": null,
+      "input": {
+        "artifact_id": "ac55b13e489284cec959c7c3308f60072",
+        "content_type": "image/png",
+        "created_at": "2026-11-14T17:59:00Z",
+        "download_path": "/api/resource/v1/artifacts/ac55b13e489284cec959c7c3308f60072/content",
+        "kind": "INPUT",
+        "media_info": {
+          "audio_encoding": null,
+          "channels": null,
+          "duration_ms": null,
+          "height": 300,
+          "sample_rate_hz": null,
+          "width": 900
+        },
+        "original_name": "sample-02.png",
+        "sha256": "04ea54800c96c06573e5b56d60fd505b76d48c58314394d41ab0b8291b858810",
+        "size_bytes": 14484
+      },
+      "input_index": 2,
+      "result_artifact": {
+        "artifact_id": "a6d6319c3435540dfad48b99aaf7b3034",
+        "content_type": "application/json",
+        "created_at": "2026-11-14T17:59:05Z",
+        "download_path": "/api/resource/v1/artifacts/a6d6319c3435540dfad48b99aaf7b3034/content",
+        "kind": "RESULT",
+        "media_info": {
+          "audio_encoding": null,
+          "channels": null,
+          "duration_ms": null,
+          "height": null,
+          "sample_rate_hz": null,
+          "width": null
+        },
+        "original_name": "execution-5062736c-be9c-472f-ad9c-b1a3ea866fc8.json",
+        "sha256": "d37f35067ab3b472f457d1ea51f76159ac68bc571f7fd0d10efdc9c90d8bb192",
+        "size_bytes": 360
+      },
+      "status": "SUCCEEDED",
+      "task_id": "ee2b4c03-7bc1-41b0-92f5-1b7b316f97cb",
+      "waiting_reason": null
+    },
+    {
+      "attempts_used": 1,
+      "current_execution_id": "1700db66-e765-4748-9488-cfbb3e7281d1",
+      "dispatches": [
+        {
+          "accepted_at": "2026-11-14T17:59:06Z",
+          "attempt_no": 1,
+          "error": null,
+          "execution_id": "1700db66-e765-4748-9488-cfbb3e7281d1",
+          "finished_at": "2026-11-14T17:59:06Z",
+          "status": "SUCCEEDED",
+          "worker_id": "wc405f540408e4697"
+        }
+      ],
+      "error": null,
+      "input": {
+        "artifact_id": "a601c0a0bf1f046bb84c3d1d1e0faf340",
+        "content_type": "image/jpeg",
+        "created_at": "2026-11-14T17:59:00Z",
+        "download_path": "/api/resource/v1/artifacts/a601c0a0bf1f046bb84c3d1d1e0faf340/content",
+        "kind": "INPUT",
+        "media_info": {
+          "audio_encoding": null,
+          "channels": null,
+          "duration_ms": null,
+          "height": 300,
+          "sample_rate_hz": null,
+          "width": 900
+        },
+        "original_name": "sample-03.jpg",
+        "sha256": "cc0d1c662f3e5c4f0152e03475bc512a3f7e302ba4f1f99cd69dd951686cedc0",
+        "size_bytes": 17255
+      },
+      "input_index": 3,
+      "result_artifact": {
+        "artifact_id": "ad90bcd61d3224dee81531b021a852230",
+        "content_type": "application/json",
+        "created_at": "2026-11-14T17:59:06Z",
+        "download_path": "/api/resource/v1/artifacts/ad90bcd61d3224dee81531b021a852230/content",
+        "kind": "RESULT",
+        "media_info": {
+          "audio_encoding": null,
+          "channels": null,
+          "duration_ms": null,
+          "height": null,
+          "sample_rate_hz": null,
+          "width": null
+        },
+        "original_name": "execution-1700db66-e765-4748-9488-cfbb3e7281d1.json",
+        "sha256": "674743ad8738dd8ff5aa1cbfca3d266d0cf5a357add0c0e131d8c270a0a7da12",
+        "size_bytes": 360
+      },
+      "status": "SUCCEEDED",
+      "task_id": "612848d2-c5d9-4d59-a97e-0adecc6efca3",
+      "waiting_reason": null
+    },
+    {
+      "attempts_used": 1,
+      "current_execution_id": "a24ce138-7677-4789-a481-2581d3f00b19",
+      "dispatches": [
+        {
+          "accepted_at": "2026-11-14T17:59:07Z",
+          "attempt_no": 1,
+          "error": null,
+          "execution_id": "a24ce138-7677-4789-a481-2581d3f00b19",
+          "finished_at": "2026-11-14T17:59:08Z",
+          "status": "SUCCEEDED",
+          "worker_id": "wc405f540408e4697"
+        }
+      ],
+      "error": null,
+      "input": {
+        "artifact_id": "a8b05dffede5b407eaaf410bb89750a2c",
+        "content_type": "image/png",
+        "created_at": "2026-11-14T17:59:00Z",
+        "download_path": "/api/resource/v1/artifacts/a8b05dffede5b407eaaf410bb89750a2c/content",
+        "kind": "INPUT",
+        "media_info": {
+          "audio_encoding": null,
+          "channels": null,
+          "duration_ms": null,
+          "height": 300,
+          "sample_rate_hz": null,
+          "width": 900
+        },
+        "original_name": "sample-04.png",
+        "sha256": "60c04eecb2d28f04d6bbbed991cdf048cf2294a5431f008f9c60a82d473226cd",
+        "size_bytes": 9476
+      },
+      "input_index": 4,
+      "result_artifact": {
+        "artifact_id": "a5a5a69c557274c5eb3b42db460b5ae46",
+        "content_type": "application/json",
+        "created_at": "2026-11-14T17:59:08Z",
+        "download_path": "/api/resource/v1/artifacts/a5a5a69c557274c5eb3b42db460b5ae46/content",
+        "kind": "RESULT",
+        "media_info": {
+          "audio_encoding": null,
+          "channels": null,
+          "duration_ms": null,
+          "height": null,
+          "sample_rate_hz": null,
+          "width": null
+        },
+        "original_name": "execution-a24ce138-7677-4789-a481-2581d3f00b19.json",
+        "sha256": "1acbb9b6cac900fa5e81b3f97d43ef69df58659218bc6dbb6a3944969f1f69e8",
+        "size_bytes": 356
+      },
+      "status": "SUCCEEDED",
+      "task_id": "1407d362-ff4b-4a85-a2ff-48bfca42bbe9",
+      "waiting_reason": null
+    },
+    {
+      "attempts_used": 1,
+      "current_execution_id": "469e088d-22fc-4a66-87df-26ed018b2c11",
+      "dispatches": [
+        {
+          "accepted_at": "2026-11-14T17:59:09Z",
+          "attempt_no": 1,
+          "error": null,
+          "execution_id": "469e088d-22fc-4a66-87df-26ed018b2c11",
+          "finished_at": "2026-11-14T17:59:09Z",
+          "status": "SUCCEEDED",
+          "worker_id": "wc405f540408e4697"
+        }
+      ],
+      "error": null,
+      "input": {
+        "artifact_id": "ae4ad85be08d14aebb8de26b5edb502f0",
+        "content_type": "image/jpeg",
+        "created_at": "2026-11-14T17:59:00Z",
+        "download_path": "/api/resource/v1/artifacts/ae4ad85be08d14aebb8de26b5edb502f0/content",
+        "kind": "INPUT",
+        "media_info": {
+          "audio_encoding": null,
+          "channels": null,
+          "duration_ms": null,
+          "height": 300,
+          "sample_rate_hz": null,
+          "width": 900
+        },
+        "original_name": "sample-05.jpg",
+        "sha256": "f29f836a05c6d8a9039a89cf7221fa0a3c592870db78223843825a0cd537f13d",
+        "size_bytes": 13513
+      },
+      "input_index": 5,
+      "result_artifact": {
+        "artifact_id": "a3e733d7874e34efebb037b71fffa865f",
+        "content_type": "application/json",
+        "created_at": "2026-11-14T17:59:09Z",
+        "download_path": "/api/resource/v1/artifacts/a3e733d7874e34efebb037b71fffa865f/content",
+        "kind": "RESULT",
+        "media_info": {
+          "audio_encoding": null,
+          "channels": null,
+          "duration_ms": null,
+          "height": null,
+          "sample_rate_hz": null,
+          "width": null
+        },
+        "original_name": "execution-469e088d-22fc-4a66-87df-26ed018b2c11.json",
+        "sha256": "79aaedc382d7514cb65503a4a3063b883117f46ebcf871acd221828ca03d2fcb",
+        "size_bytes": 360
+      },
+      "status": "SUCCEEDED",
+      "task_id": "4e4b4240-c83a-49d4-acbf-e134e2ca03ee",
+      "waiting_reason": null
+    },
+    {
+      "attempts_used": 1,
+      "current_execution_id": "f4c0aa81-a572-4ce4-9271-46c9b37c79d2",
+      "dispatches": [
+        {
+          "accepted_at": "2026-11-14T17:59:10Z",
+          "attempt_no": 1,
+          "error": null,
+          "execution_id": "f4c0aa81-a572-4ce4-9271-46c9b37c79d2",
+          "finished_at": "2026-11-14T17:59:11Z",
+          "status": "SUCCEEDED",
+          "worker_id": "wc405f540408e4697"
+        }
+      ],
+      "error": null,
+      "input": {
+        "artifact_id": "a2e6a73ab10b7457da06d12f9c4d87aee",
+        "content_type": "image/png",
+        "created_at": "2026-11-14T17:59:00Z",
+        "download_path": "/api/resource/v1/artifacts/a2e6a73ab10b7457da06d12f9c4d87aee/content",
+        "kind": "INPUT",
+        "media_info": {
+          "audio_encoding": null,
+          "channels": null,
+          "duration_ms": null,
+          "height": 300,
+          "sample_rate_hz": null,
+          "width": 900
+        },
+        "original_name": "sample-06.png",
+        "sha256": "67205fbf9f94baf2d73d4fcc71f349a72e40198c40316d79e454f130b574ba1b",
+        "size_bytes": 14812
+      },
+      "input_index": 6,
+      "result_artifact": {
+        "artifact_id": "a103ba325b1b34962baa3cb83aef9fcf8",
+        "content_type": "application/json",
+        "created_at": "2026-11-14T17:59:11Z",
+        "download_path": "/api/resource/v1/artifacts/a103ba325b1b34962baa3cb83aef9fcf8/content",
+        "kind": "RESULT",
+        "media_info": {
+          "audio_encoding": null,
+          "channels": null,
+          "duration_ms": null,
+          "height": null,
+          "sample_rate_hz": null,
+          "width": null
+        },
+        "original_name": "execution-f4c0aa81-a572-4ce4-9271-46c9b37c79d2.json",
+        "sha256": "eb2468180d7e28a59abe48178afffd92ea4ec5a430436222c8f128836dc0c613",
+        "size_bytes": 360
+      },
+      "status": "SUCCEEDED",
+      "task_id": "40020d4c-2292-4ee4-8620-c73083c74789",
+      "waiting_reason": null
+    },
+    {
+      "attempts_used": 1,
+      "current_execution_id": "87ac505b-4ffa-4a2c-b3e9-5d362dd52abf",
+      "dispatches": [
+        {
+          "accepted_at": "2026-11-14T17:59:11Z",
+          "attempt_no": 1,
+          "error": null,
+          "execution_id": "87ac505b-4ffa-4a2c-b3e9-5d362dd52abf",
+          "finished_at": "2026-11-14T17:59:12Z",
+          "status": "SUCCEEDED",
+          "worker_id": "wc405f540408e4697"
+        }
+      ],
+      "error": null,
+      "input": {
+        "artifact_id": "a7744873233a741e68f72250d32c620cd",
+        "content_type": "image/jpeg",
+        "created_at": "2026-11-14T17:59:00Z",
+        "download_path": "/api/resource/v1/artifacts/a7744873233a741e68f72250d32c620cd/content",
+        "kind": "INPUT",
+        "media_info": {
+          "audio_encoding": null,
+          "channels": null,
+          "duration_ms": null,
+          "height": 300,
+          "sample_rate_hz": null,
+          "width": 900
+        },
+        "original_name": "sample-07.jpg",
+        "sha256": "5d8b038adecf8f999683b1e5a912e7ddd586d0ef637e87e84597ae4efce330ff",
+        "size_bytes": 16888
+      },
+      "input_index": 7,
+      "result_artifact": {
+        "artifact_id": "a7496668443ef4c8699be48e53c3febf3",
+        "content_type": "application/json",
+        "created_at": "2026-11-14T17:59:12Z",
+        "download_path": "/api/resource/v1/artifacts/a7496668443ef4c8699be48e53c3febf3/content",
+        "kind": "RESULT",
+        "media_info": {
+          "audio_encoding": null,
+          "channels": null,
+          "duration_ms": null,
+          "height": null,
+          "sample_rate_hz": null,
+          "width": null
+        },
+        "original_name": "execution-87ac505b-4ffa-4a2c-b3e9-5d362dd52abf.json",
+        "sha256": "442a845b2427a5e1e1ccd6dcc7232f116185e466b4ef5d392392b0bf51159cfb",
+        "size_bytes": 359
+      },
+      "status": "SUCCEEDED",
+      "task_id": "79a738e6-d133-499c-a37f-282358217a15",
+      "waiting_reason": null
+    },
+    {
+      "attempts_used": 1,
+      "current_execution_id": "56847da2-a62e-4c5b-ad5f-abe9826255b0",
+      "dispatches": [
+        {
+          "accepted_at": "2026-11-14T17:59:13Z",
+          "attempt_no": 1,
+          "error": null,
+          "execution_id": "56847da2-a62e-4c5b-ad5f-abe9826255b0",
+          "finished_at": "2026-11-14T17:59:14Z",
+          "status": "SUCCEEDED",
+          "worker_id": "wc405f540408e4697"
+        }
+      ],
+      "error": null,
+      "input": {
+        "artifact_id": "a544562f66d86453b94134b23bb988701",
+        "content_type": "image/png",
+        "created_at": "2026-11-14T17:59:00Z",
+        "download_path": "/api/resource/v1/artifacts/a544562f66d86453b94134b23bb988701/content",
+        "kind": "INPUT",
+        "media_info": {
+          "audio_encoding": null,
+          "channels": null,
+          "duration_ms": null,
+          "height": 300,
+          "sample_rate_hz": null,
+          "width": 900
+        },
+        "original_name": "sample-08.png",
+        "sha256": "455927bc3f716b4345119c48bcc8a7d2ab1aaa70c5f2b6c622505c1fb1c32eb1",
+        "size_bytes": 9951
+      },
+      "input_index": 8,
+      "result_artifact": {
+        "artifact_id": "a6fde06b7a2364e6a9a0a91eb2f11b8e0",
+        "content_type": "application/json",
+        "created_at": "2026-11-14T17:59:14Z",
+        "download_path": "/api/resource/v1/artifacts/a6fde06b7a2364e6a9a0a91eb2f11b8e0/content",
+        "kind": "RESULT",
+        "media_info": {
+          "audio_encoding": null,
+          "channels": null,
+          "duration_ms": null,
+          "height": null,
+          "sample_rate_hz": null,
+          "width": null
+        },
+        "original_name": "execution-56847da2-a62e-4c5b-ad5f-abe9826255b0.json",
+        "sha256": "ff41f806ee47cafca04b30abd8ef320883ee3c7b6da476dd26447e2452bcf44d",
+        "size_bytes": 357
+      },
+      "status": "SUCCEEDED",
+      "task_id": "6f321f8e-b25f-4acb-bde3-66072cbac33b",
+      "waiting_reason": null
+    },
+    {
+      "attempts_used": 1,
+      "current_execution_id": "5316b130-f813-4122-914e-d711e1665718",
+      "dispatches": [
+        {
+          "accepted_at": "2026-11-14T17:59:14Z",
+          "attempt_no": 1,
+          "error": null,
+          "execution_id": "5316b130-f813-4122-914e-d711e1665718",
+          "finished_at": "2026-11-14T17:59:15Z",
+          "status": "SUCCEEDED",
+          "worker_id": "wc405f540408e4697"
+        }
+      ],
+      "error": null,
+      "input": {
+        "artifact_id": "ae7b99642cdb74b69aa5e470507fc60ba",
+        "content_type": "image/jpeg",
+        "created_at": "2026-11-14T17:59:00Z",
+        "download_path": "/api/resource/v1/artifacts/ae7b99642cdb74b69aa5e470507fc60ba/content",
+        "kind": "INPUT",
+        "media_info": {
+          "audio_encoding": null,
+          "channels": null,
+          "duration_ms": null,
+          "height": 300,
+          "sample_rate_hz": null,
+          "width": 900
+        },
+        "original_name": "sample-09.jpg",
+        "sha256": "b074503be0b1269ea49cb02ce31bf54dd82f2def4549709b8c1e18fa81edfcc0",
+        "size_bytes": 13115
+      },
+      "input_index": 9,
+      "result_artifact": {
+        "artifact_id": "a3d27110c2aa2452fb666ee963ae2fbbf",
+        "content_type": "application/json",
+        "created_at": "2026-11-14T17:59:15Z",
+        "download_path": "/api/resource/v1/artifacts/a3d27110c2aa2452fb666ee963ae2fbbf/content",
+        "kind": "RESULT",
+        "media_info": {
+          "audio_encoding": null,
+          "channels": null,
+          "duration_ms": null,
+          "height": null,
+          "sample_rate_hz": null,
+          "width": null
+        },
+        "original_name": "execution-5316b130-f813-4122-914e-d711e1665718.json",
+        "sha256": "1ddb691dfa08d2afd60ba899a90735c692fde45e987bc6070af9bfd931a058f9",
+        "size_bytes": 360
+      },
+      "status": "SUCCEEDED",
+      "task_id": "438f328e-58a6-4265-8b7d-fa2c885e163c",
+      "waiting_reason": null
+    },
+    {
+      "attempts_used": 1,
+      "current_execution_id": "e1584a47-1088-4610-9e82-fec2ac71b877",
+      "dispatches": [
+        {
+          "accepted_at": "2026-11-14T17:59:16Z",
+          "attempt_no": 1,
+          "error": null,
+          "execution_id": "e1584a47-1088-4610-9e82-fec2ac71b877",
+          "finished_at": "2026-11-14T17:59:17Z",
+          "status": "SUCCEEDED",
+          "worker_id": "wc405f540408e4697"
+        }
+      ],
+      "error": null,
+      "input": {
+        "artifact_id": "ab23e51d761464f8cbe6f5912c1de7856",
+        "content_type": "image/png",
+        "created_at": "2026-11-14T17:59:00Z",
+        "download_path": "/api/resource/v1/artifacts/ab23e51d761464f8cbe6f5912c1de7856/content",
+        "kind": "INPUT",
+        "media_info": {
+          "audio_encoding": null,
+          "channels": null,
+          "duration_ms": null,
+          "height": 300,
+          "sample_rate_hz": null,
+          "width": 900
+        },
+        "original_name": "sample-10.png",
+        "sha256": "a92ec747dee2b19a444402cc9fc09375a6baec1b59eb646cff044dece97104c6",
+        "size_bytes": 15623
+      },
+      "input_index": 10,
+      "result_artifact": {
+        "artifact_id": "af026052de0d946ffa38c05988fec14e7",
+        "content_type": "application/json",
+        "created_at": "2026-11-14T17:59:17Z",
+        "download_path": "/api/resource/v1/artifacts/af026052de0d946ffa38c05988fec14e7/content",
+        "kind": "RESULT",
+        "media_info": {
+          "audio_encoding": null,
+          "channels": null,
+          "duration_ms": null,
+          "height": null,
+          "sample_rate_hz": null,
+          "width": null
+        },
+        "original_name": "execution-e1584a47-1088-4610-9e82-fec2ac71b877.json",
+        "sha256": "49e2db9f94c7509d65161cef6587b78e040fc1bef45d50fee6b8fdc0bceda01d",
+        "size_bytes": 359
+      },
+      "status": "SUCCEEDED",
+      "task_id": "09c64206-d57e-43f6-9674-4e21e1ace562",
+      "waiting_reason": null
+    },
+    {
+      "attempts_used": 1,
+      "current_execution_id": "e7c00b63-df41-4fa1-9ef4-a0f4077b7584",
+      "dispatches": [
+        {
+          "accepted_at": "2026-11-14T17:59:18Z",
+          "attempt_no": 1,
+          "error": null,
+          "execution_id": "e7c00b63-df41-4fa1-9ef4-a0f4077b7584",
+          "finished_at": "2026-11-14T17:59:19Z",
+          "status": "SUCCEEDED",
+          "worker_id": "wc405f540408e4697"
+        }
+      ],
+      "error": null,
+      "input": {
+        "artifact_id": "a4b1fc31fe0a34df0a00769eeb48b4910",
+        "content_type": "image/jpeg",
+        "created_at": "2026-11-14T17:59:00Z",
+        "download_path": "/api/resource/v1/artifacts/a4b1fc31fe0a34df0a00769eeb48b4910/content",
+        "kind": "INPUT",
+        "media_info": {
+          "audio_encoding": null,
+          "channels": null,
+          "duration_ms": null,
+          "height": 300,
+          "sample_rate_hz": null,
+          "width": 900
+        },
+        "original_name": "sample-11.jpg",
+        "sha256": "7b92d81aebaba0507320b45df61adc3332a8a1d5d2374bda38a210dcc6b3d77f",
+        "size_bytes": 16328
+      },
+      "input_index": 11,
+      "result_artifact": {
+        "artifact_id": "a0aef7d69cf6a44a280d59891cb094cc8",
+        "content_type": "application/json",
+        "created_at": "2026-11-14T17:59:19Z",
+        "download_path": "/api/resource/v1/artifacts/a0aef7d69cf6a44a280d59891cb094cc8/content",
+        "kind": "RESULT",
+        "media_info": {
+          "audio_encoding": null,
+          "channels": null,
+          "duration_ms": null,
+          "height": null,
+          "sample_rate_hz": null,
+          "width": null
+        },
+        "original_name": "execution-e7c00b63-df41-4fa1-9ef4-a0f4077b7584.json",
+        "sha256": "353ff409bb64b4948459c326ff08f0b371c6dbc778058acff848398c0d7cecd7",
+        "size_bytes": 360
+      },
+      "status": "SUCCEEDED",
+      "task_id": "60a5a6a8-2680-49c2-b11d-37f1e1b003b6",
+      "waiting_reason": null
+    },
+    {
+      "attempts_used": 1,
+      "current_execution_id": "087f1d20-2ee6-49d0-9c20-db8663f62b4b",
+      "dispatches": [
+        {
+          "accepted_at": "2026-11-14T17:59:19Z",
+          "attempt_no": 1,
+          "error": null,
+          "execution_id": "087f1d20-2ee6-49d0-9c20-db8663f62b4b",
+          "finished_at": "2026-11-14T17:59:20Z",
+          "status": "SUCCEEDED",
+          "worker_id": "wc405f540408e4697"
+        }
+      ],
+      "error": null,
+      "input": {
+        "artifact_id": "ade08cf8c2d704f4e90966eb3f7cb3d2c",
+        "content_type": "image/png",
+        "created_at": "2026-11-14T17:59:00Z",
+        "download_path": "/api/resource/v1/artifacts/ade08cf8c2d704f4e90966eb3f7cb3d2c/content",
+        "kind": "INPUT",
+        "media_info": {
+          "audio_encoding": null,
+          "channels": null,
+          "duration_ms": null,
+          "height": 300,
+          "sample_rate_hz": null,
+          "width": 900
+        },
+        "original_name": "sample-12.png",
+        "sha256": "4c93fbdd336ff46b753606d23cf80b1c31bb90aeab56cfc1de989c6cbad5319b",
+        "size_bytes": 9794
+      },
+      "input_index": 12,
+      "result_artifact": {
+        "artifact_id": "a4e64728de22147b483ce7ae6bee65730",
+        "content_type": "application/json",
+        "created_at": "2026-11-14T17:59:20Z",
+        "download_path": "/api/resource/v1/artifacts/a4e64728de22147b483ce7ae6bee65730/content",
+        "kind": "RESULT",
+        "media_info": {
+          "audio_encoding": null,
+          "channels": null,
+          "duration_ms": null,
+          "height": null,
+          "sample_rate_hz": null,
+          "width": null
+        },
+        "original_name": "execution-087f1d20-2ee6-49d0-9c20-db8663f62b4b.json",
+        "sha256": "afb104b8fb815b9950f256dbd722da21115f716968e0410cc41f74c460b3f47f",
+        "size_bytes": 359
+      },
+      "status": "SUCCEEDED",
+      "task_id": "a7f16d92-a3f2-4637-a774-b0fc0c9774e1",
+      "waiting_reason": null
+    },
+    {
+      "attempts_used": 1,
+      "current_execution_id": "6a84aa5d-2953-4456-9920-59fb6f35d735",
+      "dispatches": [
+        {
+          "accepted_at": "2026-11-14T17:59:21Z",
+          "attempt_no": 1,
+          "error": null,
+          "execution_id": "6a84aa5d-2953-4456-9920-59fb6f35d735",
+          "finished_at": "2026-11-14T17:59:23Z",
+          "status": "SUCCEEDED",
+          "worker_id": "wc405f540408e4697"
+        }
+      ],
+      "error": null,
+      "input": {
+        "artifact_id": "aacf59a9559aa415a8fae6549331194f5",
+        "content_type": "image/jpeg",
+        "created_at": "2026-11-14T17:59:00Z",
+        "download_path": "/api/resource/v1/artifacts/aacf59a9559aa415a8fae6549331194f5/content",
+        "kind": "INPUT",
+        "media_info": {
+          "audio_encoding": null,
+          "channels": null,
+          "duration_ms": null,
+          "height": 300,
+          "sample_rate_hz": null,
+          "width": 900
+        },
+        "original_name": "sample-13.jpg",
+        "sha256": "2715da4081586a2313ccc51556db6735d575dc428670be05dc28d820f5a4a5f5",
+        "size_bytes": 12954
+      },
+      "input_index": 13,
+      "result_artifact": {
+        "artifact_id": "ad6c3a84d5334481e9a5e3b2768fab1d8",
+        "content_type": "application/json",
+        "created_at": "2026-11-14T17:59:23Z",
+        "download_path": "/api/resource/v1/artifacts/ad6c3a84d5334481e9a5e3b2768fab1d8/content",
+        "kind": "RESULT",
+        "media_info": {
+          "audio_encoding": null,
+          "channels": null,
+          "duration_ms": null,
+          "height": null,
+          "sample_rate_hz": null,
+          "width": null
+        },
+        "original_name": "execution-6a84aa5d-2953-4456-9920-59fb6f35d735.json",
+        "sha256": "1495808ebc1e642858d59fffa3b5401b1072e3d5c6c567edf0f41549c6f77a15",
+        "size_bytes": 359
+      },
+      "status": "SUCCEEDED",
+      "task_id": "bb9fbfc3-9b78-4e55-aee9-244b7e1ff4f4",
+      "waiting_reason": null
+    },
+    {
+      "attempts_used": 1,
+      "current_execution_id": "5dda1748-aa33-4757-a70e-07a6c1568bd6",
+      "dispatches": [
+        {
+          "accepted_at": "2026-11-14T17:59:23Z",
+          "attempt_no": 1,
+          "error": null,
+          "execution_id": "5dda1748-aa33-4757-a70e-07a6c1568bd6",
+          "finished_at": "2026-11-14T17:59:24Z",
+          "status": "SUCCEEDED",
+          "worker_id": "wc405f540408e4697"
+        }
+      ],
+      "error": null,
+      "input": {
+        "artifact_id": "ac1c4e697162d4315b4305e73d5f1f264",
+        "content_type": "image/png",
+        "created_at": "2026-11-14T17:59:00Z",
+        "download_path": "/api/resource/v1/artifacts/ac1c4e697162d4315b4305e73d5f1f264/content",
+        "kind": "INPUT",
+        "media_info": {
+          "audio_encoding": null,
+          "channels": null,
+          "duration_ms": null,
+          "height": 300,
+          "sample_rate_hz": null,
+          "width": 900
+        },
+        "original_name": "sample-14.png",
+        "sha256": "3def6621dacb2b286c0280ca5710d814d43ebcff3d8c8f9a181e10563da8682d",
+        "size_bytes": 14150
+      },
+      "input_index": 14,
+      "result_artifact": {
+        "artifact_id": "afe59e01d3cc64c8e80ecf59ff78f7d36",
+        "content_type": "application/json",
+        "created_at": "2026-11-14T17:59:24Z",
+        "download_path": "/api/resource/v1/artifacts/afe59e01d3cc64c8e80ecf59ff78f7d36/content",
+        "kind": "RESULT",
+        "media_info": {
+          "audio_encoding": null,
+          "channels": null,
+          "duration_ms": null,
+          "height": null,
+          "sample_rate_hz": null,
+          "width": null
+        },
+        "original_name": "execution-5dda1748-aa33-4757-a70e-07a6c1568bd6.json",
+        "sha256": "c009facc49f7afe9cbaf8ee508a95d152ad283ae0f1668b8b792c7608337d3b3",
+        "size_bytes": 360
+      },
+      "status": "SUCCEEDED",
+      "task_id": "3d051948-7886-464f-8e94-60b70b89c15f",
+      "waiting_reason": null
+    },
+    {
+      "attempts_used": 1,
+      "current_execution_id": "895bba1a-5526-4d67-b0f7-611c56565e73",
+      "dispatches": [
+        {
+          "accepted_at": "2026-11-14T17:59:24Z",
+          "attempt_no": 1,
+          "error": null,
+          "execution_id": "895bba1a-5526-4d67-b0f7-611c56565e73",
+          "finished_at": "2026-11-14T17:59:25Z",
+          "status": "SUCCEEDED",
+          "worker_id": "wc405f540408e4697"
+        }
+      ],
+      "error": null,
+      "input": {
+        "artifact_id": "a3d41051d28bb4b89a90f873eb13d89a4",
+        "content_type": "image/jpeg",
+        "created_at": "2026-11-14T17:59:00Z",
+        "download_path": "/api/resource/v1/artifacts/a3d41051d28bb4b89a90f873eb13d89a4/content",
+        "kind": "INPUT",
+        "media_info": {
+          "audio_encoding": null,
+          "channels": null,
+          "duration_ms": null,
+          "height": 300,
+          "sample_rate_hz": null,
+          "width": 900
+        },
+        "original_name": "sample-15.jpg",
+        "sha256": "85dbf8e22e6eba9ff5fa294f3250d721b4274855b944ab2496cd68c2ee5ce1e6",
+        "size_bytes": 18003
+      },
+      "input_index": 15,
+      "result_artifact": {
+        "artifact_id": "af9b972a1c7b3409f937462e62988d881",
+        "content_type": "application/json",
+        "created_at": "2026-11-14T17:59:25Z",
+        "download_path": "/api/resource/v1/artifacts/af9b972a1c7b3409f937462e62988d881/content",
+        "kind": "RESULT",
+        "media_info": {
+          "audio_encoding": null,
+          "channels": null,
+          "duration_ms": null,
+          "height": null,
+          "sample_rate_hz": null,
+          "width": null
+        },
+        "original_name": "execution-895bba1a-5526-4d67-b0f7-611c56565e73.json",
+        "sha256": "97636091d2cf53b0d6f7d7377222acc04892c78876e09d9b436bbd4d4de8bb31",
+        "size_bytes": 360
+      },
+      "status": "SUCCEEDED",
+      "task_id": "2b79af9a-ed9e-46a5-8f93-6a9a87e5db18",
+      "waiting_reason": null
+    },
+    {
+      "attempts_used": 1,
+      "current_execution_id": "1eea7be0-b1f2-4c9a-a91a-2a9dc68efeaa",
+      "dispatches": [
+        {
+          "accepted_at": "2026-11-14T17:59:26Z",
+          "attempt_no": 1,
+          "error": null,
+          "execution_id": "1eea7be0-b1f2-4c9a-a91a-2a9dc68efeaa",
+          "finished_at": "2026-11-14T17:59:27Z",
+          "status": "SUCCEEDED",
+          "worker_id": "wc405f540408e4697"
+        }
+      ],
+      "error": null,
+      "input": {
+        "artifact_id": "a3a3680c44411461b874c006abd961fcf",
+        "content_type": "image/png",
+        "created_at": "2026-11-14T17:59:00Z",
+        "download_path": "/api/resource/v1/artifacts/a3a3680c44411461b874c006abd961fcf/content",
+        "kind": "INPUT",
+        "media_info": {
+          "audio_encoding": null,
+          "channels": null,
+          "duration_ms": null,
+          "height": 300,
+          "sample_rate_hz": null,
+          "width": 900
+        },
+        "original_name": "sample-16.png",
+        "sha256": "3016f708e568a9db318a9363e9f1008f5ade2c0348ecbc6839223b3b8d41eda7",
+        "size_bytes": 10051
+      },
+      "input_index": 16,
+      "result_artifact": {
+        "artifact_id": "aa6b837224781405988ea2988b8eb6df9",
+        "content_type": "application/json",
+        "created_at": "2026-11-14T17:59:27Z",
+        "download_path": "/api/resource/v1/artifacts/aa6b837224781405988ea2988b8eb6df9/content",
+        "kind": "RESULT",
+        "media_info": {
+          "audio_encoding": null,
+          "channels": null,
+          "duration_ms": null,
+          "height": null,
+          "sample_rate_hz": null,
+          "width": null
+        },
+        "original_name": "execution-1eea7be0-b1f2-4c9a-a91a-2a9dc68efeaa.json",
+        "sha256": "e4797150bc54e8d1620299808f27c5b6d86bc7312f48aba6d60656c8430a2d20",
+        "size_bytes": 357
+      },
+      "status": "SUCCEEDED",
+      "task_id": "50f301ae-16ef-4ac6-a865-a2fda61184bd",
+      "waiting_reason": null
+    },
+    {
+      "attempts_used": 1,
+      "current_execution_id": "f06a1bf7-d374-43f7-9f37-f92bded02cd1",
+      "dispatches": [
+        {
+          "accepted_at": "2026-11-14T17:59:27Z",
+          "attempt_no": 1,
+          "error": null,
+          "execution_id": "f06a1bf7-d374-43f7-9f37-f92bded02cd1",
+          "finished_at": "2026-11-14T17:59:28Z",
+          "status": "SUCCEEDED",
+          "worker_id": "wc405f540408e4697"
+        }
+      ],
+      "error": null,
+      "input": {
+        "artifact_id": "a8f035cc3407a4744a8112260e5000edb",
+        "content_type": "image/jpeg",
+        "created_at": "2026-11-14T17:59:00Z",
+        "download_path": "/api/resource/v1/artifacts/a8f035cc3407a4744a8112260e5000edb/content",
+        "kind": "INPUT",
+        "media_info": {
+          "audio_encoding": null,
+          "channels": null,
+          "duration_ms": null,
+          "height": 300,
+          "sample_rate_hz": null,
+          "width": 900
+        },
+        "original_name": "sample-17.jpg",
+        "sha256": "e45e42b3048540cc24815aaa8fa6233ceb65b2cd00e7da39ba200c7af59b38b4",
+        "size_bytes": 12740
+      },
+      "input_index": 17,
+      "result_artifact": {
+        "artifact_id": "a3fd3ca9e4a144e22a5aa78239a23fe6e",
+        "content_type": "application/json",
+        "created_at": "2026-11-14T17:59:28Z",
+        "download_path": "/api/resource/v1/artifacts/a3fd3ca9e4a144e22a5aa78239a23fe6e/content",
+        "kind": "RESULT",
+        "media_info": {
+          "audio_encoding": null,
+          "channels": null,
+          "duration_ms": null,
+          "height": null,
+          "sample_rate_hz": null,
+          "width": null
+        },
+        "original_name": "execution-f06a1bf7-d374-43f7-9f37-f92bded02cd1.json",
+        "sha256": "c2d50dd878d885accd1f68bbe4396b111061959ed1dc43650a209ab5c35e4803",
+        "size_bytes": 360
+      },
+      "status": "SUCCEEDED",
+      "task_id": "5da35cef-6e36-442d-b524-8e8e6f2d7c1d",
+      "waiting_reason": null
+    },
+    {
+      "attempts_used": 1,
+      "current_execution_id": "e3fef2e6-e26f-4ee2-854e-d563126fabb3",
+      "dispatches": [
+        {
+          "accepted_at": "2026-11-14T17:59:28Z",
+          "attempt_no": 1,
+          "error": null,
+          "execution_id": "e3fef2e6-e26f-4ee2-854e-d563126fabb3",
+          "finished_at": "2026-11-14T17:59:30Z",
+          "status": "SUCCEEDED",
+          "worker_id": "wc405f540408e4697"
+        }
+      ],
+      "error": null,
+      "input": {
+        "artifact_id": "a76015f06366c4a85a981440638c0ef52",
+        "content_type": "image/png",
+        "created_at": "2026-11-14T17:59:00Z",
+        "download_path": "/api/resource/v1/artifacts/a76015f06366c4a85a981440638c0ef52/content",
+        "kind": "INPUT",
+        "media_info": {
+          "audio_encoding": null,
+          "channels": null,
+          "duration_ms": null,
+          "height": 300,
+          "sample_rate_hz": null,
+          "width": 900
+        },
+        "original_name": "sample-18.png",
+        "sha256": "82a342c577125e50d574f21ebe172b76d425a9782a499b37ac08a43904094459",
+        "size_bytes": 14935
+      },
+      "input_index": 18,
+      "result_artifact": {
+        "artifact_id": "a4f321d0b716347818c15cad79a873831",
+        "content_type": "application/json",
+        "created_at": "2026-11-14T17:59:30Z",
+        "download_path": "/api/resource/v1/artifacts/a4f321d0b716347818c15cad79a873831/content",
+        "kind": "RESULT",
+        "media_info": {
+          "audio_encoding": null,
+          "channels": null,
+          "duration_ms": null,
+          "height": null,
+          "sample_rate_hz": null,
+          "width": null
+        },
+        "original_name": "execution-e3fef2e6-e26f-4ee2-854e-d563126fabb3.json",
+        "sha256": "8ca0ac422e3970c2a2d35c4eeacdf2801375d6d178e8e153531b088d642f011a",
+        "size_bytes": 360
+      },
+      "status": "SUCCEEDED",
+      "task_id": "3b11397e-98ec-4232-a8b5-4ffcd6e61be6",
+      "waiting_reason": null
+    },
+    {
+      "attempts_used": 1,
+      "current_execution_id": "5ec3af76-409b-419c-b3fa-f0bad272fd04",
+      "dispatches": [
+        {
+          "accepted_at": "2026-11-14T17:59:30Z",
+          "attempt_no": 1,
+          "error": null,
+          "execution_id": "5ec3af76-409b-419c-b3fa-f0bad272fd04",
+          "finished_at": "2026-11-14T17:59:31Z",
+          "status": "SUCCEEDED",
+          "worker_id": "wc405f540408e4697"
+        }
+      ],
+      "error": null,
+      "input": {
+        "artifact_id": "acfd8145a75fe439eb25046b3c73ad5dc",
+        "content_type": "image/jpeg",
+        "created_at": "2026-11-14T17:59:00Z",
+        "download_path": "/api/resource/v1/artifacts/acfd8145a75fe439eb25046b3c73ad5dc/content",
+        "kind": "INPUT",
+        "media_info": {
+          "audio_encoding": null,
+          "channels": null,
+          "duration_ms": null,
+          "height": 300,
+          "sample_rate_hz": null,
+          "width": 900
+        },
+        "original_name": "sample-19.jpg",
+        "sha256": "ee73ab11b20167f725ff1dede61d1c9a08638b6e8ecdba638176acc65e535f5c",
+        "size_bytes": 17018
+      },
+      "input_index": 19,
+      "result_artifact": {
+        "artifact_id": "a4192713a95ad4cbf8b59d10489db45fa",
+        "content_type": "application/json",
+        "created_at": "2026-11-14T17:59:31Z",
+        "download_path": "/api/resource/v1/artifacts/a4192713a95ad4cbf8b59d10489db45fa/content",
+        "kind": "RESULT",
+        "media_info": {
+          "audio_encoding": null,
+          "channels": null,
+          "duration_ms": null,
+          "height": null,
+          "sample_rate_hz": null,
+          "width": null
+        },
+        "original_name": "execution-5ec3af76-409b-419c-b3fa-f0bad272fd04.json",
+        "sha256": "d74dc7e2000c6030c6aaa19986a4f8a38502af90eab898133e8e08d6e744a79d",
+        "size_bytes": 360
+      },
+      "status": "SUCCEEDED",
+      "task_id": "0b4e70ef-041f-4017-a92f-181006253f21",
+      "waiting_reason": null
+    },
+    {
+      "attempts_used": 1,
+      "current_execution_id": "106042fe-037d-4978-b9a2-f6a39d56f8bb",
+      "dispatches": [
+        {
+          "accepted_at": "2026-11-14T17:59:31Z",
+          "attempt_no": 1,
+          "error": null,
+          "execution_id": "106042fe-037d-4978-b9a2-f6a39d56f8bb",
+          "finished_at": "2026-11-14T17:59:33Z",
+          "status": "SUCCEEDED",
+          "worker_id": "wc405f540408e4697"
+        }
+      ],
+      "error": null,
+      "input": {
+        "artifact_id": "ac88de91391ef4868bd825c9262bc30ca",
+        "content_type": "image/png",
+        "created_at": "2026-11-14T17:59:00Z",
+        "download_path": "/api/resource/v1/artifacts/ac88de91391ef4868bd825c9262bc30ca/content",
+        "kind": "INPUT",
+        "media_info": {
+          "audio_encoding": null,
+          "channels": null,
+          "duration_ms": null,
+          "height": 300,
+          "sample_rate_hz": null,
+          "width": 900
+        },
+        "original_name": "sample-20.png",
+        "sha256": "03af09926822a704614ff8caf0d9013d8a9b2051dd840fd2472840d8c79364c0",
+        "size_bytes": 10832
+      },
+      "input_index": 20,
+      "result_artifact": {
+        "artifact_id": "a521c338a7d7140ac9564bf60754a2774",
+        "content_type": "application/json",
+        "created_at": "2026-11-14T17:59:33Z",
+        "download_path": "/api/resource/v1/artifacts/a521c338a7d7140ac9564bf60754a2774/content",
+        "kind": "RESULT",
+        "media_info": {
+          "audio_encoding": null,
+          "channels": null,
+          "duration_ms": null,
+          "height": null,
+          "sample_rate_hz": null,
+          "width": null
+        },
+        "original_name": "execution-106042fe-037d-4978-b9a2-f6a39d56f8bb.json",
+        "sha256": "c984ececac6f00bd08fe57f5a711b1ed048932208df8e1012f44f261f5e35b46",
+        "size_bytes": 360
+      },
+      "status": "SUCCEEDED",
+      "task_id": "609c18d6-c494-4a4c-9ebb-9591eed73e38",
+      "waiting_reason": null
+    },
+    {
+      "attempts_used": 1,
+      "current_execution_id": "4e041895-2d34-4283-bd6c-b27fe45a1699",
+      "dispatches": [
+        {
+          "accepted_at": "2026-11-14T17:59:33Z",
+          "attempt_no": 1,
+          "error": null,
+          "execution_id": "4e041895-2d34-4283-bd6c-b27fe45a1699",
+          "finished_at": "2026-11-14T17:59:34Z",
+          "status": "SUCCEEDED",
+          "worker_id": "wc405f540408e4697"
+        }
+      ],
+      "error": null,
+      "input": {
+        "artifact_id": "aa07a70fd04c84977acf263230be3ef12",
+        "content_type": "image/jpeg",
+        "created_at": "2026-11-14T17:59:01Z",
+        "download_path": "/api/resource/v1/artifacts/aa07a70fd04c84977acf263230be3ef12/content",
+        "kind": "INPUT",
+        "media_info": {
+          "audio_encoding": null,
+          "channels": null,
+          "duration_ms": null,
+          "height": 300,
+          "sample_rate_hz": null,
+          "width": 900
+        },
+        "original_name": "sample-21.jpg",
+        "sha256": "d45272ef973d5d5280e4978421adc468e608d0b5ff3a7a54bac116e0ae6b8698",
+        "size_bytes": 12879
+      },
+      "input_index": 21,
+      "result_artifact": {
+        "artifact_id": "aed07dd5eea9148f3804447c091697136",
+        "content_type": "application/json",
+        "created_at": "2026-11-14T17:59:34Z",
+        "download_path": "/api/resource/v1/artifacts/aed07dd5eea9148f3804447c091697136/content",
+        "kind": "RESULT",
+        "media_info": {
+          "audio_encoding": null,
+          "channels": null,
+          "duration_ms": null,
+          "height": null,
+          "sample_rate_hz": null,
+          "width": null
+        },
+        "original_name": "execution-4e041895-2d34-4283-bd6c-b27fe45a1699.json",
+        "sha256": "d90d51775786431a288727ea49b6a15eead5da969d26fe2f3cc2bb0e5517949c",
+        "size_bytes": 360
+      },
+      "status": "SUCCEEDED",
+      "task_id": "f5ea4d14-e71f-4a83-84e7-bbde8e71492d",
+      "waiting_reason": null
+    },
+    {
+      "attempts_used": 1,
+      "current_execution_id": "a7d56201-5cb2-4dc3-a6c1-fc22fdb8eada",
+      "dispatches": [
+        {
+          "accepted_at": "2026-11-14T17:59:35Z",
+          "attempt_no": 1,
+          "error": null,
+          "execution_id": "a7d56201-5cb2-4dc3-a6c1-fc22fdb8eada",
+          "finished_at": "2026-11-14T17:59:35Z",
+          "status": "SUCCEEDED",
+          "worker_id": "wc405f540408e4697"
+        }
+      ],
+      "error": null,
+      "input": {
+        "artifact_id": "a92f3c8707eb0492a8e1533ca5f7256ec",
+        "content_type": "image/png",
+        "created_at": "2026-11-14T17:59:01Z",
+        "download_path": "/api/resource/v1/artifacts/a92f3c8707eb0492a8e1533ca5f7256ec/content",
+        "kind": "INPUT",
+        "media_info": {
+          "audio_encoding": null,
+          "channels": null,
+          "duration_ms": null,
+          "height": 300,
+          "sample_rate_hz": null,
+          "width": 900
+        },
+        "original_name": "sample-22.png",
+        "sha256": "a2f779d5ec17c7a5b406bad89b7cef3cd6d9e09b0fb763086ecd7328592b53a9",
+        "size_bytes": 1509
+      },
+      "input_index": 22,
+      "result_artifact": {
+        "artifact_id": "a8eb0ecd57ef94c61bb7eb2958df38de0",
+        "content_type": "application/json",
+        "created_at": "2026-11-14T17:59:35Z",
+        "download_path": "/api/resource/v1/artifacts/a8eb0ecd57ef94c61bb7eb2958df38de0/content",
+        "kind": "RESULT",
+        "media_info": {
+          "audio_encoding": null,
+          "channels": null,
+          "duration_ms": null,
+          "height": null,
+          "sample_rate_hz": null,
+          "width": null
+        },
+        "original_name": "execution-a7d56201-5cb2-4dc3-a6c1-fc22fdb8eada.json",
+        "sha256": "7bb3723f3b83e3567c9430c8ebcc2decf0cd7ed872f13c4630436048978e758a",
+        "size_bytes": 166
+      },
+      "status": "SUCCEEDED",
+      "task_id": "b678bb7e-5104-4385-8d58-2e1433e42dbf",
+      "waiting_reason": null
+    },
+    {
+      "attempts_used": 1,
+      "current_execution_id": "eedad930-a872-475b-9707-0622db83df8d",
+      "dispatches": [
+        {
+          "accepted_at": "2026-11-14T17:59:36Z",
+          "attempt_no": 1,
+          "error": null,
+          "execution_id": "eedad930-a872-475b-9707-0622db83df8d",
+          "finished_at": "2026-11-14T17:59:37Z",
+          "status": "SUCCEEDED",
+          "worker_id": "wc405f540408e4697"
+        }
+      ],
+      "error": null,
+      "input": {
+        "artifact_id": "a64a4149562714772803873df3920b0b7",
+        "content_type": "image/jpeg",
+        "created_at": "2026-11-14T17:59:01Z",
+        "download_path": "/api/resource/v1/artifacts/a64a4149562714772803873df3920b0b7/content",
+        "kind": "INPUT",
+        "media_info": {
+          "audio_encoding": null,
+          "channels": null,
+          "duration_ms": null,
+          "height": 300,
+          "sample_rate_hz": null,
+          "width": 900
+        },
+        "original_name": "sample-23.jpg",
+        "sha256": "8ad751a1d846db6913c8f28d97be31a830d0549bb833324795052299dba853ed",
+        "size_bytes": 4959
+      },
+      "input_index": 23,
+      "result_artifact": {
+        "artifact_id": "ab11d38df060e4c6592ce46db29913ab1",
+        "content_type": "application/json",
+        "created_at": "2026-11-14T17:59:37Z",
+        "download_path": "/api/resource/v1/artifacts/ab11d38df060e4c6592ce46db29913ab1/content",
+        "kind": "RESULT",
+        "media_info": {
+          "audio_encoding": null,
+          "channels": null,
+          "duration_ms": null,
+          "height": null,
+          "sample_rate_hz": null,
+          "width": null
+        },
+        "original_name": "execution-eedad930-a872-475b-9707-0622db83df8d.json",
+        "sha256": "d0300887ede2815a34e349958da73df8ab4212fa2a7a617c743f91695b054d51",
+        "size_bytes": 166
+      },
+      "status": "SUCCEEDED",
+      "task_id": "a1ca588e-b5ee-4a02-9905-6bd46963ebc4",
+      "waiting_reason": null
+    }
+  ]
+}

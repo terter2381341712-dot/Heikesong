@@ -1,0 +1,26 @@
+.........................................................F.............. [ 96%]
+...                                                                      [100%]
+=================================== FAILURES ===================================
+____________________________ test_static_contracts _____________________________
+
+    def test_static_contracts():
+>       result = verify.static_check()
+                 ^^^^^^^^^^^^^^^^^^^^^
+
+/var/folders/cq/221nrrs97lgchcfpmw9hs5500000gn/T/heikesong-branch-audit-poeddbdn/naive-candidate/P4/tests/test_tools.py:61: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+P4/scripts/verify.py:60: in static_check
+    require(types["contract_version"] == "0.2.0", "类型目录契约版本不一致")
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+condition = False, message = '类型目录契约版本不一致'
+
+    def require(condition, message):
+        if not condition:
+>           raise ValueError(message)
+E           ValueError: 类型目录契约版本不一致
+
+P4/scripts/verify.py:29: ValueError
+=========================== short test summary info ============================
+FAILED ../../../../../../../../var/folders/cq/221nrrs97lgchcfpmw9hs5500000gn/T/heikesong-branch-audit-poeddbdn/naive-candidate/P4/tests/test_tools.py::test_static_contracts
+1 failed, 74 passed in 7.82s

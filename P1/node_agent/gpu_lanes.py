@@ -7,9 +7,11 @@
 - 整机准备与 CPU 多槽同语义：模型加载并自测通过后上报整机 READY，服务端
   一次性把本节点全部槽置 ready=1；无需（也无法）在准备期间逐槽上报 ready
   （准备期间能力仍为 PREPARING，slots/{slot_id}/ready 会被 409）。
-- 取消/隔离到"路"级：父进程上报 slots/{slot_id}/stopped 原子结束该路任务并
+- 取消/隔离到"路"级：等待线程 done 后父进程上报 slots/{slot_id}/stopped 原子结束该路任务并
   轮换代次；模型仍常驻，下一轮用同一份自测证据自动重报该路 ready，该路晚到
   结果被 P1 以 STALE_EXECUTION 拒收。
+- 10 秒内未收到 done 时回收整个共享子进程，并通过 runtime_stopped 隔离所有路；
+  其他路会一起中断。取消请求确认本身不代表计算已经停止。
 - 共享子进程崩溃视为整机故障：检测到后立即走 runtime_stopped 兜底（撤销会话
   与全部能力），由外层循环重新注册并重新准备。
 - 每路在线程内执行，共享一个引擎锁（方案 B 的 B2：共享 session + 锁串行提交）。
@@ -33,6 +35,8 @@ class Lane:
     ready: bool = False
     execution_id: str = ""
     retry_at: float = 0.0
+    cancel_started: float = 0.0
+    compute_finished: bool = False
 
 
 class LanePool:
@@ -107,7 +111,9 @@ class LanePool:
                     self.agent._session_stale = True
                 lane = self._lane(payload.get("slot_id"))
                 if lane is not None and lane.execution_id == payload.get("execution_id"):
-                    lane.execution_id = ""
+                    lane.compute_finished = True
+                    if not lane.cancel_started and lane.execution_id not in self.agent._cancel_ids:
+                        lane.execution_id = ""
             # accepted / stopped 无需额外处理
 
     def _lane(self, slot_id):
@@ -116,6 +122,8 @@ class LanePool:
     def stop(self):
         for lane in self.lanes:
             lane.execution_id = ""
+            lane.cancel_started = 0.0
+            lane.compute_finished = False
         if self.child is not None:
             if self.pipe is not None:
                 try:
@@ -180,6 +188,8 @@ class LanePool:
 
     def submit(self, lane, execution):
         lane.execution_id = execution["execution_id"]
+        lane.compute_finished = False
+        lane.cancel_started = 0.0
         self._ensure_child()
         if not self._send("execution", execution):
             lane.execution_id = ""
@@ -192,6 +202,8 @@ class LanePool:
         lane.generation = reply["generation"]
         lane.ready = False
         lane.execution_id = ""
+        lane.cancel_started = 0.0
+        lane.compute_finished = False
         # 模型仍常驻：由 tick 的恢复循环用同一份证据重新上报 ready。
 
     def _cancel_lane(self, lane):
@@ -255,9 +267,21 @@ class LanePool:
                 if not lane.ready:
                     self._report_ready(lane)
         for lane in self.lanes:
-            if lane.execution_id and lane.execution_id in a._cancel_ids:
-                self._cancel_lane(lane)
-                self._report_stopped(lane)
+            if lane.execution_id and (lane.cancel_started or lane.execution_id in a._cancel_ids):
+                if not lane.cancel_started:
+                    lane.cancel_started = now
+                    self._cancel_lane(lane)
+                # A thread cannot be killed independently. A stop request is not
+                # evidence of exit; do not release the slot until its done reply.
+                if lane.compute_finished:
+                    if now >= lane.retry_at:
+                        self._report_stopped(lane)
+                elif now - lane.cancel_started >= 10:
+                    # Bound cancellation by joining the shared process, then let
+                    # runtime_stopped fence ALL lanes before any are reused.
+                    self.stop()
+                    a._runtime_reset_pending = True
+                    return
 
         if now < self.next_claim:
             return

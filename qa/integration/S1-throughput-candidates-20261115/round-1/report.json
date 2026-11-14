@@ -1,0 +1,204 @@
+{
+  "mode": "REAL_HTTP_OCR",
+  "status": "PASS",
+  "started_at": "2026-11-14T17:59:39.469666Z",
+  "contract_version": "0.4.0",
+  "checks": [
+    {
+      "name": "G1 subset: health/version and 401/403 roles",
+      "status": "PASS",
+      "at": "2026-11-14T17:59:39.596391Z"
+    },
+    {
+      "name": "G1 subset: original-byte upload/download and upload replay",
+      "status": "PASS",
+      "at": "2026-11-14T17:59:39.726736Z"
+    },
+    {
+      "name": "T02 subset: same request same Job; changed payload 409",
+      "status": "PASS",
+      "at": "2026-11-14T17:59:39.779914Z"
+    },
+    {
+      "name": "G2/G3 API subset: OCR, input/execution/result links and ZIP",
+      "status": "PASS",
+      "at": "2026-11-14T18:00:15.957124Z"
+    }
+  ],
+  "physical_collaboration": "NOT_RUN",
+  "quality": "NOT_RUN",
+  "formal_performance": "NOT_RUN",
+  "browser_e2e": "NOT_RUN",
+  "static": {
+    "mode": "STATIC",
+    "status": "PASS",
+    "examples_checked": 55,
+    "task_types_checked": 2,
+    "contract_sha256": "2efab40f7dfb4d55603dec577b73c1e7279ce8672977ede4a254cb74f63ed7c2",
+    "at": "2026-11-14T17:59:39.588197Z"
+  },
+  "profile_digest": "1290c0523d80e5f02d5ed8021ea5f6363d598468c542d60dbf47cb9e1a9cb6a9",
+  "initial_resources": {
+    "contract_version": "0.4.0",
+    "server_time": "2026-11-14T17:59:39Z",
+    "resources": [
+      {
+        "prefetch_capacity": 0,
+        "prefetch_revision": 0,
+        "worker_id": "wc405f540408e4697",
+        "session_id": "989c3d8c-6566-431b-a735-f1ace2770354",
+        "name": "zhouyuechendeMacBook-Pro-local-1e937d",
+        "connection": "ONLINE",
+        "mode": "ACTIVE",
+        "hardware": {
+          "arch": "arm64",
+          "cpu_name": "Apple M4",
+          "detection_errors": [],
+          "gpu_info_source": "unavailable",
+          "gpu_name": null,
+          "gpu_vram_bytes": null,
+          "logical_cores": 10,
+          "manual_labels": {},
+          "os": "Darwin 24.4.0",
+          "ram_available_bytes": 3204399104,
+          "ram_total_bytes": 17179869184
+        },
+        "capabilities": [
+          {
+            "backend": null,
+            "calibration": null,
+            "model_cached": false,
+            "model_sha256": null,
+            "profile_digest": null,
+            "profile_id": "asr.default.v1",
+            "reason": "计划类型；模型、许可和依赖待P1验证发布。",
+            "runtime_provider": null,
+            "state": "UNAVAILABLE",
+            "task_type": "asr.file.v1",
+            "verified": false
+          },
+          {
+            "backend": "cpu",
+            "calibration": {
+              "finished_at": "2026-11-14T17:57:46Z",
+              "median_compute_ms": 407.988,
+              "passed": true,
+              "sample_count": 3
+            },
+            "model_cached": true,
+            "model_sha256": "3358ac6b2a0919cf5c72159265440ba62fb496b504d1fc6fb92a4ffc4fc0edc5",
+            "profile_digest": "1290c0523d80e5f02d5ed8021ea5f6363d598468c542d60dbf47cb9e1a9cb6a9",
+            "profile_id": "ocr.default.v1",
+            "reason": null,
+            "runtime_provider": "CPUExecutionProvider",
+            "state": "READY",
+            "task_type": "ocr.image.v1",
+            "verified": true
+          }
+        ],
+        "max_slots": 1,
+        "threads_per_slot": 0,
+        "cpu_thread_budget": 0,
+        "reserved_slots": 0,
+        "available_slots": 1,
+        "active_execution_ids": [],
+        "active_preparation_id": null,
+        "cleanup_pending": false,
+        "last_seen_at": "2026-11-14T17:59:37Z",
+        "telemetry": {
+          "cpu_percent": 22.8,
+          "gpu_memory_used_bytes": null,
+          "gpu_metric_source": "unavailable",
+          "gpu_percent": null,
+          "ram_used_bytes": 5770117120,
+          "sampled_at": "2026-11-14T17:59:37Z"
+        }
+      }
+    ]
+  },
+  "job_id": "0e5e2fcf-aba2-42b1-9700-1f59379ab350",
+  "observed_job_seconds": 36.154515624999476,
+  "observed_with_upload_seconds": 36.263782916998025,
+  "final_resources": {
+    "contract_version": "0.4.0",
+    "server_time": "2026-11-14T18:00:15Z",
+    "resources": [
+      {
+        "prefetch_capacity": 0,
+        "prefetch_revision": 0,
+        "worker_id": "wc405f540408e4697",
+        "session_id": "989c3d8c-6566-431b-a735-f1ace2770354",
+        "name": "zhouyuechendeMacBook-Pro-local-1e937d",
+        "connection": "ONLINE",
+        "mode": "ACTIVE",
+        "hardware": {
+          "arch": "arm64",
+          "cpu_name": "Apple M4",
+          "detection_errors": [],
+          "gpu_info_source": "unavailable",
+          "gpu_name": null,
+          "gpu_vram_bytes": null,
+          "logical_cores": 10,
+          "manual_labels": {},
+          "os": "Darwin 24.4.0",
+          "ram_available_bytes": 3204399104,
+          "ram_total_bytes": 17179869184
+        },
+        "capabilities": [
+          {
+            "backend": null,
+            "calibration": null,
+            "model_cached": false,
+            "model_sha256": null,
+            "profile_digest": null,
+            "profile_id": "asr.default.v1",
+            "reason": "计划类型；模型、许可和依赖待P1验证发布。",
+            "runtime_provider": null,
+            "state": "UNAVAILABLE",
+            "task_type": "asr.file.v1",
+            "verified": false
+          },
+          {
+            "backend": "cpu",
+            "calibration": {
+              "finished_at": "2026-11-14T17:57:46Z",
+              "median_compute_ms": 407.988,
+              "passed": true,
+              "sample_count": 3
+            },
+            "model_cached": true,
+            "model_sha256": "3358ac6b2a0919cf5c72159265440ba62fb496b504d1fc6fb92a4ffc4fc0edc5",
+            "profile_digest": "1290c0523d80e5f02d5ed8021ea5f6363d598468c542d60dbf47cb9e1a9cb6a9",
+            "profile_id": "ocr.default.v1",
+            "reason": null,
+            "runtime_provider": "CPUExecutionProvider",
+            "state": "READY",
+            "task_type": "ocr.image.v1",
+            "verified": true
+          }
+        ],
+        "max_slots": 1,
+        "threads_per_slot": 0,
+        "cpu_thread_budget": 0,
+        "reserved_slots": 0,
+        "available_slots": 1,
+        "active_execution_ids": [],
+        "active_preparation_id": null,
+        "cleanup_pending": false,
+        "last_seen_at": "2026-11-14T18:00:14Z",
+        "telemetry": {
+          "cpu_percent": 26.0,
+          "gpu_memory_used_bytes": null,
+          "gpu_metric_source": "unavailable",
+          "gpu_percent": null,
+          "ram_used_bytes": 5745836032,
+          "sampled_at": "2026-11-14T18:00:14Z"
+        }
+      }
+    ]
+  },
+  "successful_workers": [
+    "wc405f540408e4697"
+  ],
+  "finished_at": "2026-11-14T18:00:15.957290Z"
+}

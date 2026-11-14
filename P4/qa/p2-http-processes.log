@@ -1,0 +1,94 @@
+MOCK P1: synthetic results, no OCR / no real hardware / no benchmark evidence
+INFO:     Started server process [9408]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:3518 (Press CTRL+C to quit)
+INFO:     127.0.0.1:3520 - "GET /api/resource/v1/healthz HTTP/1.1" 200 OK
+INFO:     Started server process [47916]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:3519 (Press CTRL+C to quit)
+INFO:     127.0.0.1:3523 - "GET /api/task/v1/healthz HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3528 - "GET /api/resource/v1/task-types HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3523 - "GET /api/task/v1/task-types HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3528 - "GET /api/resource/v1/task-types HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3528 - "GET /api/resource/v1/artifacts/mock_image_1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3528 - "GET /api/resource/v1/artifacts/mock_image_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3528 - "GET /api/resource/v1/artifacts/mock_image_3 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3523 - "POST /api/task/v1/jobs HTTP/1.1" 201 Created
+INFO:     127.0.0.1:3528 - "GET /api/resource/v1/resources HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3523 - "GET /api/task/v1/jobs/cf5924bc-6323-4a86-bba1-443110fd5b39 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3528 - "GET /api/resource/v1/executions/e0f63e86-168c-4f5f-b6a4-c2301a9b6a2a HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:3528 - "POST /api/resource/v1/executions HTTP/1.1" 201 Created
+INFO:     127.0.0.1:3528 - "GET /api/resource/v1/executions/1709b862-790b-4286-89ac-f19529c7a1dc HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:3528 - "POST /api/resource/v1/executions HTTP/1.1" 201 Created
+INFO:     127.0.0.1:3523 - "GET /api/task/v1/jobs/cf5924bc-6323-4a86-bba1-443110fd5b39 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3523 - "GET /api/task/v1/jobs/cf5924bc-6323-4a86-bba1-443110fd5b39 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3523 - "GET /api/task/v1/jobs/cf5924bc-6323-4a86-bba1-443110fd5b39 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3523 - "GET /api/task/v1/jobs/cf5924bc-6323-4a86-bba1-443110fd5b39 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3523 - "GET /api/task/v1/jobs/cf5924bc-6323-4a86-bba1-443110fd5b39 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3523 - "GET /api/task/v1/jobs/cf5924bc-6323-4a86-bba1-443110fd5b39 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3523 - "GET /api/task/v1/jobs/cf5924bc-6323-4a86-bba1-443110fd5b39 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3523 - "GET /api/task/v1/jobs/cf5924bc-6323-4a86-bba1-443110fd5b39 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3523 - "GET /api/task/v1/jobs/cf5924bc-6323-4a86-bba1-443110fd5b39 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3528 - "GET /api/resource/v1/executions/e0f63e86-168c-4f5f-b6a4-c2301a9b6a2a HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3528 - "GET /api/resource/v1/executions/1709b862-790b-4286-89ac-f19529c7a1dc HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3528 - "GET /api/resource/v1/resources HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3523 - "GET /api/task/v1/jobs/cf5924bc-6323-4a86-bba1-443110fd5b39 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3523 - "GET /api/task/v1/jobs/cf5924bc-6323-4a86-bba1-443110fd5b39 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3523 - "GET /api/task/v1/jobs/cf5924bc-6323-4a86-bba1-443110fd5b39 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3523 - "GET /api/task/v1/jobs/cf5924bc-6323-4a86-bba1-443110fd5b39 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3523 - "GET /api/task/v1/jobs/cf5924bc-6323-4a86-bba1-443110fd5b39 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3523 - "GET /api/task/v1/jobs/cf5924bc-6323-4a86-bba1-443110fd5b39 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3523 - "GET /api/task/v1/jobs/cf5924bc-6323-4a86-bba1-443110fd5b39 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3523 - "GET /api/task/v1/jobs/cf5924bc-6323-4a86-bba1-443110fd5b39 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3523 - "GET /api/task/v1/jobs/cf5924bc-6323-4a86-bba1-443110fd5b39 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3523 - "GET /api/task/v1/jobs/cf5924bc-6323-4a86-bba1-443110fd5b39 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3528 - "GET /api/resource/v1/executions/e0f63e86-168c-4f5f-b6a4-c2301a9b6a2a HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3528 - "GET /api/resource/v1/artifacts/result_e0f63e86-168c-4f5f-b6a4-c2301a9b6a2a/content HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3528 - "GET /api/resource/v1/executions/1709b862-790b-4286-89ac-f19529c7a1dc HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3528 - "GET /api/resource/v1/artifacts/result_1709b862-790b-4286-89ac-f19529c7a1dc/content HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3528 - "GET /api/resource/v1/resources HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3528 - "GET /api/resource/v1/executions/df3b696c-9269-4452-8df2-136913796c39 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:3528 - "POST /api/resource/v1/executions HTTP/1.1" 201 Created
+INFO:     127.0.0.1:3523 - "GET /api/task/v1/jobs/cf5924bc-6323-4a86-bba1-443110fd5b39 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3523 - "GET /api/task/v1/jobs/cf5924bc-6323-4a86-bba1-443110fd5b39 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3523 - "GET /api/task/v1/jobs/cf5924bc-6323-4a86-bba1-443110fd5b39 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3523 - "GET /api/task/v1/jobs/cf5924bc-6323-4a86-bba1-443110fd5b39 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3523 - "GET /api/task/v1/jobs/cf5924bc-6323-4a86-bba1-443110fd5b39 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3523 - "GET /api/task/v1/jobs/cf5924bc-6323-4a86-bba1-443110fd5b39 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3523 - "GET /api/task/v1/jobs/cf5924bc-6323-4a86-bba1-443110fd5b39 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3523 - "GET /api/task/v1/jobs/cf5924bc-6323-4a86-bba1-443110fd5b39 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3523 - "GET /api/task/v1/jobs/cf5924bc-6323-4a86-bba1-443110fd5b39 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3528 - "GET /api/resource/v1/executions/df3b696c-9269-4452-8df2-136913796c39 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3528 - "GET /api/resource/v1/resources HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3523 - "GET /api/task/v1/jobs/cf5924bc-6323-4a86-bba1-443110fd5b39 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3523 - "GET /api/task/v1/jobs/cf5924bc-6323-4a86-bba1-443110fd5b39 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3523 - "GET /api/task/v1/jobs/cf5924bc-6323-4a86-bba1-443110fd5b39 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3523 - "GET /api/task/v1/jobs/cf5924bc-6323-4a86-bba1-443110fd5b39 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3523 - "GET /api/task/v1/jobs/cf5924bc-6323-4a86-bba1-443110fd5b39 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3523 - "GET /api/task/v1/jobs/cf5924bc-6323-4a86-bba1-443110fd5b39 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3523 - "GET /api/task/v1/jobs/cf5924bc-6323-4a86-bba1-443110fd5b39 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3523 - "GET /api/task/v1/jobs/cf5924bc-6323-4a86-bba1-443110fd5b39 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3523 - "GET /api/task/v1/jobs/cf5924bc-6323-4a86-bba1-443110fd5b39 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3523 - "GET /api/task/v1/jobs/cf5924bc-6323-4a86-bba1-443110fd5b39 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3528 - "GET /api/resource/v1/executions/df3b696c-9269-4452-8df2-136913796c39 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3528 - "GET /api/resource/v1/artifacts/result_df3b696c-9269-4452-8df2-136913796c39/content HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3523 - "GET /api/task/v1/jobs/cf5924bc-6323-4a86-bba1-443110fd5b39 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3523 - "GET /api/task/v1/jobs/cf5924bc-6323-4a86-bba1-443110fd5b39/results HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3528 - "GET /api/resource/v1/task-types HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3528 - "GET /api/resource/v1/artifacts/mock_image_1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3528 - "GET /api/resource/v1/artifacts/mock_image_2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3528 - "GET /api/resource/v1/artifacts/mock_image_3 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3523 - "POST /api/task/v1/jobs HTTP/1.1" 201 Created
+INFO:     127.0.0.1:3528 - "GET /api/resource/v1/resources HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3523 - "POST /api/task/v1/jobs/f158425d-53e7-449f-996b-ade9ee99b40a/cancel HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3523 - "GET /api/task/v1/jobs/f158425d-53e7-449f-996b-ade9ee99b40a HTTP/1.1" 200 OK
+INFO:     Started server process [19204]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:3519 (Press CTRL+C to quit)
+INFO:     127.0.0.1:3538 - "GET /api/task/v1/healthz HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3538 - "GET /api/task/v1/jobs/cf5924bc-6323-4a86-bba1-443110fd5b39/results HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3538 - "POST /api/task/v1/jobs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3538 - "GET /api/task/v1/jobs/cf5924bc-6323-4a86-bba1-443110fd5b39/download HTTP/1.1" 200 OK

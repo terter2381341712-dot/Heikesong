@@ -1,0 +1,10 @@
+........................................................................ [ 54%]
+...........................................................              [100%]
+=============================== warnings summary ===============================
+tests/resource/test_gpu_resident.py::test_cuda_wiring_requires_all_sessions_and_selected_device
+  /Users/zhouyuechen/Documents/heikesong/P1/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: /Users/zhouyuechen/Documents/heikesong/qa/integration/S1-local/P1.xml -
+131 passed, 1 warning in 16.67s

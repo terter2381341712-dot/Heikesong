@@ -314,6 +314,26 @@ def _fake_agent(n_slots=2):
     return a
 
 
+def test_cancel_ack_does_not_release_running_lane_and_timeout_reclaims_process(monkeypatch):
+    a = _fake_agent()
+    pool = _live_pool(a)
+    pool.lanes[0].execution_id = "still-computing"
+    pool.lanes[1].execution_id = "other-lane"
+    a._cancel_ids.add("still-computing")
+    child = pool.child
+    calls = []
+    pool.call = lambda suffix, extra=None: calls.append(suffix)
+    monkeypatch.setattr("node_agent.gpu_lanes.time.monotonic", lambda: 100.)
+    pool.tick()
+    assert pool.lanes[0].execution_id == "still-computing"
+    assert not any(s.endswith("/stopped") for s in calls)
+    monkeypatch.setattr("node_agent.gpu_lanes.time.monotonic", lambda: 111.)
+    pool.tick()
+    assert not child.is_alive() and pool.child is None
+    assert a._runtime_reset_pending
+    assert not any(s.endswith("/stopped") for s in calls)
+
+
 def _evidence():
     return {
         "backend": "cuda",
@@ -397,6 +417,14 @@ def test_lane_pool_cancel_recovers_lane_ready():
     lane0 = pool.lanes[0]
     lane0.execution_id = "e0"
     a._cancel_ids.add("e0")
+    pool.tick()
+    assert stopped_calls == []
+    assert lane0.execution_id == "e0" and lane0.generation != "g-new"
+    # Only actual compute completion permits a stopped acknowledgement.
+    lane0.compute_finished = True
+    # The next heartbeat may no longer list a server-terminal execution.
+    # A cancellation already in progress must still finish its slot handshake.
+    a._cancel_ids.clear()
     pool.tick()
     assert stopped_calls == ["slots/0/stopped"]
     assert lane0.generation == "g-new" and lane0.execution_id == ""

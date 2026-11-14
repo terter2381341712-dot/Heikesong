@@ -1,0 +1,43 @@
+{
+  "mode": "REAL_HTTP_OCR",
+  "status": "FAIL",
+  "started_at": "2026-11-14T09:15:44.839279Z",
+  "contract_version": "0.2.0",
+  "checks": [
+    {
+      "name": "G1 subset: health/version and 401/403 roles",
+      "status": "PASS",
+      "at": "2026-11-14T09:15:44.998171Z"
+    },
+    {
+      "name": "G1 subset: original-byte upload/download and upload replay",
+      "status": "PASS",
+      "at": "2026-11-14T09:15:45.063198Z"
+    },
+    {
+      "name": "T02 subset: same request same Job; changed payload 409",
+      "status": "PASS",
+      "at": "2026-11-14T09:15:45.080247Z"
+    }
+  ],
+  "physical_collaboration": "NOT_RUN",
+  "quality": "NOT_RUN",
+  "formal_performance": "NOT_RUN",
+  "browser_e2e": "NOT_RUN",
+  "static": {
+    "mode": "STATIC",
+    "status": "PASS",
+    "examples_checked": 55,
+    "contract_sha256": "f136a83be1a25ec08b17c388fec708271304109579ef66d9941102085aaf3a79",
+    "at": "2026-11-14T09:15:44.944463Z"
+  },
+  "profile_digest": "dc5c1cb389ffd9d822890d12449c36422bf602ef52adcd6f145cee8493ea43a1",
+  "initial_resources": {
+    "contract_version": "0.2.0",
+    "server_time": "2026-11-14T09:15:45Z",
+    "resources": []
+  },
+  "error_type": "ValueError",
+  "error": "等待 Job 超时；保留原 Job f6e2ed77-8d8c-4979-9dda-039afead7500，未自动取消或重新派发",
+  "finished_at": "2026-11-14T09:15:48.097820Z"
+}

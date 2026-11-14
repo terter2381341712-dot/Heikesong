@@ -1,0 +1,44 @@
+{
+  "branch": "zyc",
+  "merge_target": "0dd6ca50b54a03a1cc11c7f7e8fc3f415404a843",
+  "zyc_head": "8690c3cd3e595a0a38ca14cb9fd1bdeca5b9c0fe",
+  "local_main_unchanged": true,
+  "unresolved_conflicts": 0,
+  "source_digest": "67da5f75b84133a5667db5e4ca8ec8f29a45a4b7d0d43f81f1ade5c14a76c5c0",
+  "tests": {
+    "P1": {
+      "tests": 132,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "P2": {
+      "tests": 153,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "P4": {
+      "tests": 93,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "launcher_tests_passed": 9,
+  "control_js_tests_passed": 3,
+  "local_automatic_gate": "PASS",
+  "formal_stage_status": "NOT_RUN",
+  "merge_commit_created": false,
+  "reason": "physical Windows/two-person gates and frozen quality references pending",
+  "implementation_note": "GPU cancellation acknowledged only after done or joined process; heartbeat cancellation-list removal does not drop in-progress cleanup",
+  "full_suite_source_digest": "5a5501122cd094a720af5282da4f542c2d4b37edd43e1b20f505d5ebbfa0e74a",
+  "incremental_validation": {
+    "status": "PASS",
+    "evidence": "S1-local/evidence-tools-final.log",
+    "change": "Only evidence digest path ordering made explicit POSIX lexical order for Windows/macOS; production runtime unchanged after full suite.",
+    "files": [
+      "P4/scripts/check_integration.py"
+    ]
+  }
+}

@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>P4 设备连接控制台</title>
+<link rel="stylesheet" href="/styles.css">
+<style>
+:root { color: #392a22; background: #f7f5f2; }
+body { font-family: "Anthropic Sans", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif; background: radial-gradient(ellipse at 48% 0%, #f0e3d960, transparent 60%); }
+main { width: min(100%, 1000px); margin: 36px auto; padding: 0 22px; }
+.launcher-brand { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 12px; font-weight: 650; }
+h1 { margin: 0 0 12px; font-size: clamp(25px, 4vw, 32px); font-weight: 650; letter-spacing: -.025em; }
+h2 { font-size: 17px; font-weight: 650; margin: 0 0 8px; }
+.sub { color: #6c584c; }
+.cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.card { min-width: 0; border: 1px solid var(--device-line); border-radius: 18px; background: var(--device-glass); box-shadow: var(--device-shadow); padding: 18px; margin: 12px 0; }
+button, main a { display: inline-flex; align-items: center; justify-content: center; min-height: 42px; border: 1px solid #754b36; border-radius: 8px; background: #754b36; color: #fff; padding: 6px 12px; margin: 6px 5px 6px 0; font-weight: 620; }
+button:hover:not(:disabled) { background: #88573e; }
+button.secondary, main a { border-color: #e3d6ca; background: #ffffffbf; color: #584238; }
+button.secondary:hover:not(:disabled), main a:hover { background: #f5ebe2; }
+button.danger { border-color: #eed5cd; color: #9b3527; background: #fff9f6; }
+button.danger:hover:not(:disabled) { background: #fbeae5; }
+button:disabled { opacity: .55; }
+button:focus-visible, a:focus-visible, summary:focus-visible, select:focus-visible, input:focus-visible { outline-color: #9a6b51; }
+input, select { min-width: 0; max-width: 100%; min-height: 40px; padding: 6px 10px; border: 1px solid #ded1c5; border-radius: 8px; background: #ffffffbf; color: #45352c; }
+input[type=checkbox] { min-height: auto; accent-color: #855740; }
+label { display: block; margin: 10px 0; }
+.status { padding: 11px 13px; border-radius: 12px; background: #f8f3ee; color: #644c3e; white-space: pre-wrap; overflow-wrap: anywhere; }
+pre { padding: 12px; margin: 5px 0 12px; max-height: 220px; overflow: auto; color: #5f4b41; background: #f7f1eb; border: 1px solid #e9e0d8; border-radius: 10px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.code { font: 600 21px "Anthropic Mono", monospace; letter-spacing: .13em; color: #754b36; }
+.node { padding: 8px 0; border-bottom: 1px solid #e9e0d8; overflow-wrap: anywhere; }
+#error:not(:empty) { margin: 8px 0; color: #9b3527; }
+details { margin-top: 10px; }
+summary { padding-block: 5px; color: #6b4e3e; cursor: pointer; }
+@media (max-width: 660px) { main { margin-block: 20px; padding-inline: 16px; } .cards { grid-template-columns: minmax(0, 1fr); gap: 0; } button, main a { min-height: 44px; } }
+</style>
+<main>
+<div class="launcher-brand"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>Edge Fabric</div><h1>本机控制台</h1>
+<p class="sub">自动识别系统和本机环境。每台打开相同页面，选择本机角色即可。仅在可信局域网中配对。</p>
+<div id="system" class="sub">正在检测…</div><div id="error" role="alert"></div>
+<div class="cards">
+<section class="card"><h2>这台运行中心和工作台</h2><p class="sub">管理节点、分配任务、汇总结果。一个集群选择一台电脑启动中心。</p>
+<label><input type="checkbox" id="localNode" checked> 本机也提供计算</label>
+<details><summary>网络选项</summary><label>中心使用的局域网地址 <select id="network"></select></label></details>
+<button data-action id="startCenter">启动中心和工作台</button>
+<div id="workbenchBox" hidden>
+  <p><a id="workbench" target="_blank" rel="noopener noreferrer">打开 Edge Fabric 工作台</a></p>
+  <p id="workbenchLan" class="sub" hidden></p>
+  <button type="button" class="secondary" id="workbenchToken">复制工作台令牌</button>
+  <label id="tokenFallback" hidden>工作台令牌 <input id="tokenValue" readonly autocomplete="off"></label>
+  <p class="sub">在工作台的连接设置中粘贴令牌，即可使用真实服务。</p>
+</div>
+<div id="pairBox" hidden>
+  <p class="sub">把连接码发送给获准加入的设备，有效期 10 分钟。</p>
+  <input id="connectionCode" readonly aria-label="中心连接码" style="width:100%;font-family:monospace">
+  <button class="secondary" id="copyCode">复制连接码</button>
+  <button class="secondary" data-action id="newCode">刷新连接码</button>
+  <details><summary>中心地址与六位配对码</summary><div class="sub">中心地址：<strong id="centerAddress"></strong></div><div id="pairCode" class="code"></div></details>
+</div>
+</section>
+<section class="card"><h2>这台只提供 P1 计算</h2><p class="sub">粘贴中心生成的完整连接码即可加入。</p>
+<label>连接码 <input id="joinCode" placeholder="粘贴 P4-1- 开头的连接码" autocomplete="off" spellcheck="false" style="width:100%"></label>
+<button data-action id="connect">连接并开启计算</button>
+<details><summary>使用地址和六位配对码</summary>
+<button class="secondary" data-action id="find">查找中心</button><select id="centers" aria-label="已发现中心"><option value="">尚未发现中心</option></select>
+<label>配对码 <input id="code" inputmode="numeric" maxlength="6" placeholder="六位数字" autocomplete="off"></label>
+<details><summary>未发现中心？手动输入地址</summary><label><input id="manual" placeholder="例如 192.168.1.10:8003"></label><p class="sub">访客 Wi-Fi、学校网络或防火墙可能拦截自动发现。请确认设备可互通，中心允许 TCP 8001、8003 及 UDP 37043。</p></details>
+<button data-action id="join">连接中心并开启共享</button>
+</details>
+<button data-action class="secondary" id="reconnect" hidden>重新连接已配对中心</button>
+</section></div>
+<section class="card"><h2>本机状态</h2><div id="status" class="status" aria-live="polite"></div>
+<button data-action class="secondary" id="on">开启这台电脑的计算</button><button data-action class="secondary" id="off">暂停这台电脑的计算</button><button data-action id="test">测试两张图片</button><button data-action class="danger" id="stop">停止本机服务</button>
+<button class="secondary" id="download" hidden>下载最近测试结果 ZIP</button>
+<div id="testJobLinks" hidden><a id="openTestProgress" target="_blank" rel="noopener noreferrer">查看测试进度</a><a id="openTestResults" target="_blank" rel="noopener noreferrer" hidden>查看测试结果</a></div>
+<h3 id="resultTitle" hidden></h3>
+<div><label>选择自己的图片（PNG/JPG，可多选，最多 20 张、总计 20 MB）<input type="file" id="images" accept="image/png,image/jpeg" multiple></label><div id="imageSelection" class="sub">尚未选择图片</div><button data-action id="uploadTest">上传图片并测试</button><p class="sub">“测试两张图片”使用内置示例；“上传图片并测试”只测试你选择的图片。</p></div>
+<p class="sub">暂停计算会保留中心服务，执行中的任务需等待节点确认停止。“停止本机服务”会关闭本页启动的计算节点和中心服务。中心运行时也可勾选或取消“本机也提供计算”。关闭网页不会停止服务。</p>
+</section>
+<section class="card"><h2>中心已连接的设备</h2><div id="nodes" class="sub">启动中心后显示。</div></section>
+<details class="card"><summary>查看启动、计算和测试日志</summary><div id="logs"></div></details>
+<p class="sub">首次点击会自动检测并准备对应依赖。如缺少Python解释器，页面会提示需要安装的版本；不会更改模型锁定要求。首次配对后连接信息只保存在本机，不需要复制令牌或配置文件。</p>
+</main>
+<script>
+const session=__SESSION__; let lastMode='', networks='', refreshing=false, requesting=false;
+const $=id=>document.getElementById(id);
+async function api(path,body){let controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);try{let r=await fetch(path,{signal:controller.signal,method:body===undefined?'GET':'POST',headers:{'Content-Type':'application/json','X-P4-Session':session},body:body===undefined?undefined:JSON.stringify(body)});let d=await r.json();if(!r.ok)throw Error(d.error||'请求失败');return d}finally{clearTimeout(timer)}}
+async function action(path,body={}){if(requesting)return;requesting=true;try{$('status').textContent='正在发送操作…';$('error').textContent='';await api(path,body);await refresh()}catch(e){$('error').textContent=e.name==='AbortError'?'请求超时，请查看状态确认操作结果。':e.message}finally{requesting=false}}
+async function find(){try{$('error').textContent='';$('find').disabled=true;let d=await api('/api/discover',{});$('centers').replaceChildren();for(let c of d.centers){let o=new Option(c.name+' · '+c.address,c.address);$('centers').add(o)}if(!d.centers.length)$('centers').add(new Option('未发现中心，可展开输入地址',''))}catch(e){$('error').textContent=e.message}finally{$('find').disabled=false}}
+const logViews=new Map();
+function renderLogs(logs,device){for(let [name,text]of Object.entries(logs)){let view=logViews.get(name);if(!view){let h=document.createElement('h3'),p=document.createElement('pre');$('logs').append(h,p);view={h,p};logViews.set(name,view)}view.h.textContent=device+' · '+({resource:'设备管理',task:'任务分配',node:'本机计算',web:'工作台',test:'图片测试','env/setup':'环境准备'}[name]||name);let p=view.p;if(p.textContent!==text){let top=p.scrollTop,follow=p.scrollHeight-p.clientHeight-top<16;p.textContent=text;p.scrollTop=follow?p.scrollHeight:top}}}
+function renderWorkbench(workbench){
+  $('workbenchBox').hidden=!workbench;
+  $('workbenchLan').hidden=!workbench?.lan_url;
+  $('workbenchLan').textContent=workbench?.lan_url?'局域网工作台 '+workbench.lan_url:'';
+  if(workbench){
+    $('workbench').href=workbench.local_url+'#resources';
+  }else{
+    $('workbench').removeAttribute('href');
+    $('tokenValue').value='';
+    $('tokenFallback').hidden=true;
+    $('workbenchToken').textContent='复制工作台令牌';
+  }
+}
+async function refresh(){if(refreshing)return;refreshing=true;try{let d=await api('/api/status');$('system').textContent=d.system+' · 本机节点 '+d.node_name;$('status').textContent=d.message+'\n当前角色：'+({idle:'未启动',center:'中心和工作台',node:'P1 计算节点'}[d.mode]||d.mode)+(d.processes.node?'\n本机共享请求：'+(d.sharing_requested?'开启':'关闭'):'');
+if(d.busy)$('status').textContent+='\n操作进行中：已等待 '+d.operation_seconds+' 秒';$('localNode').disabled=d.busy||d.mode==='node';if(d.mode==='center')$('localNode').checked=d.sharing_requested;for(let b of document.querySelectorAll('[data-action]'))b.disabled=d.busy;
+if(d.mode==='center'&&d.discovery_error)$('status').textContent+='\n'+d.discovery_error;
+$('startCenter').disabled=d.busy||d.mode!=='idle';$('join').disabled=d.busy||d.mode!=='idle';$('test').disabled=d.busy||d.mode!=='center';$('on').disabled=d.busy||d.mode==='idle';$('off').disabled=d.busy||!d.processes.node;$('stop').disabled=d.busy||d.mode==='idle';$('reconnect').hidden=!d.saved_pair;$('reconnect').disabled=d.busy||d.mode!=='idle';
+$('pairBox').hidden=d.mode!=='center'||d.address==='127.0.0.1';$('pairCode').textContent=d.code||'已过期';
+$('connectionCode').value=d.connection_code||'';$('copyCode').disabled=!d.connection_code;$('connect').disabled=d.busy||d.mode!=='idle';
+$('centerAddress').textContent=d.address+':'+(d.control_port||8003);
+renderWorkbench(d.workbench);
+$('testJobLinks').hidden=!(d.workbench&&d.ocr_test?.job_id);
+if(!$('testJobLinks').hidden){
+  const job=d.workbench.local_url+'#jobs/'+d.ocr_test.job_id;
+  $('openTestProgress').href=job;
+  $('openTestResults').href=job+'/results';
+  $('openTestResults').hidden=d.ocr_test.state==='running';
+}
+$('download').hidden=!d.has_result;
+$('uploadTest').disabled=d.busy||d.mode!=='center';$('images').disabled=d.busy||d.mode!=='center';$('resultTitle').hidden=!d.has_result;$('resultTitle').textContent=d.result_title?'测试结果 · '+d.result_title:'';$('download').dataset.filename=d.result_filename||'p4-results.zip';
+let ns=JSON.stringify(d.addresses);if(ns!==networks){networks=ns;$('network').replaceChildren();for(let a of d.addresses)$('network').add(new Option(a,a));$('network').value=d.address}
+if(d.last_center)$('manual').placeholder=d.last_center;
+$('nodes').replaceChildren();for(let n of d.nodes||[]){let row=document.createElement('div');row.className='node';let cap=(n.capabilities||[]).find(c=>c.task_type==='ocr.image.v1');row.textContent=n.name+' · '+n.connection+' / '+n.mode+' · OCR '+(cap?cap.state:'未知');$('nodes').append(row)}if(!(d.nodes||[]).length)$('nodes').textContent=d.mode==='center'?'等待设备加入…':'在中心电脑查看实际设备状态。';
+renderLogs(d.logs,d.node_name);lastMode=d.mode;
+}catch(e){$('error').textContent='控制台暂不可达：'+e.message}finally{refreshing=false}}
+$('localNode').onchange=()=>{if(lastMode==='center')action($('localNode').checked?'/api/on':'/api/off')};
+$('connect').onclick=async()=>{
+  const input=$('joinCode');
+  const code=input.value.trim();
+  if(!code){$('error').textContent='请粘贴中心显示的连接码。';return}
+  await action('/api/connect',{connection_code:code});
+};
+$('copyCode').onclick=async()=>{
+  const input=$('connectionCode');
+  try{await navigator.clipboard.writeText(input.value)}
+  catch{input.focus();input.select();$('error').textContent='请复制选中的连接码。'}
+};
+$('startCenter').onclick=()=>action('/api/center',{local_node:$('localNode').checked,address:$('network').value});$('newCode').onclick=()=>action('/api/code');$('find').onclick=find;
+$('workbenchToken').onclick=async()=>{
+  try{
+    $('error').textContent='';
+    let {token}=await api('/api/workbench-token',{});
+    try{
+      await navigator.clipboard.writeText(token);
+      $('workbenchToken').textContent='令牌已复制';
+    }catch{
+      $('tokenFallback').hidden=false;
+      $('tokenValue').value=token;
+      $('tokenValue').select();
+    }
+  }catch(e){$('error').textContent=e.message}
+};
+$('join').onclick=async()=>{let address=$('manual').value.trim()||$('centers').value;let code=$('code').value.trim();if(!/^\d{6}$/.test(code)){$('error').textContent='请填写中心显示的六位配对码。';return}if(!address){await find();address=$('centers').value}if(!address){$('error').textContent='未发现中心，请确认中心已启动；也可展开输入中心地址。';return}action('/api/join',{address,code})};
+for(let key of ['on','off','test','stop'])$(key).onclick=()=>action('/api/'+key);
+$('reconnect').onclick=()=>action('/api/reconnect');
+$('images').onchange=()=>{$('imageSelection').textContent=Array.from($('images').files).map(f=>f.name).join('、')||'尚未选择图片'};
+$('uploadTest').onclick=async()=>{let files=Array.from($('images').files);if(!files.length||files.length>20||files.reduce((s,f)=>s+f.size,0)>20*1024*1024){$('error').textContent='请选择 1–20 张图片，总大小不超过 20 MB。';return}if(requesting)return;requesting=true;$('uploadTest').disabled=true;try{let images=await Promise.all(files.map(f=>new Promise((resolve,reject)=>{let r=new FileReader();r.onload=()=>resolve({name:f.name,data:r.result.split(',')[1]});r.onerror=()=>reject(Error('无法读取图片：'+f.name));r.readAsDataURL(f)})));requesting=false;await action('/api/test-images',{images})}catch(e){$('error').textContent=e.message}finally{requesting=false;await refresh()}};
+$('download').onclick=async()=>{try{let r=await fetch('/api/result.zip',{headers:{'X-P4-Session':session}});if(!r.ok)throw Error('结果暂不可下载');let url=URL.createObjectURL(await r.blob());let a=document.createElement('a');a.href=url;a.download=$('download').dataset.filename||'p4-results.zip';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}catch(e){$('error').textContent=e.message}};
+refresh();find();setInterval(refresh,2500);
+</script></html>

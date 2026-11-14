@@ -1,0 +1,35 @@
+{
+  "task_type": "ocr.image.v1",
+  "profile_id": "ocr.default.v1",
+  "profile_digest": "1290c0523d80e5f02d5ed8021ea5f6363d598468c542d60dbf47cb9e1a9cb6a9",
+  "client_request_id": "7800ff7d-cc70-402a-96e4-a6b6fd3dd9df",
+  "input_artifact_ids": [
+    "a48612a8613ad4294a1b5595e99e34e1e",
+    "a6440bbe08c3d45f68519242ac880584b",
+    "ac55b13e489284cec959c7c3308f60072",
+    "a601c0a0bf1f046bb84c3d1d1e0faf340",
+    "a8b05dffede5b407eaaf410bb89750a2c",
+    "ae4ad85be08d14aebb8de26b5edb502f0",
+    "a2e6a73ab10b7457da06d12f9c4d87aee",
+    "a7744873233a741e68f72250d32c620cd",
+    "a544562f66d86453b94134b23bb988701",
+    "ae7b99642cdb74b69aa5e470507fc60ba",
+    "ab23e51d761464f8cbe6f5912c1de7856",
+    "a4b1fc31fe0a34df0a00769eeb48b4910",
+    "ade08cf8c2d704f4e90966eb3f7cb3d2c",
+    "aacf59a9559aa415a8fae6549331194f5",
+    "ac1c4e697162d4315b4305e73d5f1f264",
+    "a3d41051d28bb4b89a90f873eb13d89a4",
+    "a3a3680c44411461b874c006abd961fcf",
+    "a8f035cc3407a4744a8112260e5000edb",
+    "a76015f06366c4a85a981440638c0ef52",
+    "acfd8145a75fe439eb25046b3c73ad5dc",
+    "ac88de91391ef4868bd825c9262bc30ca",
+    "aa07a70fd04c84977acf263230be3ef12",
+    "a92f3c8707eb0492a8e1533ca5f7256ec",
+    "a64a4149562714772803873df3920b0b7"
+  ],
+  "parameters": {
+    "language": "auto"
+  }
+}

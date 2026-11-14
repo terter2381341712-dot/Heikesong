@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import os
 import sqlite3
 import subprocess
 import time
@@ -12,6 +13,7 @@ from run_local import ROOT, Cluster, python_for
 
 
 def main():
+    os.environ["TASK_SCHEDULER_POLICY"] = "resource_aware"
     directory = ROOT / "qa/p1-p2/var" / ("resource-scheduling-" + uuid.uuid4().hex[:8])
     cluster = Cluster(directory, 0, 0)
     cluster.profiles_dir = ROOT / "P1/profiles/heterogeneous"

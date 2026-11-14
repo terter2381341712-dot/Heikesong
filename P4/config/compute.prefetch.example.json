@@ -1,0 +1,9 @@
+{
+  "profile_set": "heterogeneous",
+  "node": {
+    "slots": 1,
+    "threads": 2,
+    "cpu_budget": 3,
+    "prefetch": 1
+  }
+}

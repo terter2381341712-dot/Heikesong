@@ -1,0 +1,74 @@
+[
+  {
+    "name": "P1",
+    "exit_code": 0,
+    "seconds": 8.58,
+    "command": [
+      "/Users/zhouyuechen/Documents/heikesong/P1/.venv/bin/python",
+      "-m",
+      "pytest",
+      "-q",
+      "--junitxml=/Users/zhouyuechen/Documents/heikesong/qa/integration/S0-20261115-012451/P1.xml"
+    ]
+  },
+  {
+    "name": "P2",
+    "exit_code": 0,
+    "seconds": 43.41,
+    "command": [
+      "/Users/zhouyuechen/Documents/heikesong/P2/.venv/bin/python",
+      "-m",
+      "pytest",
+      "-q",
+      "--junitxml=/Users/zhouyuechen/Documents/heikesong/qa/integration/S0-20261115-012451/P2.xml"
+    ]
+  },
+  {
+    "name": "P4",
+    "exit_code": 0,
+    "seconds": 6.91,
+    "command": [
+      "/var/folders/cq/221nrrs97lgchcfpmw9hs5500000gn/T/heikesong-branch-audit-poeddbdn/test-env/bin/python",
+      "-m",
+      "pytest",
+      "-q",
+      "P4/tests",
+      "--junitxml=/Users/zhouyuechen/Documents/heikesong/qa/integration/S0-20261115-012451/P4.xml"
+    ]
+  },
+  {
+    "name": "JS",
+    "exit_code": 0,
+    "seconds": 0.22,
+    "command": [
+      "node",
+      "--test",
+      "P4/tests/control_ui.test.cjs"
+    ]
+  },
+  {
+    "name": "static",
+    "exit_code": 0,
+    "seconds": 0.32,
+    "command": [
+      "/var/folders/cq/221nrrs97lgchcfpmw9hs5500000gn/T/heikesong-branch-audit-poeddbdn/test-env/bin/python",
+      "P4/scripts/verify.py",
+      "--static",
+      "--out",
+      "/Users/zhouyuechen/Documents/heikesong/qa/integration/S0-20261115-012451/static"
+    ]
+  },
+  {
+    "name": "launcher",
+    "exit_code": 0,
+    "seconds": 0.42,
+    "command": [
+      "/Users/zhouyuechen/Documents/heikesong/P2/.venv/bin/python",
+      "-m",
+      "pytest",
+      "-q",
+      "qa/p1-p2/test_run_local.py",
+      "--junitxml=/Users/zhouyuechen/Documents/heikesong/qa/integration/S0-20261115-012451/launcher.xml"
+    ]
+  }
+]

@@ -595,6 +595,7 @@ class TaskService:
                             # Jobs must not leave a newly joined GPU forever unmeasured.
                             if (
                                 cold
+                                and self.settings.scheduler_policy == "resource_aware"
                                 and self.store.scheduling_sequence()
                                 % self.settings.exploration_interval
                                 == 0
@@ -675,5 +676,5 @@ class TaskService:
                 delay = 10
             try:
                 await asyncio.wait_for(self.wake.wait(), timeout=delay)
-            except TimeoutError:
+            except asyncio.TimeoutError:
                 pass

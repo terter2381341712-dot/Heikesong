@@ -1,0 +1,2809 @@
+{
+  "status": "PASS",
+  "mode": "REAL_P1_P2_OCR_SINGLE_MACHINE",
+  "started_at": "2026-11-14T18:07:38.293950Z",
+  "contract_version": "0.4.0",
+  "plan_version": "1.0",
+  "p1_source": "7368ad01c9b1e8eefa546896a208ddac694eb33f",
+  "p2_service_sha256": "806284b5bec76b099364e6bb2389902cd998cd593044d0a24ce7d2b65099499d",
+  "resource_base_url": "http://127.0.0.1:50873",
+  "task_base_url": "http://127.0.0.1:50874",
+  "physical_machines": 1,
+  "checks": [
+    {
+      "name": "L01: real services, roles, contract and frozen profile",
+      "status": "PASS",
+      "at": "2026-11-14T18:07:39.174030Z"
+    },
+    {
+      "name": "L02 local: upload, metadata and original byte download",
+      "status": "PASS",
+      "at": "2026-11-14T18:07:39.481484Z"
+    },
+    {
+      "name": "L03: NOT_PREPARED/null -> automatic preparation -> real OCR -> results/ZIP",
+      "status": "PASS",
+      "at": "2026-11-14T18:07:45.794443Z"
+    },
+    {
+      "name": "Resident model: preparation and two real OCR tasks share one loaded process",
+      "status": "PASS",
+      "at": "2026-11-14T18:07:45.794607Z"
+    },
+    {
+      "name": "L04/L11/L12 subset: pause, waiting cancellation, ACTIVE then actual OCR",
+      "status": "PASS",
+      "at": "2026-11-14T18:07:49.073496Z"
+    },
+    {
+      "name": "L15/L16 subset: P2 restart, same Job replay, P1 offline results/ZIP",
+      "status": "PASS",
+      "at": "2026-11-14T18:07:52.023414Z"
+    },
+    {
+      "name": "L14 subset: P1 restart retains inputs, new session automatically prepares and executes",
+      "status": "PASS",
+      "at": "2026-11-14T18:07:56.761227Z"
+    }
+  ],
+  "trace": [
+    {
+      "at": "2026-11-14T18:07:39.151356Z",
+      "service": "resource",
+      "method": "GET",
+      "path": "/api/resource/v1/healthz",
+      "request": null,
+      "status": 200,
+      "response": {
+        "service": "p1_resource",
+        "contract_version": "0.4.0",
+        "status": "ok",
+        "server_time": "2026-11-14T18:07:39Z"
+      }
+    },
+    {
+      "at": "2026-11-14T18:07:39.153695Z",
+      "service": "resource",
+      "method": "GET",
+      "path": "/api/resource/v1/task-types",
+      "request": null,
+      "status": 401,
+      "response": {
+        "code": "UNAUTHORIZED",
+        "message": "缺失或无效令牌",
+        "retryable": false,
+        "request_id": "9edc02af-3729-469b-9f8b-4b125d15a376",
+        "details": {}
+      }
+    },
+    {
+      "at": "2026-11-14T18:07:39.155414Z",
+      "service": "task",
+      "method": "GET",
+      "path": "/api/task/v1/healthz",
+      "request": null,
+      "status": 200,
+      "response": {
+        "service": "p2_task",
+        "contract_version": "0.4.0",
+        "status": "ok",
+        "server_time": "2026-11-14T18:07:39.154Z"
+      }
+    },
+    {
+      "at": "2026-11-14T18:07:39.156880Z",
+      "service": "task",
+      "method": "GET",
+      "path": "/api/task/v1/task-types",
+      "request": null,
+      "status": 401,
+      "response": {
+        "code": "UNAUTHORIZED",
+        "message": "缺少或无效的演示令牌",
+        "retryable": false,
+        "request_id": "3465caae-399f-4a88-bbad-93af00fddd8a",
+        "details": {}
+      }
+    },
+    {
+      "at": "2026-11-14T18:07:39.161200Z",
+      "service": "resource",
+      "method": "POST",
+      "path": "/api/resource/v1/executions",
+      "request": {},
+      "status": 403,
+      "response": {
+        "code": "FORBIDDEN",
+        "message": "令牌角色不允许该操作",
+        "retryable": false,
+        "request_id": "0aaba8f7-8920-44a6-a297-393a7bc6546a",
+        "details": {}
+      }
+    },
+    {
+      "at": "2026-11-14T18:07:39.162198Z",
+      "service": "task",
+      "method": "GET",
+      "path": "/api/task/v1/task-types",
+      "request": null,
+      "status": 403,
+      "response": {
+        "code": "FORBIDDEN",
+        "message": "此接口需要 DEMO_TOKEN",
+        "retryable": false,
+        "request_id": "6fee2c31-c06d-42ac-881b-82c1b1dca8ff",
+        "details": {}
+      }
+    },
+    {
+      "at": "2026-11-14T18:07:39.173934Z",
+      "service": "task",
+      "method": "GET",
+      "path": "/api/task/v1/task-types",
+      "request": null,
+      "status": 200,
+      "response": {
+        "contract_version": "0.4.0",
+        "server_time": "2026-11-14T18:07:39Z",
+        "task_types": [
+          {
+            "task_type": "ocr.image.v1",
+            "display_name": "图片文字识别",
+            "profile_id": "ocr.default.v1",
+            "profile_digest": "1290c0523d80e5f02d5ed8021ea5f6363d598468c542d60dbf47cb9e1a9cb6a9",
+            "configuration_state": "CONFIGURED",
+            "supported_languages": [
+              "auto",
+              "zh",
+              "en"
+            ],
+            "input_mime_types": [
+              "image/jpeg",
+              "image/png"
+            ],
+            "max_file_bytes": 10485760,
+            "max_pixels": 20000000,
+            "max_duration_ms": null,
+            "max_inputs_per_job": 200,
+            "split_unit": "input_file",
+            "result_schema": "OCRResult",
+            "default_timeout_seconds": 120,
+            "reason": null
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-11-14T18:07:39.477062Z",
+      "service": "resource",
+      "method": "POST",
+      "path": "/api/resource/v1/artifacts",
+      "request": null,
+      "status": 201,
+      "response": {
+        "artifact_id": "aee7cb72539a341fd9c6182dcd6369d84",
+        "kind": "INPUT",
+        "original_name": "input-0.png",
+        "content_type": "image/png",
+        "sha256": "4aacf69e5038862c6ad6f7bfc484c54497f9aa587da147b169da4c5f6bdf31c9",
+        "size_bytes": 5079,
+        "media_info": {
+          "audio_encoding": null,
+          "channels": null,
+          "duration_ms": null,
+          "height": 220,
+          "sample_rate_hz": null,
+          "width": 640
+        },
+        "download_path": "/api/resource/v1/artifacts/aee7cb72539a341fd9c6182dcd6369d84/content",
+        "created_at": "2026-11-14T18:07:39Z"
+      }
+    },
+    {
+      "at": "2026-11-14T18:07:39.480395Z",
+      "service": "resource",
+      "method": "POST",
+      "path": "/api/resource/v1/artifacts",
+      "request": null,
+      "status": 201,
+      "response": {
+        "artifact_id": "acff57cc970b54413a47487a27a763216",
+        "kind": "INPUT",
+        "original_name": "input-1.png",
+        "content_type": "image/png",
+        "sha256": "59826c16d4fb9456594e0e86a94f9c4081df5af0e5c4714324a16fc481561eab",
+        "size_bytes": 6309,
+        "media_info": {
+          "audio_encoding": null,
+          "channels": null,
+          "duration_ms": null,
+          "height": 220,
+          "sample_rate_hz": null,
+          "width": 640
+        },
+        "download_path": "/api/resource/v1/artifacts/acff57cc970b54413a47487a27a763216/content",
+        "created_at": "2026-11-14T18:07:39Z"
+      }
+    },
+    {
+      "at": "2026-11-14T18:07:39.488274Z",
+      "service": "task",
+      "method": "POST",
+      "path": "/api/task/v1/jobs",
+      "request": {
+        "client_request_id": "dea4cffc-7416-4f5a-a919-fd6ece5a8c34",
+        "task_type": "ocr.image.v1",
+        "profile_id": "ocr.default.v1",
+        "profile_digest": "1290c0523d80e5f02d5ed8021ea5f6363d598468c542d60dbf47cb9e1a9cb6a9",
+        "input_artifact_ids": [
+          "aee7cb72539a341fd9c6182dcd6369d84",
+          "acff57cc970b54413a47487a27a763216"
+        ],
+        "parameters": {
+          "language": "auto"
+        }
+      },
+      "status": 201,
+      "response": {
+        "job_id": "c5da4167-0beb-419d-8390-82bae5dc7c56",
+        "client_request_id": "dea4cffc-7416-4f5a-a919-fd6ece5a8c34",
+        "task_type": "ocr.image.v1",
+        "profile_id": "ocr.default.v1",
+        "profile_digest": "1290c0523d80e5f02d5ed8021ea5f6363d598468c542d60dbf47cb9e1a9cb6a9",
+        "parameters": {
+          "language": "auto"
+        },
+        "status": "QUEUED",
+        "created_at": "2026-11-14T18:07:39.486Z",
+        "started_at": null,
+        "finished_at": null,
+        "cancel_requested": false,
+        "dependency_status": "AVAILABLE",
+        "counts": {
+          "queued": 2,
+          "waiting_for_resources": 0,
+          "dispatching": 0,
+          "running": 0,
+          "cancelling": 0,
+          "succeeded": 0,
+          "failed": 0,
+          "cancelled": 0,
+          "total": 2
+        },
+        "tasks": [
+          {
+            "task_id": "ec1c37e2-1790-47ea-aacb-54f0a3782f8b",
+            "input_index": 0,
+            "input": {
+              "artifact_id": "aee7cb72539a341fd9c6182dcd6369d84",
+              "kind": "INPUT",
+              "original_name": "input-0.png",
+              "content_type": "image/png",
+              "sha256": "4aacf69e5038862c6ad6f7bfc484c54497f9aa587da147b169da4c5f6bdf31c9",
+              "size_bytes": 5079,
+              "media_info": {
+                "audio_encoding": null,
+                "channels": null,
+                "duration_ms": null,
+                "height": 220,
+                "sample_rate_hz": null,
+                "width": 640
+              },
+              "download_path": "/api/resource/v1/artifacts/aee7cb72539a341fd9c6182dcd6369d84/content",
+              "created_at": "2026-11-14T18:07:39Z"
+            },
+            "status": "QUEUED",
+            "attempts_used": 0,
+            "current_execution_id": null,
+            "dispatches": [],
+            "result_artifact": null,
+            "waiting_reason": null,
+            "error": null
+          },
+          {
+            "task_id": "f873c68a-38c7-4f24-98c4-e13ff505c4d6",
+            "input_index": 1,
+            "input": {
+              "artifact_id": "acff57cc970b54413a47487a27a763216",
+              "kind": "INPUT",
+              "original_name": "input-1.png",
+              "content_type": "image/png",
+              "sha256": "59826c16d4fb9456594e0e86a94f9c4081df5af0e5c4714324a16fc481561eab",
+              "size_bytes": 6309,
+              "media_info": {
+                "audio_encoding": null,
+                "channels": null,
+                "duration_ms": null,
+                "height": 220,
+                "sample_rate_hz": null,
+                "width": 640
+              },
+              "download_path": "/api/resource/v1/artifacts/acff57cc970b54413a47487a27a763216/content",
+              "created_at": "2026-11-14T18:07:39Z"
+            },
+            "status": "QUEUED",
+            "attempts_used": 0,
+            "current_execution_id": null,
+            "dispatches": [],
+            "result_artifact": null,
+            "waiting_reason": null,
+            "error": null
+          }
+        ],
+        "download_path": null
+      }
+    },
+    {
+      "at": "2026-11-14T18:07:39.489875Z",
+      "service": "task",
+      "job_observation": {
+        "cancel_requested": false,
+        "client_request_id": "dea4cffc-7416-4f5a-a919-fd6ece5a8c34",
+        "counts": {
+          "cancelled": 0,
+          "cancelling": 0,
+          "dispatching": 0,
+          "failed": 0,
+          "queued": 2,
+          "running": 0,
+          "succeeded": 0,
+          "total": 2,
+          "waiting_for_resources": 0
+        },
+        "created_at": "2026-11-14T18:07:39.486Z",
+        "dependency_status": "AVAILABLE",
+        "download_path": null,
+        "finished_at": null,
+        "job_id": "c5da4167-0beb-419d-8390-82bae5dc7c56",
+        "parameters": {
+          "language": "auto"
+        },
+        "profile_digest": "1290c0523d80e5f02d5ed8021ea5f6363d598468c542d60dbf47cb9e1a9cb6a9",
+        "profile_id": "ocr.default.v1",
+        "started_at": null,
+        "status": "QUEUED",
+        "task_type": "ocr.image.v1",
+        "tasks": [
+          {
+            "attempts_used": 0,
+            "current_execution_id": null,
+            "dispatches": [],
+            "error": null,
+            "input": {
+              "artifact_id": "aee7cb72539a341fd9c6182dcd6369d84",
+              "content_type": "image/png",
+              "created_at": "2026-11-14T18:07:39Z",
+              "download_path": "/api/resource/v1/artifacts/aee7cb72539a341fd9c6182dcd6369d84/content",
+              "kind": "INPUT",
+              "media_info": {
+                "audio_encoding": null,
+                "channels": null,
+                "duration_ms": null,
+                "height": 220,
+                "sample_rate_hz": null,
+                "width": 640
+              },
+              "original_name": "input-0.png",
+              "sha256": "4aacf69e5038862c6ad6f7bfc484c54497f9aa587da147b169da4c5f6bdf31c9",
+              "size_bytes": 5079
+            },
+            "input_index": 0,
+            "result_artifact": null,
+            "status": "QUEUED",
+            "task_id": "ec1c37e2-1790-47ea-aacb-54f0a3782f8b",
+            "waiting_reason": null
+          },
+          {
+            "attempts_used": 0,
+            "current_execution_id": null,
+            "dispatches": [],
+            "error": null,
+            "input": {
+              "artifact_id": "acff57cc970b54413a47487a27a763216",
+              "content_type": "image/png",
+              "created_at": "2026-11-14T18:07:39Z",
+              "download_path": "/api/resource/v1/artifacts/acff57cc970b54413a47487a27a763216/content",
+              "kind": "INPUT",
+              "media_info": {
+                "audio_encoding": null,
+                "channels": null,
+                "duration_ms": null,
+                "height": 220,
+                "sample_rate_hz": null,
+                "width": 640
+              },
+              "original_name": "input-1.png",
+              "sha256": "59826c16d4fb9456594e0e86a94f9c4081df5af0e5c4714324a16fc481561eab",
+              "size_bytes": 6309
+            },
+            "input_index": 1,
+            "result_artifact": null,
+            "status": "QUEUED",
+            "task_id": "f873c68a-38c7-4f24-98c4-e13ff505c4d6",
+            "waiting_reason": null
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-11-14T18:07:39.704183Z",
+      "service": "task",
+      "job_observation": {
+        "cancel_requested": false,
+        "client_request_id": "dea4cffc-7416-4f5a-a919-fd6ece5a8c34",
+        "counts": {
+          "cancelled": 0,
+          "cancelling": 0,
+          "dispatching": 0,
+          "failed": 0,
+          "queued": 0,
+          "running": 0,
+          "succeeded": 0,
+          "total": 2,
+          "waiting_for_resources": 2
+        },
+        "created_at": "2026-11-14T18:07:39.486Z",
+        "dependency_status": "AVAILABLE",
+        "download_path": null,
+        "finished_at": null,
+        "job_id": "c5da4167-0beb-419d-8390-82bae5dc7c56",
+        "parameters": {
+          "language": "auto"
+        },
+        "profile_digest": "1290c0523d80e5f02d5ed8021ea5f6363d598468c542d60dbf47cb9e1a9cb6a9",
+        "profile_id": "ocr.default.v1",
+        "started_at": null,
+        "status": "WAITING_FOR_RESOURCES",
+        "task_type": "ocr.image.v1",
+        "tasks": [
+          {
+            "attempts_used": 0,
+            "current_execution_id": null,
+            "dispatches": [],
+            "error": null,
+            "input": {
+              "artifact_id": "aee7cb72539a341fd9c6182dcd6369d84",
+              "content_type": "image/png",
+              "created_at": "2026-11-14T18:07:39Z",
+              "download_path": "/api/resource/v1/artifacts/aee7cb72539a341fd9c6182dcd6369d84/content",
+              "kind": "INPUT",
+              "media_info": {
+                "audio_encoding": null,
+                "channels": null,
+                "duration_ms": null,
+                "height": 220,
+                "sample_rate_hz": null,
+                "width": 640
+              },
+              "original_name": "input-0.png",
+              "sha256": "4aacf69e5038862c6ad6f7bfc484c54497f9aa587da147b169da4c5f6bdf31c9",
+              "size_bytes": 5079
+            },
+            "input_index": 0,
+            "result_artifact": null,
+            "status": "WAITING_FOR_RESOURCES",
+            "task_id": "ec1c37e2-1790-47ea-aacb-54f0a3782f8b",
+            "waiting_reason": "等待模型准备完成"
+          },
+          {
+            "attempts_used": 0,
+            "current_execution_id": null,
+            "dispatches": [],
+            "error": null,
+            "input": {
+              "artifact_id": "acff57cc970b54413a47487a27a763216",
+              "content_type": "image/png",
+              "created_at": "2026-11-14T18:07:39Z",
+              "download_path": "/api/resource/v1/artifacts/acff57cc970b54413a47487a27a763216/content",
+              "kind": "INPUT",
+              "media_info": {
+                "audio_encoding": null,
+                "channels": null,
+                "duration_ms": null,
+                "height": 220,
+                "sample_rate_hz": null,
+                "width": 640
+              },
+              "original_name": "input-1.png",
+              "sha256": "59826c16d4fb9456594e0e86a94f9c4081df5af0e5c4714324a16fc481561eab",
+              "size_bytes": 6309
+            },
+            "input_index": 1,
+            "result_artifact": null,
+            "status": "WAITING_FOR_RESOURCES",
+            "task_id": "f873c68a-38c7-4f24-98c4-e13ff505c4d6",
+            "waiting_reason": "等待模型准备完成"
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-11-14T18:07:42.733526Z",
+      "service": "task",
+      "job_observation": {
+        "cancel_requested": false,
+        "client_request_id": "dea4cffc-7416-4f5a-a919-fd6ece5a8c34",
+        "counts": {
+          "cancelled": 0,
+          "cancelling": 0,
+          "dispatching": 0,
+          "failed": 0,
+          "queued": 0,
+          "running": 1,
+          "succeeded": 0,
+          "total": 2,
+          "waiting_for_resources": 1
+        },
+        "created_at": "2026-11-14T18:07:39.486Z",
+        "dependency_status": "AVAILABLE",
+        "download_path": null,
+        "finished_at": null,
+        "job_id": "c5da4167-0beb-419d-8390-82bae5dc7c56",
+        "parameters": {
+          "language": "auto"
+        },
+        "profile_digest": "1290c0523d80e5f02d5ed8021ea5f6363d598468c542d60dbf47cb9e1a9cb6a9",
+        "profile_id": "ocr.default.v1",
+        "started_at": "2026-11-14T18:07:42.530Z",
+        "status": "RUNNING",
+        "task_type": "ocr.image.v1",
+        "tasks": [
+          {
+            "attempts_used": 1,
+            "current_execution_id": "d15e3ffa-9586-49b4-b6c0-a6e54fe25fba",
+            "dispatches": [
+              {
+                "accepted_at": "2026-11-14T18:07:42Z",
+                "attempt_no": 1,
+                "error": null,
+                "execution_id": "d15e3ffa-9586-49b4-b6c0-a6e54fe25fba",
+                "finished_at": null,
+                "status": "ACCEPTED",
+                "worker_id": "w0e395efde3f645c8"
+              }
+            ],
+            "error": null,
+            "input": {
+              "artifact_id": "aee7cb72539a341fd9c6182dcd6369d84",
+              "content_type": "image/png",
+              "created_at": "2026-11-14T18:07:39Z",
+              "download_path": "/api/resource/v1/artifacts/aee7cb72539a341fd9c6182dcd6369d84/content",
+              "kind": "INPUT",
+              "media_info": {
+                "audio_encoding": null,
+                "channels": null,
+                "duration_ms": null,
+                "height": 220,
+                "sample_rate_hz": null,
+                "width": 640
+              },
+              "original_name": "input-0.png",
+              "sha256": "4aacf69e5038862c6ad6f7bfc484c54497f9aa587da147b169da4c5f6bdf31c9",
+              "size_bytes": 5079
+            },
+            "input_index": 0,
+            "result_artifact": null,
+            "status": "RUNNING",
+            "task_id": "ec1c37e2-1790-47ea-aacb-54f0a3782f8b",
+            "waiting_reason": null
+          },
+          {
+            "attempts_used": 0,
+            "current_execution_id": null,
+            "dispatches": [],
+            "error": null,
+            "input": {
+              "artifact_id": "acff57cc970b54413a47487a27a763216",
+              "content_type": "image/png",
+              "created_at": "2026-11-14T18:07:39Z",
+              "download_path": "/api/resource/v1/artifacts/acff57cc970b54413a47487a27a763216/content",
+              "kind": "INPUT",
+              "media_info": {
+                "audio_encoding": null,
+                "channels": null,
+                "duration_ms": null,
+                "height": 220,
+                "sample_rate_hz": null,
+                "width": 640
+              },
+              "original_name": "input-1.png",
+              "sha256": "59826c16d4fb9456594e0e86a94f9c4081df5af0e5c4714324a16fc481561eab",
+              "size_bytes": 6309
+            },
+            "input_index": 1,
+            "result_artifact": null,
+            "status": "WAITING_FOR_RESOURCES",
+            "task_id": "f873c68a-38c7-4f24-98c4-e13ff505c4d6",
+            "waiting_reason": "节点占槽或接纳结果待对账"
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-11-14T18:07:43.589933Z",
+      "service": "task",
+      "job_observation": {
+        "cancel_requested": false,
+        "client_request_id": "dea4cffc-7416-4f5a-a919-fd6ece5a8c34",
+        "counts": {
+          "cancelled": 0,
+          "cancelling": 0,
+          "dispatching": 0,
+          "failed": 0,
+          "queued": 0,
+          "running": 1,
+          "succeeded": 1,
+          "total": 2,
+          "waiting_for_resources": 0
+        },
+        "created_at": "2026-11-14T18:07:39.486Z",
+        "dependency_status": "AVAILABLE",
+        "download_path": null,
+        "finished_at": null,
+        "job_id": "c5da4167-0beb-419d-8390-82bae5dc7c56",
+        "parameters": {
+          "language": "auto"
+        },
+        "profile_digest": "1290c0523d80e5f02d5ed8021ea5f6363d598468c542d60dbf47cb9e1a9cb6a9",
+        "profile_id": "ocr.default.v1",
+        "started_at": "2026-11-14T18:07:42.530Z",
+        "status": "RUNNING",
+        "task_type": "ocr.image.v1",
+        "tasks": [
+          {
+            "attempts_used": 1,
+            "current_execution_id": "d15e3ffa-9586-49b4-b6c0-a6e54fe25fba",
+            "dispatches": [
+              {
+                "accepted_at": "2026-11-14T18:07:42Z",
+                "attempt_no": 1,
+                "error": null,
+                "execution_id": "d15e3ffa-9586-49b4-b6c0-a6e54fe25fba",
+                "finished_at": "2026-11-14T18:07:43Z",
+                "status": "SUCCEEDED",
+                "worker_id": "w0e395efde3f645c8"
+              }
+            ],
+            "error": null,
+            "input": {
+              "artifact_id": "aee7cb72539a341fd9c6182dcd6369d84",
+              "content_type": "image/png",
+              "created_at": "2026-11-14T18:07:39Z",
+              "download_path": "/api/resource/v1/artifacts/aee7cb72539a341fd9c6182dcd6369d84/content",
+              "kind": "INPUT",
+              "media_info": {
+                "audio_encoding": null,
+                "channels": null,
+                "duration_ms": null,
+                "height": 220,
+                "sample_rate_hz": null,
+                "width": 640
+              },
+              "original_name": "input-0.png",
+              "sha256": "4aacf69e5038862c6ad6f7bfc484c54497f9aa587da147b169da4c5f6bdf31c9",
+              "size_bytes": 5079
+            },
+            "input_index": 0,
+            "result_artifact": {
+              "artifact_id": "a8297729f668442dbaf22414d23575987",
+              "content_type": "application/json",
+              "created_at": "2026-11-14T18:07:43Z",
+              "download_path": "/api/resource/v1/artifacts/a8297729f668442dbaf22414d23575987/content",
+              "kind": "RESULT",
+              "media_info": {
+                "audio_encoding": null,
+                "channels": null,
+                "duration_ms": null,
+                "height": null,
+                "sample_rate_hz": null,
+                "width": null
+              },
+              "original_name": "execution-d15e3ffa-9586-49b4-b6c0-a6e54fe25fba.json",
+              "sha256": "75243c0bde81a1016799945452c2a83b8e359ac6d760b7fa73a6fe597a14a563",
+              "size_bytes": 255
+            },
+            "status": "SUCCEEDED",
+            "task_id": "ec1c37e2-1790-47ea-aacb-54f0a3782f8b",
+            "waiting_reason": null
+          },
+          {
+            "attempts_used": 1,
+            "current_execution_id": "2b81772c-7859-46ad-b307-d73ee10a109b",
+            "dispatches": [
+              {
+                "accepted_at": "2026-11-14T18:07:43Z",
+                "attempt_no": 1,
+                "error": null,
+                "execution_id": "2b81772c-7859-46ad-b307-d73ee10a109b",
+                "finished_at": null,
+                "status": "ACCEPTED",
+                "worker_id": "w0e395efde3f645c8"
+              }
+            ],
+            "error": null,
+            "input": {
+              "artifact_id": "acff57cc970b54413a47487a27a763216",
+              "content_type": "image/png",
+              "created_at": "2026-11-14T18:07:39Z",
+              "download_path": "/api/resource/v1/artifacts/acff57cc970b54413a47487a27a763216/content",
+              "kind": "INPUT",
+              "media_info": {
+                "audio_encoding": null,
+                "channels": null,
+                "duration_ms": null,
+                "height": 220,
+                "sample_rate_hz": null,
+                "width": 640
+              },
+              "original_name": "input-1.png",
+              "sha256": "59826c16d4fb9456594e0e86a94f9c4081df5af0e5c4714324a16fc481561eab",
+              "size_bytes": 6309
+            },
+            "input_index": 1,
+            "result_artifact": null,
+            "status": "RUNNING",
+            "task_id": "f873c68a-38c7-4f24-98c4-e13ff505c4d6",
+            "waiting_reason": null
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-11-14T18:07:45.773874Z",
+      "service": "task",
+      "job_observation": {
+        "cancel_requested": false,
+        "client_request_id": "dea4cffc-7416-4f5a-a919-fd6ece5a8c34",
+        "counts": {
+          "cancelled": 0,
+          "cancelling": 0,
+          "dispatching": 0,
+          "failed": 0,
+          "queued": 0,
+          "running": 0,
+          "succeeded": 2,
+          "total": 2,
+          "waiting_for_resources": 0
+        },
+        "created_at": "2026-11-14T18:07:39.486Z",
+        "dependency_status": "AVAILABLE",
+        "download_path": "/api/task/v1/jobs/c5da4167-0beb-419d-8390-82bae5dc7c56/download",
+        "finished_at": "2026-11-14T18:07:45.591Z",
+        "job_id": "c5da4167-0beb-419d-8390-82bae5dc7c56",
+        "parameters": {
+          "language": "auto"
+        },
+        "profile_digest": "1290c0523d80e5f02d5ed8021ea5f6363d598468c542d60dbf47cb9e1a9cb6a9",
+        "profile_id": "ocr.default.v1",
+        "started_at": "2026-11-14T18:07:42.530Z",
+        "status": "SUCCEEDED",
+        "task_type": "ocr.image.v1",
+        "tasks": [
+          {
+            "attempts_used": 1,
+            "current_execution_id": "d15e3ffa-9586-49b4-b6c0-a6e54fe25fba",
+            "dispatches": [
+              {
+                "accepted_at": "2026-11-14T18:07:42Z",
+                "attempt_no": 1,
+                "error": null,
+                "execution_id": "d15e3ffa-9586-49b4-b6c0-a6e54fe25fba",
+                "finished_at": "2026-11-14T18:07:43Z",
+                "status": "SUCCEEDED",
+                "worker_id": "w0e395efde3f645c8"
+              }
+            ],
+            "error": null,
+            "input": {
+              "artifact_id": "aee7cb72539a341fd9c6182dcd6369d84",
+              "content_type": "image/png",
+              "created_at": "2026-11-14T18:07:39Z",
+              "download_path": "/api/resource/v1/artifacts/aee7cb72539a341fd9c6182dcd6369d84/content",
+              "kind": "INPUT",
+              "media_info": {
+                "audio_encoding": null,
+                "channels": null,
+                "duration_ms": null,
+                "height": 220,
+                "sample_rate_hz": null,
+                "width": 640
+              },
+              "original_name": "input-0.png",
+              "sha256": "4aacf69e5038862c6ad6f7bfc484c54497f9aa587da147b169da4c5f6bdf31c9",
+              "size_bytes": 5079
+            },
+            "input_index": 0,
+            "result_artifact": {
+              "artifact_id": "a8297729f668442dbaf22414d23575987",
+              "content_type": "application/json",
+              "created_at": "2026-11-14T18:07:43Z",
+              "download_path": "/api/resource/v1/artifacts/a8297729f668442dbaf22414d23575987/content",
+              "kind": "RESULT",
+              "media_info": {
+                "audio_encoding": null,
+                "channels": null,
+                "duration_ms": null,
+                "height": null,
+                "sample_rate_hz": null,
+                "width": null
+              },
+              "original_name": "execution-d15e3ffa-9586-49b4-b6c0-a6e54fe25fba.json",
+              "sha256": "75243c0bde81a1016799945452c2a83b8e359ac6d760b7fa73a6fe597a14a563",
+              "size_bytes": 255
+            },
+            "status": "SUCCEEDED",
+            "task_id": "ec1c37e2-1790-47ea-aacb-54f0a3782f8b",
+            "waiting_reason": null
+          },
+          {
+            "attempts_used": 1,
+            "current_execution_id": "2b81772c-7859-46ad-b307-d73ee10a109b",
+            "dispatches": [
+              {
+                "accepted_at": "2026-11-14T18:07:43Z",
+                "attempt_no": 1,
+                "error": null,
+                "execution_id": "2b81772c-7859-46ad-b307-d73ee10a109b",
+                "finished_at": "2026-11-14T18:07:44Z",
+                "status": "SUCCEEDED",
+                "worker_id": "w0e395efde3f645c8"
+              }
+            ],
+            "error": null,
+            "input": {
+              "artifact_id": "acff57cc970b54413a47487a27a763216",
+              "content_type": "image/png",
+              "created_at": "2026-11-14T18:07:39Z",
+              "download_path": "/api/resource/v1/artifacts/acff57cc970b54413a47487a27a763216/content",
+              "kind": "INPUT",
+              "media_info": {
+                "audio_encoding": null,
+                "channels": null,
+                "duration_ms": null,
+                "height": 220,
+                "sample_rate_hz": null,
+                "width": 640
+              },
+              "original_name": "input-1.png",
+              "sha256": "59826c16d4fb9456594e0e86a94f9c4081df5af0e5c4714324a16fc481561eab",
+              "size_bytes": 6309
+            },
+            "input_index": 1,
+            "result_artifact": {
+              "artifact_id": "acf1db9445907439cbc47e02f34acf8f0",
+              "content_type": "application/json",
+              "created_at": "2026-11-14T18:07:44Z",
+              "download_path": "/api/resource/v1/artifacts/acf1db9445907439cbc47e02f34acf8f0/content",
+              "kind": "RESULT",
+              "media_info": {
+                "audio_encoding": null,
+                "channels": null,
+                "duration_ms": null,
+                "height": null,
+                "sample_rate_hz": null,
+                "width": null
+              },
+              "original_name": "execution-2b81772c-7859-46ad-b307-d73ee10a109b.json",
+              "sha256": "d3abecaa9ca4bc0a5ef5917279062b03b277ae557c415898282b3e81be825b21",
+              "size_bytes": 253
+            },
+            "status": "SUCCEEDED",
+            "task_id": "f873c68a-38c7-4f24-98c4-e13ff505c4d6",
+            "waiting_reason": null
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-11-14T18:07:45.776525Z",
+      "service": "task",
+      "method": "GET",
+      "path": "/api/task/v1/jobs/c5da4167-0beb-419d-8390-82bae5dc7c56/results",
+      "request": null,
+      "status": 200,
+      "response": {
+        "job_id": "c5da4167-0beb-419d-8390-82bae5dc7c56",
+        "task_type": "ocr.image.v1",
+        "status": "SUCCEEDED",
+        "items": [
+          {
+            "input_index": 0,
+            "task_id": "ec1c37e2-1790-47ea-aacb-54f0a3782f8b",
+            "input_artifact_id": "aee7cb72539a341fd9c6182dcd6369d84",
+            "original_name": "input-0.png",
+            "status": "SUCCEEDED",
+            "result": {
+              "blocks": [
+                {
+                  "bbox": [
+                    23.0,
+                    70.0,
+                    364.0,
+                    124.0
+                  ],
+                  "confidence": 0.97081,
+                  "text": "HELLO OCR 123"
+                }
+              ],
+              "image_height": 220,
+              "image_width": 640,
+              "input_artifact_id": "aee7cb72539a341fd9c6182dcd6369d84",
+              "schema_version": "1.0",
+              "task_type": "ocr.image.v1",
+              "text": "HELLO OCR 123"
+            },
+            "error": null
+          },
+          {
+            "input_index": 1,
+            "task_id": "f873c68a-38c7-4f24-98c4-e13ff505c4d6",
+            "input_artifact_id": "acff57cc970b54413a47487a27a763216",
+            "original_name": "input-1.png",
+            "status": "SUCCEEDED",
+            "result": {
+              "blocks": [
+                {
+                  "bbox": [
+                    22.0,
+                    69.0,
+                    348.0,
+                    124.0
+                  ],
+                  "confidence": 0.99996,
+                  "text": "APPROVED 456"
+                }
+              ],
+              "image_height": 220,
+              "image_width": 640,
+              "input_artifact_id": "acff57cc970b54413a47487a27a763216",
+              "schema_version": "1.0",
+              "task_type": "ocr.image.v1",
+              "text": "APPROVED 456"
+            },
+            "error": null
+          }
+        ],
+        "combined_text": "HELLO OCR 123\n\nAPPROVED 456"
+      }
+    },
+    {
+      "at": "2026-11-14T18:07:45.779105Z",
+      "service": "resource",
+      "method": "GET",
+      "path": "/api/resource/v1/executions/d15e3ffa-9586-49b4-b6c0-a6e54fe25fba",
+      "request": null,
+      "status": 200,
+      "response": {
+        "execution_id": "d15e3ffa-9586-49b4-b6c0-a6e54fe25fba",
+        "slot_id": 0,
+        "job_id": "c5da4167-0beb-419d-8390-82bae5dc7c56",
+        "task_id": "ec1c37e2-1790-47ea-aacb-54f0a3782f8b",
+        "attempt_no": 1,
+        "worker_id": "w0e395efde3f645c8",
+        "worker_session_id": "69920a0a-c56b-481e-be8f-e6546098a18e",
+        "task_type": "ocr.image.v1",
+        "profile_id": "ocr.default.v1",
+        "profile_digest": "1290c0523d80e5f02d5ed8021ea5f6363d598468c542d60dbf47cb9e1a9cb6a9",
+        "input_artifact_id": "aee7cb72539a341fd9c6182dcd6369d84",
+        "parameters": {
+          "language": "auto"
+        },
+        "timeout_seconds": 120,
+        "status": "SUCCEEDED",
+        "input_sha256": "4aacf69e5038862c6ad6f7bfc484c54497f9aa587da147b169da4c5f6bdf31c9",
+        "created_at": "2026-11-14T18:07:42Z",
+        "accepted_at": "2026-11-14T18:07:42Z",
+        "started_at": "2026-11-14T18:07:42Z",
+        "finished_at": "2026-11-14T18:07:43Z",
+        "lease_expires_at": "2026-11-14T18:07:57Z",
+        "hard_deadline_at": "2026-11-14T18:09:42Z",
+        "result_artifact": {
+          "artifact_id": "a8297729f668442dbaf22414d23575987",
+          "kind": "RESULT",
+          "original_name": "execution-d15e3ffa-9586-49b4-b6c0-a6e54fe25fba.json",
+          "content_type": "application/json",
+          "sha256": "75243c0bde81a1016799945452c2a83b8e359ac6d760b7fa73a6fe597a14a563",
+          "size_bytes": 255,
+          "media_info": {
+            "audio_encoding": null,
+            "channels": null,
+            "duration_ms": null,
+            "height": null,
+            "sample_rate_hz": null,
+            "width": null
+          },
+          "download_path": "/api/resource/v1/artifacts/a8297729f668442dbaf22414d23575987/content",
+          "created_at": "2026-11-14T18:07:43Z"
+        },
+        "timings": {
+          "decode_ms": 1.7114579999999435,
+          "download_ms": 9.445834000000097,
+          "inference_ms": 360.8172079999998,
+          "postprocess_ms": 0.0,
+          "prefetch_decode_ms": 0,
+          "prefetch_download_ms": 0,
+          "prefetch_hit": false,
+          "total_worker_ms": 372.2479999999999,
+          "write_output_ms": 0.2735000000000376
+        },
+        "error": null
+      }
+    },
+    {
+      "at": "2026-11-14T18:07:45.784056Z",
+      "service": "resource",
+      "method": "GET",
+      "path": "/api/resource/v1/executions/2b81772c-7859-46ad-b307-d73ee10a109b",
+      "request": null,
+      "status": 200,
+      "response": {
+        "execution_id": "2b81772c-7859-46ad-b307-d73ee10a109b",
+        "slot_id": 0,
+        "job_id": "c5da4167-0beb-419d-8390-82bae5dc7c56",
+        "task_id": "f873c68a-38c7-4f24-98c4-e13ff505c4d6",
+        "attempt_no": 1,
+        "worker_id": "w0e395efde3f645c8",
+        "worker_session_id": "69920a0a-c56b-481e-be8f-e6546098a18e",
+        "task_type": "ocr.image.v1",
+        "profile_id": "ocr.default.v1",
+        "profile_digest": "1290c0523d80e5f02d5ed8021ea5f6363d598468c542d60dbf47cb9e1a9cb6a9",
+        "input_artifact_id": "acff57cc970b54413a47487a27a763216",
+        "parameters": {
+          "language": "auto"
+        },
+        "timeout_seconds": 120,
+        "status": "SUCCEEDED",
+        "input_sha256": "59826c16d4fb9456594e0e86a94f9c4081df5af0e5c4714324a16fc481561eab",
+        "created_at": "2026-11-14T18:07:43Z",
+        "accepted_at": "2026-11-14T18:07:43Z",
+        "started_at": "2026-11-14T18:07:44Z",
+        "finished_at": "2026-11-14T18:07:44Z",
+        "lease_expires_at": "2026-11-14T18:07:59Z",
+        "hard_deadline_at": "2026-11-14T18:09:43Z",
+        "result_artifact": {
+          "artifact_id": "acf1db9445907439cbc47e02f34acf8f0",
+          "kind": "RESULT",
+          "original_name": "execution-2b81772c-7859-46ad-b307-d73ee10a109b.json",
+          "content_type": "application/json",
+          "sha256": "d3abecaa9ca4bc0a5ef5917279062b03b277ae557c415898282b3e81be825b21",
+          "size_bytes": 253,
+          "media_info": {
+            "audio_encoding": null,
+            "channels": null,
+            "duration_ms": null,
+            "height": null,
+            "sample_rate_hz": null,
+            "width": null
+          },
+          "download_path": "/api/resource/v1/artifacts/acf1db9445907439cbc47e02f34acf8f0/content",
+          "created_at": "2026-11-14T18:07:44Z"
+        },
+        "timings": {
+          "decode_ms": 1.5568340000005065,
+          "download_ms": 6.2204160000005615,
+          "inference_ms": 354.5780840000008,
+          "postprocess_ms": 0.0,
+          "prefetch_decode_ms": 0,
+          "prefetch_download_ms": 0,
+          "prefetch_hit": false,
+          "total_worker_ms": 362.59741700000166,
+          "write_output_ms": 0.2420829999998375
+        },
+        "error": null
+      }
+    },
+    {
+      "at": "2026-11-14T18:07:45.793272Z",
+      "service": "resource",
+      "method": "GET",
+      "path": "/api/resource/v1/events",
+      "request": null,
+      "status": 200,
+      "response": {
+        "events": [
+          {
+            "event_id": 1,
+            "occurred_at": "2026-11-14T18:07:38Z",
+            "type": "service.restarted",
+            "worker_id": null,
+            "job_id": null,
+            "task_id": null,
+            "execution_id": null,
+            "preparation_id": null,
+            "message": "资源服务重启，未终态执行与旧会话已失效"
+          },
+          {
+            "event_id": 2,
+            "occurred_at": "2026-11-14T18:07:39Z",
+            "type": "node.registered",
+            "worker_id": "w0e395efde3f645c8",
+            "job_id": null,
+            "task_id": null,
+            "execution_id": null,
+            "preparation_id": null,
+            "message": "节点 joint-local-ocr 注册 (w0e395efde3f645c8)"
+          },
+          {
+            "event_id": 3,
+            "occurred_at": "2026-11-14T18:07:39Z",
+            "type": "profile.preparing",
+            "worker_id": "w0e395efde3f645c8",
+            "job_id": null,
+            "task_id": null,
+            "execution_id": null,
+            "preparation_id": "f9ab2ebf-8b71-45a4-80b8-50ecf7dffd74",
+            "message": "节点 w0e395efde3f645c8 开始准备 ocr.default.v1"
+          },
+          {
+            "event_id": 4,
+            "occurred_at": "2026-11-14T18:07:41Z",
+            "type": "profile.ready",
+            "worker_id": "w0e395efde3f645c8",
+            "job_id": null,
+            "task_id": null,
+            "execution_id": null,
+            "preparation_id": "f9ab2ebf-8b71-45a4-80b8-50ecf7dffd74",
+            "message": "节点 w0e395efde3f645c8 模型就绪 ocr.default.v1"
+          },
+          {
+            "event_id": 5,
+            "occurred_at": "2026-11-14T18:07:42Z",
+            "type": "execution.accepted",
+            "worker_id": "w0e395efde3f645c8",
+            "job_id": null,
+            "task_id": null,
+            "execution_id": "d15e3ffa-9586-49b4-b6c0-a6e54fe25fba",
+            "preparation_id": null,
+            "message": "执行已接受：ocr.image.v1 on w0e395efde3f645c8"
+          },
+          {
+            "event_id": 6,
+            "occurred_at": "2026-11-14T18:07:42Z",
+            "type": "execution.running",
+            "worker_id": "w0e395efde3f645c8",
+            "job_id": null,
+            "task_id": null,
+            "execution_id": "d15e3ffa-9586-49b4-b6c0-a6e54fe25fba",
+            "preparation_id": null,
+            "message": "节点 w0e395efde3f645c8 领取执行 d15e3ffa-9586-49b4-b6c0-a6e54fe25fba"
+          },
+          {
+            "event_id": 7,
+            "occurred_at": "2026-11-14T18:07:43Z",
+            "type": "execution.succeeded",
+            "worker_id": "w0e395efde3f645c8",
+            "job_id": null,
+            "task_id": null,
+            "execution_id": "d15e3ffa-9586-49b4-b6c0-a6e54fe25fba",
+            "preparation_id": null,
+            "message": "执行成功 d15e3ffa-9586-49b4-b6c0-a6e54fe25fba"
+          },
+          {
+            "event_id": 8,
+            "occurred_at": "2026-11-14T18:07:43Z",
+            "type": "execution.accepted",
+            "worker_id": "w0e395efde3f645c8",
+            "job_id": null,
+            "task_id": null,
+            "execution_id": "2b81772c-7859-46ad-b307-d73ee10a109b",
+            "preparation_id": null,
+            "message": "执行已接受：ocr.image.v1 on w0e395efde3f645c8"
+          },
+          {
+            "event_id": 9,
+            "occurred_at": "2026-11-14T18:07:44Z",
+            "type": "execution.running",
+            "worker_id": "w0e395efde3f645c8",
+            "job_id": null,
+            "task_id": null,
+            "execution_id": "2b81772c-7859-46ad-b307-d73ee10a109b",
+            "preparation_id": null,
+            "message": "节点 w0e395efde3f645c8 领取执行 2b81772c-7859-46ad-b307-d73ee10a109b"
+          },
+          {
+            "event_id": 10,
+            "occurred_at": "2026-11-14T18:07:44Z",
+            "type": "execution.succeeded",
+            "worker_id": "w0e395efde3f645c8",
+            "job_id": null,
+            "task_id": null,
+            "execution_id": "2b81772c-7859-46ad-b307-d73ee10a109b",
+            "preparation_id": null,
+            "message": "执行成功 2b81772c-7859-46ad-b307-d73ee10a109b"
+          }
+        ],
+        "next_after": 10,
+        "has_more": false
+      }
+    },
+    {
+      "at": "2026-11-14T18:07:45.794438Z",
+      "service": "resource",
+      "method": "GET",
+      "path": "/api/resource/v1/preparations/f9ab2ebf-8b71-45a4-80b8-50ecf7dffd74",
+      "request": null,
+      "status": 200,
+      "response": {
+        "preparation_id": "f9ab2ebf-8b71-45a4-80b8-50ecf7dffd74",
+        "worker_id": "w0e395efde3f645c8",
+        "worker_session_id": "69920a0a-c56b-481e-be8f-e6546098a18e",
+        "task_type": "ocr.image.v1",
+        "profile_id": "ocr.default.v1",
+        "profile_digest": "1290c0523d80e5f02d5ed8021ea5f6363d598468c542d60dbf47cb9e1a9cb6a9",
+        "status": "READY",
+        "created_at": "2026-11-14T18:07:39Z",
+        "finished_at": "2026-11-14T18:07:41Z",
+        "progress": 1.0,
+        "error": null
+      }
+    },
+    {
+      "at": "2026-11-14T18:07:45.796753Z",
+      "service": "resource",
+      "method": "POST",
+      "path": "/api/resource/v1/resources/w0e395efde3f645c8/mode",
+      "request": {
+        "mode": "DRAINING"
+      },
+      "status": 200,
+      "response": {
+        "prefetch_capacity": 0,
+        "prefetch_revision": 0,
+        "worker_id": "w0e395efde3f645c8",
+        "session_id": "69920a0a-c56b-481e-be8f-e6546098a18e",
+        "name": "joint-local-ocr",
+        "connection": "ONLINE",
+        "mode": "DRAINING",
+        "hardware": {
+          "arch": "arm64",
+          "cpu_name": "Apple M4",
+          "detection_errors": [],
+          "gpu_info_source": "unavailable",
+          "gpu_name": null,
+          "gpu_vram_bytes": null,
+          "logical_cores": 10,
+          "manual_labels": {},
+          "os": "Darwin 24.4.0",
+          "ram_available_bytes": 3472261120,
+          "ram_total_bytes": 17179869184
+        },
+        "capabilities": [
+          {
+            "backend": null,
+            "calibration": null,
+            "model_cached": false,
+            "model_sha256": null,
+            "profile_digest": null,
+            "profile_id": "asr.default.v1",
+            "reason": "计划类型；模型、许可和依赖待P1验证发布。",
+            "runtime_provider": null,
+            "state": "UNAVAILABLE",
+            "task_type": "asr.file.v1",
+            "verified": false
+          },
+          {
+            "backend": "cpu",
+            "calibration": {
+              "finished_at": "2026-11-14T18:07:41Z",
+              "median_compute_ms": 345.903,
+              "passed": true,
+              "sample_count": 3
+            },
+            "model_cached": true,
+            "model_sha256": "3358ac6b2a0919cf5c72159265440ba62fb496b504d1fc6fb92a4ffc4fc0edc5",
+            "profile_digest": "1290c0523d80e5f02d5ed8021ea5f6363d598468c542d60dbf47cb9e1a9cb6a9",
+            "profile_id": "ocr.default.v1",
+            "reason": null,
+            "runtime_provider": "CPUExecutionProvider",
+            "state": "READY",
+            "task_type": "ocr.image.v1",
+            "verified": true
+          }
+        ],
+        "max_slots": 1,
+        "threads_per_slot": 0,
+        "cpu_thread_budget": 0,
+        "reserved_slots": 0,
+        "available_slots": 0,
+        "active_execution_ids": [],
+        "active_preparation_id": null,
+        "cleanup_pending": false,
+        "last_seen_at": "2026-11-14T18:07:45Z",
+        "telemetry": {
+          "cpu_percent": 21.8,
+          "gpu_memory_used_bytes": null,
+          "gpu_metric_source": "unavailable",
+          "gpu_percent": null,
+          "ram_used_bytes": 5579472896,
+          "sampled_at": "2026-11-14T18:07:45Z"
+        }
+      }
+    },
+    {
+      "at": "2026-11-14T18:07:46.661836Z",
+      "service": "task",
+      "method": "POST",
+      "path": "/api/task/v1/jobs",
+      "request": {
+        "client_request_id": "30b3b5dc-a125-4994-ae27-35a2dbbb05f8",
+        "task_type": "ocr.image.v1",
+        "profile_id": "ocr.default.v1",
+        "profile_digest": "1290c0523d80e5f02d5ed8021ea5f6363d598468c542d60dbf47cb9e1a9cb6a9",
+        "input_artifact_ids": [
+          "aee7cb72539a341fd9c6182dcd6369d84"
+        ],
+        "parameters": {
+          "language": "auto"
+        }
+      },
+      "status": 201,
+      "response": {
+        "job_id": "f151bb6c-3d1c-4e64-a265-84bef05a47f6",
+        "client_request_id": "30b3b5dc-a125-4994-ae27-35a2dbbb05f8",
+        "task_type": "ocr.image.v1",
+        "profile_id": "ocr.default.v1",
+        "profile_digest": "1290c0523d80e5f02d5ed8021ea5f6363d598468c542d60dbf47cb9e1a9cb6a9",
+        "parameters": {
+          "language": "auto"
+        },
+        "status": "QUEUED",
+        "created_at": "2026-11-14T18:07:46.660Z",
+        "started_at": null,
+        "finished_at": null,
+        "cancel_requested": false,
+        "dependency_status": "AVAILABLE",
+        "counts": {
+          "queued": 1,
+          "waiting_for_resources": 0,
+          "dispatching": 0,
+          "running": 0,
+          "cancelling": 0,
+          "succeeded": 0,
+          "failed": 0,
+          "cancelled": 0,
+          "total": 1
+        },
+        "tasks": [
+          {
+            "task_id": "843e54a9-a45f-47a4-85e5-e395fda6c95d",
+            "input_index": 0,
+            "input": {
+              "artifact_id": "aee7cb72539a341fd9c6182dcd6369d84",
+              "kind": "INPUT",
+              "original_name": "input-0.png",
+              "content_type": "image/png",
+              "sha256": "4aacf69e5038862c6ad6f7bfc484c54497f9aa587da147b169da4c5f6bdf31c9",
+              "size_bytes": 5079,
+              "media_info": {
+                "audio_encoding": null,
+                "channels": null,
+                "duration_ms": null,
+                "height": 220,
+                "sample_rate_hz": null,
+                "width": 640
+              },
+              "download_path": "/api/resource/v1/artifacts/aee7cb72539a341fd9c6182dcd6369d84/content",
+              "created_at": "2026-11-14T18:07:39Z"
+            },
+            "status": "QUEUED",
+            "attempts_used": 0,
+            "current_execution_id": null,
+            "dispatches": [],
+            "result_artifact": null,
+            "waiting_reason": null,
+            "error": null
+          }
+        ],
+        "download_path": null
+      }
+    },
+    {
+      "at": "2026-11-14T18:07:46.885708Z",
+      "service": "task",
+      "method": "POST",
+      "path": "/api/task/v1/jobs/f151bb6c-3d1c-4e64-a265-84bef05a47f6/cancel",
+      "request": null,
+      "status": 200,
+      "response": {
+        "cancel_requested": true,
+        "client_request_id": "30b3b5dc-a125-4994-ae27-35a2dbbb05f8",
+        "counts": {
+          "queued": 0,
+          "waiting_for_resources": 0,
+          "dispatching": 0,
+          "running": 0,
+          "cancelling": 0,
+          "succeeded": 0,
+          "failed": 0,
+          "cancelled": 1,
+          "total": 1
+        },
+        "created_at": "2026-11-14T18:07:46.660Z",
+        "dependency_status": "AVAILABLE",
+        "download_path": "/api/task/v1/jobs/f151bb6c-3d1c-4e64-a265-84bef05a47f6/download",
+        "finished_at": "2026-11-14T18:07:46.881Z",
+        "job_id": "f151bb6c-3d1c-4e64-a265-84bef05a47f6",
+        "parameters": {
+          "language": "auto"
+        },
+        "profile_digest": "1290c0523d80e5f02d5ed8021ea5f6363d598468c542d60dbf47cb9e1a9cb6a9",
+        "profile_id": "ocr.default.v1",
+        "started_at": null,
+        "status": "CANCELLED",
+        "task_type": "ocr.image.v1",
+        "tasks": [
+          {
+            "attempts_used": 0,
+            "current_execution_id": null,
+            "dispatches": [],
+            "error": null,
+            "input": {
+              "artifact_id": "aee7cb72539a341fd9c6182dcd6369d84",
+              "content_type": "image/png",
+              "created_at": "2026-11-14T18:07:39Z",
+              "download_path": "/api/resource/v1/artifacts/aee7cb72539a341fd9c6182dcd6369d84/content",
+              "kind": "INPUT",
+              "media_info": {
+                "audio_encoding": null,
+                "channels": null,
+                "duration_ms": null,
+                "height": 220,
+                "sample_rate_hz": null,
+                "width": 640
+              },
+              "original_name": "input-0.png",
+              "sha256": "4aacf69e5038862c6ad6f7bfc484c54497f9aa587da147b169da4c5f6bdf31c9",
+              "size_bytes": 5079
+            },
+            "input_index": 0,
+            "result_artifact": null,
+            "status": "CANCELLED",
+            "task_id": "843e54a9-a45f-47a4-85e5-e395fda6c95d",
+            "waiting_reason": null
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-11-14T18:07:46.892308Z",
+      "service": "resource",
+      "method": "POST",
+      "path": "/api/resource/v1/resources/w0e395efde3f645c8/mode",
+      "request": {
+        "mode": "ACTIVE"
+      },
+      "status": 200,
+      "response": {
+        "prefetch_capacity": 0,
+        "prefetch_revision": 0,
+        "worker_id": "w0e395efde3f645c8",
+        "session_id": "69920a0a-c56b-481e-be8f-e6546098a18e",
+        "name": "joint-local-ocr",
+        "connection": "ONLINE",
+        "mode": "ACTIVE",
+        "hardware": {
+          "arch": "arm64",
+          "cpu_name": "Apple M4",
+          "detection_errors": [],
+          "gpu_info_source": "unavailable",
+          "gpu_name": null,
+          "gpu_vram_bytes": null,
+          "logical_cores": 10,
+          "manual_labels": {},
+          "os": "Darwin 24.4.0",
+          "ram_available_bytes": 3472261120,
+          "ram_total_bytes": 17179869184
+        },
+        "capabilities": [
+          {
+            "backend": null,
+            "calibration": null,
+            "model_cached": false,
+            "model_sha256": null,
+            "profile_digest": null,
+            "profile_id": "asr.default.v1",
+            "reason": "计划类型；模型、许可和依赖待P1验证发布。",
+            "runtime_provider": null,
+            "state": "UNAVAILABLE",
+            "task_type": "asr.file.v1",
+            "verified": false
+          },
+          {
+            "backend": "cpu",
+            "calibration": {
+              "finished_at": "2026-11-14T18:07:41Z",
+              "median_compute_ms": 345.903,
+              "passed": true,
+              "sample_count": 3
+            },
+            "model_cached": true,
+            "model_sha256": "3358ac6b2a0919cf5c72159265440ba62fb496b504d1fc6fb92a4ffc4fc0edc5",
+            "profile_digest": "1290c0523d80e5f02d5ed8021ea5f6363d598468c542d60dbf47cb9e1a9cb6a9",
+            "profile_id": "ocr.default.v1",
+            "reason": null,
+            "runtime_provider": "CPUExecutionProvider",
+            "state": "READY",
+            "task_type": "ocr.image.v1",
+            "verified": true
+          }
+        ],
+        "max_slots": 1,
+        "threads_per_slot": 0,
+        "cpu_thread_budget": 0,
+        "reserved_slots": 0,
+        "available_slots": 1,
+        "active_execution_ids": [],
+        "active_preparation_id": null,
+        "cleanup_pending": false,
+        "last_seen_at": "2026-11-14T18:07:45Z",
+        "telemetry": {
+          "cpu_percent": 21.8,
+          "gpu_memory_used_bytes": null,
+          "gpu_metric_source": "unavailable",
+          "gpu_percent": null,
+          "ram_used_bytes": 5579472896,
+          "sampled_at": "2026-11-14T18:07:45Z"
+        }
+      }
+    },
+    {
+      "at": "2026-11-14T18:07:46.902149Z",
+      "service": "task",
+      "method": "POST",
+      "path": "/api/task/v1/jobs",
+      "request": {
+        "client_request_id": "eb6c68d3-d7ba-4ca3-b330-72fcacb4d855",
+        "task_type": "ocr.image.v1",
+        "profile_id": "ocr.default.v1",
+        "profile_digest": "1290c0523d80e5f02d5ed8021ea5f6363d598468c542d60dbf47cb9e1a9cb6a9",
+        "input_artifact_ids": [
+          "aee7cb72539a341fd9c6182dcd6369d84"
+        ],
+        "parameters": {
+          "language": "auto"
+        }
+      },
+      "status": 201,
+      "response": {
+        "job_id": "d488e7e1-5986-4aae-8ade-917d042ac44b",
+        "client_request_id": "eb6c68d3-d7ba-4ca3-b330-72fcacb4d855",
+        "task_type": "ocr.image.v1",
+        "profile_id": "ocr.default.v1",
+        "profile_digest": "1290c0523d80e5f02d5ed8021ea5f6363d598468c542d60dbf47cb9e1a9cb6a9",
+        "parameters": {
+          "language": "auto"
+        },
+        "status": "QUEUED",
+        "created_at": "2026-11-14T18:07:46.899Z",
+        "started_at": null,
+        "finished_at": null,
+        "cancel_requested": false,
+        "dependency_status": "AVAILABLE",
+        "counts": {
+          "queued": 1,
+          "waiting_for_resources": 0,
+          "dispatching": 0,
+          "running": 0,
+          "cancelling": 0,
+          "succeeded": 0,
+          "failed": 0,
+          "cancelled": 0,
+          "total": 1
+        },
+        "tasks": [
+          {
+            "task_id": "4f6fded7-562f-486d-a60f-1497808b1a83",
+            "input_index": 0,
+            "input": {
+              "artifact_id": "aee7cb72539a341fd9c6182dcd6369d84",
+              "kind": "INPUT",
+              "original_name": "input-0.png",
+              "content_type": "image/png",
+              "sha256": "4aacf69e5038862c6ad6f7bfc484c54497f9aa587da147b169da4c5f6bdf31c9",
+              "size_bytes": 5079,
+              "media_info": {
+                "audio_encoding": null,
+                "channels": null,
+                "duration_ms": null,
+                "height": 220,
+                "sample_rate_hz": null,
+                "width": 640
+              },
+              "download_path": "/api/resource/v1/artifacts/aee7cb72539a341fd9c6182dcd6369d84/content",
+              "created_at": "2026-11-14T18:07:39Z"
+            },
+            "status": "QUEUED",
+            "attempts_used": 0,
+            "current_execution_id": null,
+            "dispatches": [],
+            "result_artifact": null,
+            "waiting_reason": null,
+            "error": null
+          }
+        ],
+        "download_path": null
+      }
+    },
+    {
+      "at": "2026-11-14T18:07:46.904376Z",
+      "service": "task",
+      "job_observation": {
+        "cancel_requested": false,
+        "client_request_id": "eb6c68d3-d7ba-4ca3-b330-72fcacb4d855",
+        "counts": {
+          "cancelled": 0,
+          "cancelling": 0,
+          "dispatching": 0,
+          "failed": 0,
+          "queued": 1,
+          "running": 0,
+          "succeeded": 0,
+          "total": 1,
+          "waiting_for_resources": 0
+        },
+        "created_at": "2026-11-14T18:07:46.899Z",
+        "dependency_status": "AVAILABLE",
+        "download_path": null,
+        "finished_at": null,
+        "job_id": "d488e7e1-5986-4aae-8ade-917d042ac44b",
+        "parameters": {
+          "language": "auto"
+        },
+        "profile_digest": "1290c0523d80e5f02d5ed8021ea5f6363d598468c542d60dbf47cb9e1a9cb6a9",
+        "profile_id": "ocr.default.v1",
+        "started_at": null,
+        "status": "QUEUED",
+        "task_type": "ocr.image.v1",
+        "tasks": [
+          {
+            "attempts_used": 0,
+            "current_execution_id": null,
+            "dispatches": [],
+            "error": null,
+            "input": {
+              "artifact_id": "aee7cb72539a341fd9c6182dcd6369d84",
+              "content_type": "image/png",
+              "created_at": "2026-11-14T18:07:39Z",
+              "download_path": "/api/resource/v1/artifacts/aee7cb72539a341fd9c6182dcd6369d84/content",
+              "kind": "INPUT",
+              "media_info": {
+                "audio_encoding": null,
+                "channels": null,
+                "duration_ms": null,
+                "height": 220,
+                "sample_rate_hz": null,
+                "width": 640
+              },
+              "original_name": "input-0.png",
+              "sha256": "4aacf69e5038862c6ad6f7bfc484c54497f9aa587da147b169da4c5f6bdf31c9",
+              "size_bytes": 5079
+            },
+            "input_index": 0,
+            "result_artifact": null,
+            "status": "QUEUED",
+            "task_id": "4f6fded7-562f-486d-a60f-1497808b1a83",
+            "waiting_reason": null
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-11-14T18:07:47.122791Z",
+      "service": "task",
+      "job_observation": {
+        "cancel_requested": false,
+        "client_request_id": "eb6c68d3-d7ba-4ca3-b330-72fcacb4d855",
+        "counts": {
+          "cancelled": 0,
+          "cancelling": 0,
+          "dispatching": 0,
+          "failed": 0,
+          "queued": 0,
+          "running": 1,
+          "succeeded": 0,
+          "total": 1,
+          "waiting_for_resources": 0
+        },
+        "created_at": "2026-11-14T18:07:46.899Z",
+        "dependency_status": "AVAILABLE",
+        "download_path": null,
+        "finished_at": null,
+        "job_id": "d488e7e1-5986-4aae-8ade-917d042ac44b",
+        "parameters": {
+          "language": "auto"
+        },
+        "profile_digest": "1290c0523d80e5f02d5ed8021ea5f6363d598468c542d60dbf47cb9e1a9cb6a9",
+        "profile_id": "ocr.default.v1",
+        "started_at": "2026-11-14T18:07:46.905Z",
+        "status": "RUNNING",
+        "task_type": "ocr.image.v1",
+        "tasks": [
+          {
+            "attempts_used": 1,
+            "current_execution_id": "cfe2770d-3e31-42e2-a859-438d92d42150",
+            "dispatches": [
+              {
+                "accepted_at": "2026-11-14T18:07:46Z",
+                "attempt_no": 1,
+                "error": null,
+                "execution_id": "cfe2770d-3e31-42e2-a859-438d92d42150",
+                "finished_at": null,
+                "status": "ACCEPTED",
+                "worker_id": "w0e395efde3f645c8"
+              }
+            ],
+            "error": null,
+            "input": {
+              "artifact_id": "aee7cb72539a341fd9c6182dcd6369d84",
+              "content_type": "image/png",
+              "created_at": "2026-11-14T18:07:39Z",
+              "download_path": "/api/resource/v1/artifacts/aee7cb72539a341fd9c6182dcd6369d84/content",
+              "kind": "INPUT",
+              "media_info": {
+                "audio_encoding": null,
+                "channels": null,
+                "duration_ms": null,
+                "height": 220,
+                "sample_rate_hz": null,
+                "width": 640
+              },
+              "original_name": "input-0.png",
+              "sha256": "4aacf69e5038862c6ad6f7bfc484c54497f9aa587da147b169da4c5f6bdf31c9",
+              "size_bytes": 5079
+            },
+            "input_index": 0,
+            "result_artifact": null,
+            "status": "RUNNING",
+            "task_id": "4f6fded7-562f-486d-a60f-1497808b1a83",
+            "waiting_reason": null
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-11-14T18:07:49.065879Z",
+      "service": "task",
+      "job_observation": {
+        "cancel_requested": false,
+        "client_request_id": "eb6c68d3-d7ba-4ca3-b330-72fcacb4d855",
+        "counts": {
+          "cancelled": 0,
+          "cancelling": 0,
+          "dispatching": 0,
+          "failed": 0,
+          "queued": 0,
+          "running": 0,
+          "succeeded": 1,
+          "total": 1,
+          "waiting_for_resources": 0
+        },
+        "created_at": "2026-11-14T18:07:46.899Z",
+        "dependency_status": "AVAILABLE",
+        "download_path": "/api/task/v1/jobs/d488e7e1-5986-4aae-8ade-917d042ac44b/download",
+        "finished_at": "2026-11-14T18:07:48.930Z",
+        "job_id": "d488e7e1-5986-4aae-8ade-917d042ac44b",
+        "parameters": {
+          "language": "auto"
+        },
+        "profile_digest": "1290c0523d80e5f02d5ed8021ea5f6363d598468c542d60dbf47cb9e1a9cb6a9",
+        "profile_id": "ocr.default.v1",
+        "started_at": "2026-11-14T18:07:46.905Z",
+        "status": "SUCCEEDED",
+        "task_type": "ocr.image.v1",
+        "tasks": [
+          {
+            "attempts_used": 1,
+            "current_execution_id": "cfe2770d-3e31-42e2-a859-438d92d42150",
+            "dispatches": [
+              {
+                "accepted_at": "2026-11-14T18:07:46Z",
+                "attempt_no": 1,
+                "error": null,
+                "execution_id": "cfe2770d-3e31-42e2-a859-438d92d42150",
+                "finished_at": "2026-11-14T18:07:48Z",
+                "status": "SUCCEEDED",
+                "worker_id": "w0e395efde3f645c8"
+              }
+            ],
+            "error": null,
+            "input": {
+              "artifact_id": "aee7cb72539a341fd9c6182dcd6369d84",
+              "content_type": "image/png",
+              "created_at": "2026-11-14T18:07:39Z",
+              "download_path": "/api/resource/v1/artifacts/aee7cb72539a341fd9c6182dcd6369d84/content",
+              "kind": "INPUT",
+              "media_info": {
+                "audio_encoding": null,
+                "channels": null,
+                "duration_ms": null,
+                "height": 220,
+                "sample_rate_hz": null,
+                "width": 640
+              },
+              "original_name": "input-0.png",
+              "sha256": "4aacf69e5038862c6ad6f7bfc484c54497f9aa587da147b169da4c5f6bdf31c9",
+              "size_bytes": 5079
+            },
+            "input_index": 0,
+            "result_artifact": {
+              "artifact_id": "a8d89efbff7c343d39007979380a94f52",
+              "content_type": "application/json",
+              "created_at": "2026-11-14T18:07:48Z",
+              "download_path": "/api/resource/v1/artifacts/a8d89efbff7c343d39007979380a94f52/content",
+              "kind": "RESULT",
+              "media_info": {
+                "audio_encoding": null,
+                "channels": null,
+                "duration_ms": null,
+                "height": null,
+                "sample_rate_hz": null,
+                "width": null
+              },
+              "original_name": "execution-cfe2770d-3e31-42e2-a859-438d92d42150.json",
+              "sha256": "75243c0bde81a1016799945452c2a83b8e359ac6d760b7fa73a6fe597a14a563",
+              "size_bytes": 255
+            },
+            "status": "SUCCEEDED",
+            "task_id": "4f6fded7-562f-486d-a60f-1497808b1a83",
+            "waiting_reason": null
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-11-14T18:07:49.067666Z",
+      "service": "task",
+      "method": "GET",
+      "path": "/api/task/v1/jobs/d488e7e1-5986-4aae-8ade-917d042ac44b/results",
+      "request": null,
+      "status": 200,
+      "response": {
+        "job_id": "d488e7e1-5986-4aae-8ade-917d042ac44b",
+        "task_type": "ocr.image.v1",
+        "status": "SUCCEEDED",
+        "items": [
+          {
+            "input_index": 0,
+            "task_id": "4f6fded7-562f-486d-a60f-1497808b1a83",
+            "input_artifact_id": "aee7cb72539a341fd9c6182dcd6369d84",
+            "original_name": "input-0.png",
+            "status": "SUCCEEDED",
+            "result": {
+              "blocks": [
+                {
+                  "bbox": [
+                    23.0,
+                    70.0,
+                    364.0,
+                    124.0
+                  ],
+                  "confidence": 0.97081,
+                  "text": "HELLO OCR 123"
+                }
+              ],
+              "image_height": 220,
+              "image_width": 640,
+              "input_artifact_id": "aee7cb72539a341fd9c6182dcd6369d84",
+              "schema_version": "1.0",
+              "task_type": "ocr.image.v1",
+              "text": "HELLO OCR 123"
+            },
+            "error": null
+          }
+        ],
+        "combined_text": "HELLO OCR 123"
+      }
+    },
+    {
+      "at": "2026-11-14T18:07:49.069806Z",
+      "service": "resource",
+      "method": "GET",
+      "path": "/api/resource/v1/executions/cfe2770d-3e31-42e2-a859-438d92d42150",
+      "request": null,
+      "status": 200,
+      "response": {
+        "execution_id": "cfe2770d-3e31-42e2-a859-438d92d42150",
+        "slot_id": 0,
+        "job_id": "d488e7e1-5986-4aae-8ade-917d042ac44b",
+        "task_id": "4f6fded7-562f-486d-a60f-1497808b1a83",
+        "attempt_no": 1,
+        "worker_id": "w0e395efde3f645c8",
+        "worker_session_id": "69920a0a-c56b-481e-be8f-e6546098a18e",
+        "task_type": "ocr.image.v1",
+        "profile_id": "ocr.default.v1",
+        "profile_digest": "1290c0523d80e5f02d5ed8021ea5f6363d598468c542d60dbf47cb9e1a9cb6a9",
+        "input_artifact_id": "aee7cb72539a341fd9c6182dcd6369d84",
+        "parameters": {
+          "language": "auto"
+        },
+        "timeout_seconds": 120,
+        "status": "SUCCEEDED",
+        "input_sha256": "4aacf69e5038862c6ad6f7bfc484c54497f9aa587da147b169da4c5f6bdf31c9",
+        "created_at": "2026-11-14T18:07:46Z",
+        "accepted_at": "2026-11-14T18:07:46Z",
+        "started_at": "2026-11-14T18:07:47Z",
+        "finished_at": "2026-11-14T18:07:48Z",
+        "lease_expires_at": "2026-11-14T18:08:02Z",
+        "hard_deadline_at": "2026-11-14T18:09:46Z",
+        "result_artifact": {
+          "artifact_id": "a8d89efbff7c343d39007979380a94f52",
+          "kind": "RESULT",
+          "original_name": "execution-cfe2770d-3e31-42e2-a859-438d92d42150.json",
+          "content_type": "application/json",
+          "sha256": "75243c0bde81a1016799945452c2a83b8e359ac6d760b7fa73a6fe597a14a563",
+          "size_bytes": 255,
+          "media_info": {
+            "audio_encoding": null,
+            "channels": null,
+            "duration_ms": null,
+            "height": null,
+            "sample_rate_hz": null,
+            "width": null
+          },
+          "download_path": "/api/resource/v1/artifacts/a8d89efbff7c343d39007979380a94f52/content",
+          "created_at": "2026-11-14T18:07:48Z"
+        },
+        "timings": {
+          "decode_ms": 2.6761250000006953,
+          "download_ms": 8.044082999999702,
+          "inference_ms": 346.3324999999999,
+          "postprocess_ms": 0.0,
+          "prefetch_decode_ms": 0,
+          "prefetch_download_ms": 0,
+          "prefetch_hit": false,
+          "total_worker_ms": 357.297291000001,
+          "write_output_ms": 0.24458300000063105
+        },
+        "error": null
+      }
+    },
+    {
+      "at": "2026-11-14T18:07:52.018528Z",
+      "service": "task",
+      "method": "POST",
+      "path": "/api/task/v1/jobs",
+      "request": {
+        "client_request_id": "dea4cffc-7416-4f5a-a919-fd6ece5a8c34",
+        "task_type": "ocr.image.v1",
+        "profile_id": "ocr.default.v1",
+        "profile_digest": "1290c0523d80e5f02d5ed8021ea5f6363d598468c542d60dbf47cb9e1a9cb6a9",
+        "input_artifact_ids": [
+          "aee7cb72539a341fd9c6182dcd6369d84",
+          "acff57cc970b54413a47487a27a763216"
+        ],
+        "parameters": {
+          "language": "auto"
+        }
+      },
+      "status": 200,
+      "response": {
+        "cancel_requested": false,
+        "client_request_id": "dea4cffc-7416-4f5a-a919-fd6ece5a8c34",
+        "counts": {
+          "cancelled": 0,
+          "cancelling": 0,
+          "dispatching": 0,
+          "failed": 0,
+          "queued": 0,
+          "running": 0,
+          "succeeded": 2,
+          "total": 2,
+          "waiting_for_resources": 0
+        },
+        "created_at": "2026-11-14T18:07:39.486Z",
+        "dependency_status": "AVAILABLE",
+        "download_path": "/api/task/v1/jobs/c5da4167-0beb-419d-8390-82bae5dc7c56/download",
+        "finished_at": "2026-11-14T18:07:45.591Z",
+        "job_id": "c5da4167-0beb-419d-8390-82bae5dc7c56",
+        "parameters": {
+          "language": "auto"
+        },
+        "profile_digest": "1290c0523d80e5f02d5ed8021ea5f6363d598468c542d60dbf47cb9e1a9cb6a9",
+        "profile_id": "ocr.default.v1",
+        "started_at": "2026-11-14T18:07:42.530Z",
+        "status": "SUCCEEDED",
+        "task_type": "ocr.image.v1",
+        "tasks": [
+          {
+            "attempts_used": 1,
+            "current_execution_id": "d15e3ffa-9586-49b4-b6c0-a6e54fe25fba",
+            "dispatches": [
+              {
+                "accepted_at": "2026-11-14T18:07:42Z",
+                "attempt_no": 1,
+                "error": null,
+                "execution_id": "d15e3ffa-9586-49b4-b6c0-a6e54fe25fba",
+                "finished_at": "2026-11-14T18:07:43Z",
+                "status": "SUCCEEDED",
+                "worker_id": "w0e395efde3f645c8"
+              }
+            ],
+            "error": null,
+            "input": {
+              "artifact_id": "aee7cb72539a341fd9c6182dcd6369d84",
+              "content_type": "image/png",
+              "created_at": "2026-11-14T18:07:39Z",
+              "download_path": "/api/resource/v1/artifacts/aee7cb72539a341fd9c6182dcd6369d84/content",
+              "kind": "INPUT",
+              "media_info": {
+                "audio_encoding": null,
+                "channels": null,
+                "duration_ms": null,
+                "height": 220,
+                "sample_rate_hz": null,
+                "width": 640
+              },
+              "original_name": "input-0.png",
+              "sha256": "4aacf69e5038862c6ad6f7bfc484c54497f9aa587da147b169da4c5f6bdf31c9",
+              "size_bytes": 5079
+            },
+            "input_index": 0,
+            "result_artifact": {
+              "artifact_id": "a8297729f668442dbaf22414d23575987",
+              "content_type": "application/json",
+              "created_at": "2026-11-14T18:07:43Z",
+              "download_path": "/api/resource/v1/artifacts/a8297729f668442dbaf22414d23575987/content",
+              "kind": "RESULT",
+              "media_info": {
+                "audio_encoding": null,
+                "channels": null,
+                "duration_ms": null,
+                "height": null,
+                "sample_rate_hz": null,
+                "width": null
+              },
+              "original_name": "execution-d15e3ffa-9586-49b4-b6c0-a6e54fe25fba.json",
+              "sha256": "75243c0bde81a1016799945452c2a83b8e359ac6d760b7fa73a6fe597a14a563",
+              "size_bytes": 255
+            },
+            "status": "SUCCEEDED",
+            "task_id": "ec1c37e2-1790-47ea-aacb-54f0a3782f8b",
+            "waiting_reason": null
+          },
+          {
+            "attempts_used": 1,
+            "current_execution_id": "2b81772c-7859-46ad-b307-d73ee10a109b",
+            "dispatches": [
+              {
+                "accepted_at": "2026-11-14T18:07:43Z",
+                "attempt_no": 1,
+                "error": null,
+                "execution_id": "2b81772c-7859-46ad-b307-d73ee10a109b",
+                "finished_at": "2026-11-14T18:07:44Z",
+                "status": "SUCCEEDED",
+                "worker_id": "w0e395efde3f645c8"
+              }
+            ],
+            "error": null,
+            "input": {
+              "artifact_id": "acff57cc970b54413a47487a27a763216",
+              "content_type": "image/png",
+              "created_at": "2026-11-14T18:07:39Z",
+              "download_path": "/api/resource/v1/artifacts/acff57cc970b54413a47487a27a763216/content",
+              "kind": "INPUT",
+              "media_info": {
+                "audio_encoding": null,
+                "channels": null,
+                "duration_ms": null,
+                "height": 220,
+                "sample_rate_hz": null,
+                "width": 640
+              },
+              "original_name": "input-1.png",
+              "sha256": "59826c16d4fb9456594e0e86a94f9c4081df5af0e5c4714324a16fc481561eab",
+              "size_bytes": 6309
+            },
+            "input_index": 1,
+            "result_artifact": {
+              "artifact_id": "acf1db9445907439cbc47e02f34acf8f0",
+              "content_type": "application/json",
+              "created_at": "2026-11-14T18:07:44Z",
+              "download_path": "/api/resource/v1/artifacts/acf1db9445907439cbc47e02f34acf8f0/content",
+              "kind": "RESULT",
+              "media_info": {
+                "audio_encoding": null,
+                "channels": null,
+                "duration_ms": null,
+                "height": null,
+                "sample_rate_hz": null,
+                "width": null
+              },
+              "original_name": "execution-2b81772c-7859-46ad-b307-d73ee10a109b.json",
+              "sha256": "d3abecaa9ca4bc0a5ef5917279062b03b277ae557c415898282b3e81be825b21",
+              "size_bytes": 253
+            },
+            "status": "SUCCEEDED",
+            "task_id": "f873c68a-38c7-4f24-98c4-e13ff505c4d6",
+            "waiting_reason": null
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-11-14T18:07:52.021152Z",
+      "service": "task",
+      "method": "GET",
+      "path": "/api/task/v1/jobs/c5da4167-0beb-419d-8390-82bae5dc7c56/results",
+      "request": null,
+      "status": 200,
+      "response": {
+        "job_id": "c5da4167-0beb-419d-8390-82bae5dc7c56",
+        "task_type": "ocr.image.v1",
+        "status": "SUCCEEDED",
+        "items": [
+          {
+            "input_index": 0,
+            "task_id": "ec1c37e2-1790-47ea-aacb-54f0a3782f8b",
+            "input_artifact_id": "aee7cb72539a341fd9c6182dcd6369d84",
+            "original_name": "input-0.png",
+            "status": "SUCCEEDED",
+            "result": {
+              "blocks": [
+                {
+                  "bbox": [
+                    23.0,
+                    70.0,
+                    364.0,
+                    124.0
+                  ],
+                  "confidence": 0.97081,
+                  "text": "HELLO OCR 123"
+                }
+              ],
+              "image_height": 220,
+              "image_width": 640,
+              "input_artifact_id": "aee7cb72539a341fd9c6182dcd6369d84",
+              "schema_version": "1.0",
+              "task_type": "ocr.image.v1",
+              "text": "HELLO OCR 123"
+            },
+            "error": null
+          },
+          {
+            "input_index": 1,
+            "task_id": "f873c68a-38c7-4f24-98c4-e13ff505c4d6",
+            "input_artifact_id": "acff57cc970b54413a47487a27a763216",
+            "original_name": "input-1.png",
+            "status": "SUCCEEDED",
+            "result": {
+              "blocks": [
+                {
+                  "bbox": [
+                    22.0,
+                    69.0,
+                    348.0,
+                    124.0
+                  ],
+                  "confidence": 0.99996,
+                  "text": "APPROVED 456"
+                }
+              ],
+              "image_height": 220,
+              "image_width": 640,
+              "input_artifact_id": "acff57cc970b54413a47487a27a763216",
+              "schema_version": "1.0",
+              "task_type": "ocr.image.v1",
+              "text": "APPROVED 456"
+            },
+            "error": null
+          }
+        ],
+        "combined_text": "HELLO OCR 123\n\nAPPROVED 456"
+      }
+    },
+    {
+      "at": "2026-11-14T18:07:52.671751Z",
+      "service": "task",
+      "method": "POST",
+      "path": "/api/task/v1/jobs",
+      "request": {
+        "client_request_id": "0f624087-9563-41bc-876f-b84cdd346cca",
+        "task_type": "ocr.image.v1",
+        "profile_id": "ocr.default.v1",
+        "profile_digest": "1290c0523d80e5f02d5ed8021ea5f6363d598468c542d60dbf47cb9e1a9cb6a9",
+        "input_artifact_ids": [
+          "aee7cb72539a341fd9c6182dcd6369d84"
+        ],
+        "parameters": {
+          "language": "auto"
+        }
+      },
+      "status": 201,
+      "response": {
+        "job_id": "c4a6b7a4-ffce-422a-8580-93c02da6ac62",
+        "client_request_id": "0f624087-9563-41bc-876f-b84cdd346cca",
+        "task_type": "ocr.image.v1",
+        "profile_id": "ocr.default.v1",
+        "profile_digest": "1290c0523d80e5f02d5ed8021ea5f6363d598468c542d60dbf47cb9e1a9cb6a9",
+        "parameters": {
+          "language": "auto"
+        },
+        "status": "QUEUED",
+        "created_at": "2026-11-14T18:07:52.670Z",
+        "started_at": null,
+        "finished_at": null,
+        "cancel_requested": false,
+        "dependency_status": "AVAILABLE",
+        "counts": {
+          "queued": 1,
+          "waiting_for_resources": 0,
+          "dispatching": 0,
+          "running": 0,
+          "cancelling": 0,
+          "succeeded": 0,
+          "failed": 0,
+          "cancelled": 0,
+          "total": 1
+        },
+        "tasks": [
+          {
+            "task_id": "15614217-7313-4638-a77e-43c40060a7ce",
+            "input_index": 0,
+            "input": {
+              "artifact_id": "aee7cb72539a341fd9c6182dcd6369d84",
+              "kind": "INPUT",
+              "original_name": "input-0.png",
+              "content_type": "image/png",
+              "sha256": "4aacf69e5038862c6ad6f7bfc484c54497f9aa587da147b169da4c5f6bdf31c9",
+              "size_bytes": 5079,
+              "media_info": {
+                "audio_encoding": null,
+                "channels": null,
+                "duration_ms": null,
+                "height": 220,
+                "sample_rate_hz": null,
+                "width": 640
+              },
+              "download_path": "/api/resource/v1/artifacts/aee7cb72539a341fd9c6182dcd6369d84/content",
+              "created_at": "2026-11-14T18:07:39Z"
+            },
+            "status": "QUEUED",
+            "attempts_used": 0,
+            "current_execution_id": null,
+            "dispatches": [],
+            "result_artifact": null,
+            "waiting_reason": null,
+            "error": null
+          }
+        ],
+        "download_path": null
+      }
+    },
+    {
+      "at": "2026-11-14T18:07:52.673183Z",
+      "service": "task",
+      "job_observation": {
+        "cancel_requested": false,
+        "client_request_id": "0f624087-9563-41bc-876f-b84cdd346cca",
+        "counts": {
+          "cancelled": 0,
+          "cancelling": 0,
+          "dispatching": 0,
+          "failed": 0,
+          "queued": 1,
+          "running": 0,
+          "succeeded": 0,
+          "total": 1,
+          "waiting_for_resources": 0
+        },
+        "created_at": "2026-11-14T18:07:52.670Z",
+        "dependency_status": "AVAILABLE",
+        "download_path": null,
+        "finished_at": null,
+        "job_id": "c4a6b7a4-ffce-422a-8580-93c02da6ac62",
+        "parameters": {
+          "language": "auto"
+        },
+        "profile_digest": "1290c0523d80e5f02d5ed8021ea5f6363d598468c542d60dbf47cb9e1a9cb6a9",
+        "profile_id": "ocr.default.v1",
+        "started_at": null,
+        "status": "QUEUED",
+        "task_type": "ocr.image.v1",
+        "tasks": [
+          {
+            "attempts_used": 0,
+            "current_execution_id": null,
+            "dispatches": [],
+            "error": null,
+            "input": {
+              "artifact_id": "aee7cb72539a341fd9c6182dcd6369d84",
+              "content_type": "image/png",
+              "created_at": "2026-11-14T18:07:39Z",
+              "download_path": "/api/resource/v1/artifacts/aee7cb72539a341fd9c6182dcd6369d84/content",
+              "kind": "INPUT",
+              "media_info": {
+                "audio_encoding": null,
+                "channels": null,
+                "duration_ms": null,
+                "height": 220,
+                "sample_rate_hz": null,
+                "width": 640
+              },
+              "original_name": "input-0.png",
+              "sha256": "4aacf69e5038862c6ad6f7bfc484c54497f9aa587da147b169da4c5f6bdf31c9",
+              "size_bytes": 5079
+            },
+            "input_index": 0,
+            "result_artifact": null,
+            "status": "QUEUED",
+            "task_id": "15614217-7313-4638-a77e-43c40060a7ce",
+            "waiting_reason": null
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-11-14T18:07:52.881854Z",
+      "service": "task",
+      "job_observation": {
+        "cancel_requested": false,
+        "client_request_id": "0f624087-9563-41bc-876f-b84cdd346cca",
+        "counts": {
+          "cancelled": 0,
+          "cancelling": 0,
+          "dispatching": 0,
+          "failed": 0,
+          "queued": 0,
+          "running": 0,
+          "succeeded": 0,
+          "total": 1,
+          "waiting_for_resources": 1
+        },
+        "created_at": "2026-11-14T18:07:52.670Z",
+        "dependency_status": "AVAILABLE",
+        "download_path": null,
+        "finished_at": null,
+        "job_id": "c4a6b7a4-ffce-422a-8580-93c02da6ac62",
+        "parameters": {
+          "language": "auto"
+        },
+        "profile_digest": "1290c0523d80e5f02d5ed8021ea5f6363d598468c542d60dbf47cb9e1a9cb6a9",
+        "profile_id": "ocr.default.v1",
+        "started_at": null,
+        "status": "WAITING_FOR_RESOURCES",
+        "task_type": "ocr.image.v1",
+        "tasks": [
+          {
+            "attempts_used": 0,
+            "current_execution_id": null,
+            "dispatches": [],
+            "error": null,
+            "input": {
+              "artifact_id": "aee7cb72539a341fd9c6182dcd6369d84",
+              "content_type": "image/png",
+              "created_at": "2026-11-14T18:07:39Z",
+              "download_path": "/api/resource/v1/artifacts/aee7cb72539a341fd9c6182dcd6369d84/content",
+              "kind": "INPUT",
+              "media_info": {
+                "audio_encoding": null,
+                "channels": null,
+                "duration_ms": null,
+                "height": 220,
+                "sample_rate_hz": null,
+                "width": 640
+              },
+              "original_name": "input-0.png",
+              "sha256": "4aacf69e5038862c6ad6f7bfc484c54497f9aa587da147b169da4c5f6bdf31c9",
+              "size_bytes": 5079
+            },
+            "input_index": 0,
+            "result_artifact": null,
+            "status": "WAITING_FOR_RESOURCES",
+            "task_id": "15614217-7313-4638-a77e-43c40060a7ce",
+            "waiting_reason": "等待模型准备完成"
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-11-14T18:07:55.879431Z",
+      "service": "task",
+      "job_observation": {
+        "cancel_requested": false,
+        "client_request_id": "0f624087-9563-41bc-876f-b84cdd346cca",
+        "counts": {
+          "cancelled": 0,
+          "cancelling": 0,
+          "dispatching": 0,
+          "failed": 0,
+          "queued": 0,
+          "running": 1,
+          "succeeded": 0,
+          "total": 1,
+          "waiting_for_resources": 0
+        },
+        "created_at": "2026-11-14T18:07:52.670Z",
+        "dependency_status": "AVAILABLE",
+        "download_path": null,
+        "finished_at": null,
+        "job_id": "c4a6b7a4-ffce-422a-8580-93c02da6ac62",
+        "parameters": {
+          "language": "auto"
+        },
+        "profile_digest": "1290c0523d80e5f02d5ed8021ea5f6363d598468c542d60dbf47cb9e1a9cb6a9",
+        "profile_id": "ocr.default.v1",
+        "started_at": "2026-11-14T18:07:55.712Z",
+        "status": "RUNNING",
+        "task_type": "ocr.image.v1",
+        "tasks": [
+          {
+            "attempts_used": 1,
+            "current_execution_id": "9c31a880-8f04-4e76-b9a6-6167520c7491",
+            "dispatches": [
+              {
+                "accepted_at": "2026-11-14T18:07:55Z",
+                "attempt_no": 1,
+                "error": null,
+                "execution_id": "9c31a880-8f04-4e76-b9a6-6167520c7491",
+                "finished_at": null,
+                "status": "ACCEPTED",
+                "worker_id": "w0e395efde3f645c8"
+              }
+            ],
+            "error": null,
+            "input": {
+              "artifact_id": "aee7cb72539a341fd9c6182dcd6369d84",
+              "content_type": "image/png",
+              "created_at": "2026-11-14T18:07:39Z",
+              "download_path": "/api/resource/v1/artifacts/aee7cb72539a341fd9c6182dcd6369d84/content",
+              "kind": "INPUT",
+              "media_info": {
+                "audio_encoding": null,
+                "channels": null,
+                "duration_ms": null,
+                "height": 220,
+                "sample_rate_hz": null,
+                "width": 640
+              },
+              "original_name": "input-0.png",
+              "sha256": "4aacf69e5038862c6ad6f7bfc484c54497f9aa587da147b169da4c5f6bdf31c9",
+              "size_bytes": 5079
+            },
+            "input_index": 0,
+            "result_artifact": null,
+            "status": "RUNNING",
+            "task_id": "15614217-7313-4638-a77e-43c40060a7ce",
+            "waiting_reason": null
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-11-14T18:07:56.752878Z",
+      "service": "task",
+      "job_observation": {
+        "cancel_requested": false,
+        "client_request_id": "0f624087-9563-41bc-876f-b84cdd346cca",
+        "counts": {
+          "cancelled": 0,
+          "cancelling": 0,
+          "dispatching": 0,
+          "failed": 0,
+          "queued": 0,
+          "running": 0,
+          "succeeded": 1,
+          "total": 1,
+          "waiting_for_resources": 0
+        },
+        "created_at": "2026-11-14T18:07:52.670Z",
+        "dependency_status": "AVAILABLE",
+        "download_path": "/api/task/v1/jobs/c4a6b7a4-ffce-422a-8580-93c02da6ac62/download",
+        "finished_at": "2026-11-14T18:07:56.737Z",
+        "job_id": "c4a6b7a4-ffce-422a-8580-93c02da6ac62",
+        "parameters": {
+          "language": "auto"
+        },
+        "profile_digest": "1290c0523d80e5f02d5ed8021ea5f6363d598468c542d60dbf47cb9e1a9cb6a9",
+        "profile_id": "ocr.default.v1",
+        "started_at": "2026-11-14T18:07:55.712Z",
+        "status": "SUCCEEDED",
+        "task_type": "ocr.image.v1",
+        "tasks": [
+          {
+            "attempts_used": 1,
+            "current_execution_id": "9c31a880-8f04-4e76-b9a6-6167520c7491",
+            "dispatches": [
+              {
+                "accepted_at": "2026-11-14T18:07:55Z",
+                "attempt_no": 1,
+                "error": null,
+                "execution_id": "9c31a880-8f04-4e76-b9a6-6167520c7491",
+                "finished_at": "2026-11-14T18:07:56Z",
+                "status": "SUCCEEDED",
+                "worker_id": "w0e395efde3f645c8"
+              }
+            ],
+            "error": null,
+            "input": {
+              "artifact_id": "aee7cb72539a341fd9c6182dcd6369d84",
+              "content_type": "image/png",
+              "created_at": "2026-11-14T18:07:39Z",
+              "download_path": "/api/resource/v1/artifacts/aee7cb72539a341fd9c6182dcd6369d84/content",
+              "kind": "INPUT",
+              "media_info": {
+                "audio_encoding": null,
+                "channels": null,
+                "duration_ms": null,
+                "height": 220,
+                "sample_rate_hz": null,
+                "width": 640
+              },
+              "original_name": "input-0.png",
+              "sha256": "4aacf69e5038862c6ad6f7bfc484c54497f9aa587da147b169da4c5f6bdf31c9",
+              "size_bytes": 5079
+            },
+            "input_index": 0,
+            "result_artifact": {
+              "artifact_id": "a4c5312ac7bea45328631afdfde138475",
+              "content_type": "application/json",
+              "created_at": "2026-11-14T18:07:56Z",
+              "download_path": "/api/resource/v1/artifacts/a4c5312ac7bea45328631afdfde138475/content",
+              "kind": "RESULT",
+              "media_info": {
+                "audio_encoding": null,
+                "channels": null,
+                "duration_ms": null,
+                "height": null,
+                "sample_rate_hz": null,
+                "width": null
+              },
+              "original_name": "execution-9c31a880-8f04-4e76-b9a6-6167520c7491.json",
+              "sha256": "75243c0bde81a1016799945452c2a83b8e359ac6d760b7fa73a6fe597a14a563",
+              "size_bytes": 255
+            },
+            "status": "SUCCEEDED",
+            "task_id": "15614217-7313-4638-a77e-43c40060a7ce",
+            "waiting_reason": null
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-11-14T18:07:56.754837Z",
+      "service": "task",
+      "method": "GET",
+      "path": "/api/task/v1/jobs/c4a6b7a4-ffce-422a-8580-93c02da6ac62/results",
+      "request": null,
+      "status": 200,
+      "response": {
+        "job_id": "c4a6b7a4-ffce-422a-8580-93c02da6ac62",
+        "task_type": "ocr.image.v1",
+        "status": "SUCCEEDED",
+        "items": [
+          {
+            "input_index": 0,
+            "task_id": "15614217-7313-4638-a77e-43c40060a7ce",
+            "input_artifact_id": "aee7cb72539a341fd9c6182dcd6369d84",
+            "original_name": "input-0.png",
+            "status": "SUCCEEDED",
+            "result": {
+              "blocks": [
+                {
+                  "bbox": [
+                    23.0,
+                    70.0,
+                    364.0,
+                    124.0
+                  ],
+                  "confidence": 0.97081,
+                  "text": "HELLO OCR 123"
+                }
+              ],
+              "image_height": 220,
+              "image_width": 640,
+              "input_artifact_id": "aee7cb72539a341fd9c6182dcd6369d84",
+              "schema_version": "1.0",
+              "task_type": "ocr.image.v1",
+              "text": "HELLO OCR 123"
+            },
+            "error": null
+          }
+        ],
+        "combined_text": "HELLO OCR 123"
+      }
+    },
+    {
+      "at": "2026-11-14T18:07:56.757184Z",
+      "service": "resource",
+      "method": "GET",
+      "path": "/api/resource/v1/executions/9c31a880-8f04-4e76-b9a6-6167520c7491",
+      "request": null,
+      "status": 200,
+      "response": {
+        "execution_id": "9c31a880-8f04-4e76-b9a6-6167520c7491",
+        "slot_id": 0,
+        "job_id": "c4a6b7a4-ffce-422a-8580-93c02da6ac62",
+        "task_id": "15614217-7313-4638-a77e-43c40060a7ce",
+        "attempt_no": 1,
+        "worker_id": "w0e395efde3f645c8",
+        "worker_session_id": "fccf881c-a36e-4a24-a07e-9b7d17815ae0",
+        "task_type": "ocr.image.v1",
+        "profile_id": "ocr.default.v1",
+        "profile_digest": "1290c0523d80e5f02d5ed8021ea5f6363d598468c542d60dbf47cb9e1a9cb6a9",
+        "input_artifact_id": "aee7cb72539a341fd9c6182dcd6369d84",
+        "parameters": {
+          "language": "auto"
+        },
+        "timeout_seconds": 120,
+        "status": "SUCCEEDED",
+        "input_sha256": "4aacf69e5038862c6ad6f7bfc484c54497f9aa587da147b169da4c5f6bdf31c9",
+        "created_at": "2026-11-14T18:07:55Z",
+        "accepted_at": "2026-11-14T18:07:55Z",
+        "started_at": "2026-11-14T18:07:56Z",
+        "finished_at": "2026-11-14T18:07:56Z",
+        "lease_expires_at": "2026-11-14T18:08:11Z",
+        "hard_deadline_at": "2026-11-14T18:09:55Z",
+        "result_artifact": {
+          "artifact_id": "a4c5312ac7bea45328631afdfde138475",
+          "kind": "RESULT",
+          "original_name": "execution-9c31a880-8f04-4e76-b9a6-6167520c7491.json",
+          "content_type": "application/json",
+          "sha256": "75243c0bde81a1016799945452c2a83b8e359ac6d760b7fa73a6fe597a14a563",
+          "size_bytes": 255,
+          "media_info": {
+            "audio_encoding": null,
+            "channels": null,
+            "duration_ms": null,
+            "height": null,
+            "sample_rate_hz": null,
+            "width": null
+          },
+          "download_path": "/api/resource/v1/artifacts/a4c5312ac7bea45328631afdfde138475/content",
+          "created_at": "2026-11-14T18:07:56Z"
+        },
+        "timings": {
+          "decode_ms": 1.709207999999851,
+          "download_ms": 11.292042000000002,
+          "inference_ms": 353.1645829999999,
+          "postprocess_ms": 0.0,
+          "prefetch_decode_ms": 0,
+          "prefetch_download_ms": 0,
+          "prefetch_hit": false,
+          "total_worker_ms": 366.4134579999998,
+          "write_output_ms": 0.24762500000008458
+        },
+        "error": null
+      }
+    }
+  ],
+  "initial_node": {
+    "prefetch_capacity": 0,
+    "prefetch_revision": 0,
+    "worker_id": "w0e395efde3f645c8",
+    "session_id": "69920a0a-c56b-481e-be8f-e6546098a18e",
+    "name": "joint-local-ocr",
+    "connection": "ONLINE",
+    "mode": "ACTIVE",
+    "hardware": {
+      "arch": "arm64",
+      "cpu_name": "Apple M4",
+      "detection_errors": [],
+      "gpu_info_source": "unavailable",
+      "gpu_name": null,
+      "gpu_vram_bytes": null,
+      "logical_cores": 10,
+      "manual_labels": {},
+      "os": "Darwin 24.4.0",
+      "ram_available_bytes": 3472261120,
+      "ram_total_bytes": 17179869184
+    },
+    "capabilities": [
+      {
+        "backend": null,
+        "calibration": null,
+        "model_cached": false,
+        "model_sha256": null,
+        "profile_digest": null,
+        "profile_id": "ocr.default.v1",
+        "reason": "等待准备",
+        "runtime_provider": null,
+        "state": "NOT_PREPARED",
+        "task_type": "ocr.image.v1",
+        "verified": false
+      },
+      {
+        "backend": null,
+        "calibration": null,
+        "model_cached": false,
+        "model_sha256": null,
+        "profile_digest": null,
+        "profile_id": "asr.default.v1",
+        "reason": "计划类型；模型、许可和依赖待P1验证发布。",
+        "runtime_provider": null,
+        "state": "UNAVAILABLE",
+        "task_type": "asr.file.v1",
+        "verified": false
+      }
+    ],
+    "max_slots": 1,
+    "threads_per_slot": 0,
+    "cpu_thread_budget": 0,
+    "reserved_slots": 0,
+    "available_slots": 1,
+    "active_execution_ids": [],
+    "active_preparation_id": null,
+    "cleanup_pending": false,
+    "last_seen_at": "2026-11-14T18:07:39Z",
+    "telemetry": {
+      "cpu_percent": 0.0,
+      "gpu_memory_used_bytes": null,
+      "gpu_metric_source": "unavailable",
+      "gpu_percent": null,
+      "ram_used_bytes": 5761089536,
+      "sampled_at": "2026-11-14T18:07:39Z"
+    }
+  },
+  "ready_node": {
+    "prefetch_capacity": 0,
+    "prefetch_revision": 0,
+    "worker_id": "w0e395efde3f645c8",
+    "session_id": "69920a0a-c56b-481e-be8f-e6546098a18e",
+    "name": "joint-local-ocr",
+    "connection": "ONLINE",
+    "mode": "ACTIVE",
+    "hardware": {
+      "arch": "arm64",
+      "cpu_name": "Apple M4",
+      "detection_errors": [],
+      "gpu_info_source": "unavailable",
+      "gpu_name": null,
+      "gpu_vram_bytes": null,
+      "logical_cores": 10,
+      "manual_labels": {},
+      "os": "Darwin 24.4.0",
+      "ram_available_bytes": 3472261120,
+      "ram_total_bytes": 17179869184
+    },
+    "capabilities": [
+      {
+        "backend": null,
+        "calibration": null,
+        "model_cached": false,
+        "model_sha256": null,
+        "profile_digest": null,
+        "profile_id": "asr.default.v1",
+        "reason": "计划类型；模型、许可和依赖待P1验证发布。",
+        "runtime_provider": null,
+        "state": "UNAVAILABLE",
+        "task_type": "asr.file.v1",
+        "verified": false
+      },
+      {
+        "backend": "cpu",
+        "calibration": {
+          "finished_at": "2026-11-14T18:07:41Z",
+          "median_compute_ms": 345.903,
+          "passed": true,
+          "sample_count": 3
+        },
+        "model_cached": true,
+        "model_sha256": "3358ac6b2a0919cf5c72159265440ba62fb496b504d1fc6fb92a4ffc4fc0edc5",
+        "profile_digest": "1290c0523d80e5f02d5ed8021ea5f6363d598468c542d60dbf47cb9e1a9cb6a9",
+        "profile_id": "ocr.default.v1",
+        "reason": null,
+        "runtime_provider": "CPUExecutionProvider",
+        "state": "READY",
+        "task_type": "ocr.image.v1",
+        "verified": true
+      }
+    ],
+    "max_slots": 1,
+    "threads_per_slot": 0,
+    "cpu_thread_budget": 0,
+    "reserved_slots": 0,
+    "available_slots": 1,
+    "active_execution_ids": [],
+    "active_preparation_id": null,
+    "cleanup_pending": false,
+    "last_seen_at": "2026-11-14T18:07:45Z",
+    "telemetry": {
+      "cpu_percent": 21.8,
+      "gpu_memory_used_bytes": null,
+      "gpu_metric_source": "unavailable",
+      "gpu_percent": null,
+      "ram_used_bytes": 5579472896,
+      "sampled_at": "2026-11-14T18:07:45Z"
+    }
+  },
+  "finished_at": "2026-11-14T18:07:59.040935Z"
+}

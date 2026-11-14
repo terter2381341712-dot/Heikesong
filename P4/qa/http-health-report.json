@@ -1,0 +1,31 @@
+{
+  "mode": "REAL_HTTP_OCR",
+  "status": "PASS",
+  "started_at": "2026-11-14T09:09:20.916118Z",
+  "contract_version": "0.2.0",
+  "checks": [
+    {
+      "name": "G1 subset: health/version and 401/403 roles",
+      "status": "PASS",
+      "at": "2026-11-14T09:09:21.066960Z"
+    }
+  ],
+  "physical_collaboration": "NOT_RUN",
+  "quality": "NOT_RUN",
+  "formal_performance": "NOT_RUN",
+  "browser_e2e": "NOT_RUN",
+  "static": {
+    "mode": "STATIC",
+    "status": "PASS",
+    "examples_checked": 55,
+    "contract_sha256": "f136a83be1a25ec08b17c388fec708271304109579ef66d9941102085aaf3a79",
+    "at": "2026-11-14T09:09:21.018419Z"
+  },
+  "profile_digest": "dc5c1cb389ffd9d822890d12449c36422bf602ef52adcd6f145cee8493ea43a1",
+  "initial_resources": {
+    "contract_version": "0.2.0",
+    "server_time": "2026-11-14T09:09:21Z",
+    "resources": []
+  },
+  "finished_at": "2026-11-14T09:09:21.089572Z"
+}

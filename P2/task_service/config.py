@@ -17,8 +17,11 @@ class Settings:
     scheduler_io_timeout_seconds: float = 5.0
     history_ttl_seconds: float = 3600.0
     exploration_interval: int = 8
+    scheduler_policy: str = "round_robin"
 
     def __post_init__(self):
+        if self.scheduler_policy not in {"round_robin", "resource_aware"}:
+            raise ValueError("调度策略必须为 round_robin 或 resource_aware")
         url = urlsplit(self.resource_base_url)
         if (
             url.scheme not in {"http", "https"}
@@ -55,4 +58,5 @@ class Settings:
             scheduler_io_timeout_seconds=float(os.getenv("TASK_SCHEDULER_IO_TIMEOUT_SECONDS", "5")),
             history_ttl_seconds=float(os.getenv("TASK_SCHEDULER_HISTORY_TTL_SECONDS", "3600")),
             exploration_interval=int(os.getenv("TASK_SCHEDULER_EXPLORATION_INTERVAL", "8")),
+            scheduler_policy=os.getenv("TASK_SCHEDULER_POLICY", "round_robin"),
         )

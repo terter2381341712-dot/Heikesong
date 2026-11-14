@@ -1,0 +1,10 @@
+✔ log refresh preserves DOM and reading position; follows only at bottom (1.087208ms)
+✔ failed refresh clears guard so later polling can recover (0.537292ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 46.538458

@@ -1,0 +1,62 @@
+{
+  "stage": "S1",
+  "source_digest": "COPY_FROM_CURRENT_REPORT",
+  "compute": {},
+  "operators": [
+    "teammate-A",
+    "teammate-B"
+  ],
+  "physical_devices": [
+    "PC-A",
+    "PC-B"
+  ],
+  "gates": {
+    "G1": {
+      "status": "NOT_RUN",
+      "operator_attested": false,
+      "artifacts": []
+    },
+    "G2": {
+      "status": "NOT_RUN",
+      "operator_attested": false,
+      "artifacts": []
+    },
+    "G3": {
+      "status": "NOT_RUN",
+      "operator_attested": false,
+      "artifacts": []
+    },
+    "G4": {
+      "status": "NOT_RUN",
+      "operator_attested": false,
+      "artifacts": []
+    },
+    "G5": {
+      "status": "NOT_RUN",
+      "operator_attested": false,
+      "artifacts": []
+    },
+    "G6": {
+      "status": "NOT_RUN",
+      "operator_attested": false,
+      "artifacts": []
+    },
+    "G7": {
+      "status": "NOT_RUN",
+      "operator_attested": false,
+      "artifacts": []
+    }
+  },
+  "stage_checks": {
+    "S0": {
+      "status": "NOT_RUN",
+      "operator_attested": false,
+      "artifacts": []
+    },
+    "S1": {
+      "status": "NOT_RUN",
+      "operator_attested": false,
+      "artifacts": []
+    }
+  }
+}

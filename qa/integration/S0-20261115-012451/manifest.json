@@ -1,0 +1,81 @@
+{
+  "stage": "S0",
+  "status": "LOCAL_BASELINE_VERIFIED",
+  "started_at": "2026-11-15T01:24:51.803137+08:00",
+  "main_sha": "0dd6ca50b54a03a1cc11c7f7e8fc3f415404a843",
+  "zyc_sha": "8690c3cd3e595a0a38ca14cb9fd1bdeca5b9c0fe",
+  "local_main_sha": "a429ce68ae23777688de9b349eb3de0b47a5a66d",
+  "branch": "zyc",
+  "backup_tag": "backup/zyc-before-integration-20261115-012451",
+  "original_untracked": [
+    ".workbuddy/memory/2026-11-15.md",
+    "分支合并评估报告.md",
+    "分支审查-2026-11-15/frontend-contract-repro.log",
+    "分支审查-2026-11-15/lt-P4-complete.log",
+    "分支审查-2026-11-15/lt-js.log",
+    "分支审查-2026-11-15/lt-lyj.txt",
+    "分支审查-2026-11-15/lt-zyc.txt",
+    "分支审查-2026-11-15/lyj-P1.test.log",
+    "分支审查-2026-11-15/lyj-P2.test.log",
+    "分支审查-2026-11-15/lyj-P4.test.log",
+    "分支审查-2026-11-15/lyj-js.log",
+    "分支审查-2026-11-15/lyj-zyc.txt",
+    "分支审查-2026-11-15/main-P1.test.log",
+    "分支审查-2026-11-15/main-P2.test.log",
+    "分支审查-2026-11-15/main-P4-complete.log",
+    "分支审查-2026-11-15/main-js.log",
+    "分支审查-2026-11-15/main-lt.txt",
+    "分支审查-2026-11-15/main-lyj.txt",
+    "分支审查-2026-11-15/main-zyc.txt",
+    "分支审查-2026-11-15/merges.json",
+    "分支审查-2026-11-15/naive-candidate-P4-complete.log",
+    "分支审查-2026-11-15/naive-static.log",
+    "分支审查-2026-11-15/origin_main--origin_zyc.files.txt",
+    "分支审查-2026-11-15/p4-retest.json",
+    "分支审查-2026-11-15/sharing-cross-regression.log",
+    "分支审查-2026-11-15/tests.json",
+    "分支审查-2026-11-15/zyc-P1.test.log",
+    "分支审查-2026-11-15/zyc-P2.test.log",
+    "分支审查-2026-11-15/报告.md"
+  ],
+  "gates": {
+    "G0": {
+      "status": "PASS",
+      "evidence": "automated-tests.json"
+    },
+    "G1": {
+      "status": "NOT_RUN"
+    },
+    "G2": {
+      "status": "NOT_RUN"
+    },
+    "G3": {
+      "status": "NOT_RUN"
+    },
+    "G4": {
+      "status": "NOT_RUN",
+      "local_browser": "PASS",
+      "physical_multinode": "NOT_RUN",
+      "evidence": "browser-report.json"
+    },
+    "G5": {
+      "status": "NOT_RUN"
+    },
+    "G6": {
+      "status": "NOT_RUN"
+    },
+    "G7": {
+      "status": "NOT_RUN"
+    }
+  },
+  "physical_multinode": "NOT_RUN",
+  "windows_live": "NOT_RUN",
+  "cuda_live": "NOT_RUN",
+  "human_references_frozen": false,
+  "baseline_acceptance": {
+    "source": "user statement in this chat",
+    "scope": "main previously accepted by two teammates, one physical machine each",
+    "current_turn_physical_retest": "NOT_RUN",
+    "integration_policy": "Continue code integration against accepted main; new-version physical gates remain pending and cannot be marked PASS."
+  }
+}
