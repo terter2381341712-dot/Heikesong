@@ -1,95 +1,261 @@
 openapi: 3.1.0
 info:
-  title: Elastic Product Image Workshop — D Track Team Contract
-  version: 0.1.0
-  description: D题团队自定义的最小HTTP契约，不是C题冻结API，也不表示服务已实现。状态与竞态语义见架构说明。所有时间UTC；正式吞吐只计独立质量核验后的唯一任务。
-servers:
-- url: http://localhost:8000
-  description: 占位地址，联调替换为协调机受控局域网地址。
+  title: D题多设备任务平台：P1资源执行 + P2任务调度
+  version: 0.2.0
+  description: 待实现契约，替代0.1.0。用户选择类型并提供文件。字段之外语义必须同时遵守05-接口契约与联调手册.md。示例全合成，非实测。
+tags:
+- name: P1
+  description: P1资源接入、文件、能力准备、单次执行；不做Job或跨节点重试。
+- name: P2
+  description: P2用户Job、拆分、节点选择、业务重试和汇总；不执行模型。
 paths:
-  /healthz:
+  /api/resource/v1/healthz:
+    servers:
+    - url: http://localhost:8001
+      description: P1 开发占位；替换为可访问地址。
     get:
-      operationId: healthz
-      summary: 健康与契约版本
+      tags:
+      - P1
+      operationId: p1Health
+      summary: P1服务及契约版本
+      x-owner: P1
+      description: P1服务及契约版本
       security: []
       responses:
         '200':
-          description: 服务可访问。
+          description: 成功；不表示独立业务质量已经合格。
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Health'
-  /v1/assets:
-    post:
-      operationId: uploadAsset
-      summary: 上传单张图片并规范化
-      security:
-      - DemoToken: []
-      description: 10 MiB / 2000 万像素以内的 JPG/PNG。纠正方向、透明区域白底合成、RGB、最长边 1024，保存规范化 PNG。内容
-        SHA 与原文件 SHA 可不同；返回规范化输入 SHA。输入不会由模型预处理成答案。
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              properties:
-                file:
-                  type: string
-                  format: binary
-              required:
-              - file
-              additionalProperties: false
-      responses:
-        '201':
-          description: 已保存规范化输入。
+        '500':
+          description: 服务内部错误；写请求的接纳结果未知，保留原ID对账，不另开一单。
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Asset'
+                $ref: '#/components/schemas/Error'
+  /api/resource/v1/resources:
+    servers:
+    - url: http://localhost:8001
+      description: P1 开发占位；替换为可访问地址。
+    get:
+      tags:
+      - P1
+      operationId: getResources
+      summary: 节点、能力、槽位和真实采样
+      x-owner: P1
+      description: 节点、能力、槽位和真实采样
+      security:
+      - DemoToken: []
+      - TaskToken: []
+      responses:
+        '200':
+          description: 成功；不表示独立业务质量已经合格。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourceSnapshot'
         '401':
-          description: 缺少或无效令牌。
+          description: 缺失或无效令牌。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 令牌角色不允许。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 服务内部错误；写请求的接纳结果未知，保留原ID对账，不另开一单。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /api/resource/v1/task-types:
+    servers:
+    - url: http://localhost:8001
+      description: P1 开发占位；替换为可访问地址。
+    get:
+      tags:
+      - P1
+      operationId: getResourceTaskTypes
+      summary: P1执行类型与配置目录
+      x-owner: P1
+      description: P1执行类型与配置目录
+      security:
+      - DemoToken: []
+      - TaskToken: []
+      responses:
+        '200':
+          description: 成功；不表示独立业务质量已经合格。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TypeCatalog'
+        '401':
+          description: 缺失或无效令牌。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 令牌角色不允许。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 服务内部错误；写请求的接纳结果未知，保留原ID对账，不另开一单。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /api/resource/v1/artifacts:
+    servers:
+    - url: http://localhost:8001
+      description: P1 开发占位；替换为可访问地址。
+    post:
+      tags:
+      - P1
+      operationId: uploadArtifact
+      summary: 保存原始输入/结果文件
+      x-owner: P1
+      description: 同upload_id同字节/文件名/媒体类型重放返回同artifact；修改内容409。DEMO仅输入格式，TASK还可JSON。下载SHA等于原始上传字节。
+      security:
+      - DemoToken: []
+      - TaskToken: []
+      responses:
+        '201':
+          description: 成功；不表示独立业务质量已经合格。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Artifact'
+        '200':
+          description: 成功；不表示独立业务质量已经合格。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Artifact'
+        '401':
+          description: 缺失或无效令牌。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 令牌角色不允许。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: 幂等冲突、明确业务拒绝或当前状态不允许；执行/准备拒绝ID保存在details。
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         '413':
-          description: 文件或像素数量超限。
+          description: 文件、像素或规模超过限制。
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         '415':
-          description: 不支持的格式或文件解码失败。
+          description: 不支持的媒体类型。
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         '422':
-          description: 字段、流水线、图片或结果校验失败。
+          description: 请求结构、输入或参数不合法。
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-  /v1/assets/{asset_id}:
+        '500':
+          description: 服务内部错误；写请求的接纳结果未知，保留原ID对账，不另开一单。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UploadRequest'
+  /api/resource/v1/artifacts/{artifact_id}:
+    servers:
+    - url: http://localhost:8001
+      description: P1 开发占位；替换为可访问地址。
     get:
-      operationId: downloadAsset
-      summary: 鉴权下载输入或结果
+      tags:
+      - P1
+      operationId: getArtifact
+      summary: 读取文件元信息
+      x-owner: P1
+      description: 读取文件元信息
       security:
       - DemoToken: []
-      - WorkerToken: []
+      - TaskToken: []
+      responses:
+        '200':
+          description: 成功；不表示独立业务质量已经合格。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Artifact'
+        '401':
+          description: 缺失或无效令牌。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 令牌角色不允许。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 资源不存在；不能凭一次404推断先前POST不会晚到。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 服务内部错误；写请求的接纳结果未知，保留原ID对账，不另开一单。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
       parameters:
-      - name: asset_id
+      - name: artifact_id
         in: path
         required: true
         schema:
           type: string
-          pattern: ^[A-Za-z0-9_-]{1,100}$
-      description: DEMO_TOKEN 可读团队产物；Worker 仅可读其当前有效租约对应的输入。通过鉴权 fetch Blob 显示图片，不在
-        URL 放令牌。
+          pattern: ^[A-Za-z0-9_-]{1,80}$
+  /api/resource/v1/artifacts/{artifact_id}/content:
+    servers:
+    - url: http://localhost:8001
+      description: P1 开发占位；替换为可访问地址。
+    get:
+      tags:
+      - P1
+      operationId: downloadArtifact
+      summary: 鉴权下载文件字节
+      x-owner: P1
+      description: 鉴权下载文件字节
+      security:
+      - DemoToken: []
+      - TaskToken: []
       responses:
         '200':
-          description: 图像二进制。
+          description: 成功。
           content:
             image/png:
               schema:
@@ -99,589 +265,1179 @@ paths:
               schema:
                 type: string
                 format: binary
-            image/webp:
+            audio/wav:
+              schema:
+                type: string
+                format: binary
+            application/json:
               schema:
                 type: string
                 format: binary
         '401':
-          description: 缺少或无效令牌。
+          description: 缺失或无效令牌。
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: 角色、Worker 或会话权限不匹配。
+          description: 令牌角色不允许。
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         '404':
-          description: 资源不存在。
+          description: 资源不存在；不能凭一次404推断先前POST不会晚到。
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-  /v1/jobs:
-    post:
-      operationId: createJob
-      summary: 幂等创建图片处理批次
-      security:
-      - DemoToken: []
-      description: 一个 input_id 对应一个逻辑任务。同一个 Job 中不能有重复规范化内容 SHA。同 client_request_id
-        同载荷返回同一 job_id；不同载荷返回 409。
-      requestBody:
+        '500':
+          description: 服务内部错误；写请求的接纳结果未知，保留原ID对账，不另开一单。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      parameters:
+      - name: artifact_id
+        in: path
         required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/JobCreateRequest'
+        schema:
+          type: string
+          pattern: ^[A-Za-z0-9_-]{1,80}$
+  /api/resource/v1/preparations:
+    servers:
+    - url: http://localhost:8001
+      description: P1 开发占位；替换为可访问地址。
+    post:
+      tags:
+      - P1
+      operationId: createPreparation
+      summary: 按固定profile异步准备模型
+      x-owner: P1
+      description: 同ID先查持久指纹。业务拒绝保留REJECTED、409/503；重放不重新准备。准备占一槽，900秒硬期限，真实自测后READY。
+      security:
+      - TaskToken: []
       responses:
+        '202':
+          description: 成功；不表示独立业务质量已经合格。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Preparation'
         '200':
-          description: 同请求的幂等重放，duplicate=true。
+          description: 成功；不表示独立业务质量已经合格。
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/JobCreated'
-        '201':
-          description: 首次创建。
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JobCreated'
+                $ref: '#/components/schemas/Preparation'
         '401':
-          description: 缺少或无效令牌。
+          description: 缺失或无效令牌。
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        '404':
-          description: 资源不存在。
+        '403':
+          description: 令牌角色不允许。
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         '409':
-          description: 幂等载荷冲突、STALE_ATTEMPT、会话/状态冲突或尚未结束。
+          description: 幂等冲突、明确业务拒绝或当前状态不允许；执行/准备拒绝ID保存在details。
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         '422':
-          description: 字段、流水线、图片或结果校验失败。
+          description: 请求结构、输入或参数不合法。
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         '503':
-          description: 流水线配置未就绪。
+          description: 依赖不可用或profile未配置。
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-  /v1/jobs/{job_id}:
-    get:
-      operationId: getJob
-      summary: 查询状态、全部任务与尝试记录
-      security:
-      - DemoToken: []
-      parameters:
-      - name: job_id
-        in: path
-        required: true
-        schema:
-          type: string
-          pattern: ^[A-Za-z0-9_-]{1,100}$
-      description: 此处 succeeded 表示执行及格式校验通过，不等于人工质量已合格。计数按唯一 task_id；不暴露 lease_token
-        或节点令牌。
-      responses:
-        '200':
-          description: 完整任务快照。
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JobDetail'
-        '401':
-          description: 缺少或无效令牌。
+        '500':
+          description: 服务内部错误；写请求的接纳结果未知，保留原ID对账，不另开一单。
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        '404':
-          description: 资源不存在。
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-  /v1/jobs/{job_id}/download:
-    get:
-      operationId: downloadJob
-      summary: 下载终态素材包和失败清单
-      security:
-      - DemoToken: []
-      parameters:
-      - name: job_id
-        in: path
-        required: true
-        schema:
-          type: string
-          pattern: ^[A-Za-z0-9_-]{1,100}$
-      description: 终态均允许下载。每个成功 task_id 一个目录、三种文件；manifest.json 包含原始名称、设备、任务与失败原因。未结束返回
-        409 JOB_NOT_TERMINAL。
-      responses:
-        '200':
-          description: ZIP，不把失败任务静默隐藏。
-          content:
-            application/zip:
-              schema:
-                type: string
-                format: binary
-        '401':
-          description: 缺少或无效令牌。
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '404':
-          description: 资源不存在。
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '409':
-          description: 幂等载荷冲突、STALE_ATTEMPT、会话/状态冲突或尚未结束。
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-  /v1/pool:
-    get:
-      operationId: getPool
-      summary: 节点、配置、采样和最近事件
-      security:
-      - DemoToken: []
-      description: 节点数量不硬编码。已接受结果数不是质量核验后吞吐；正式 qualified 数由独立验收报告给出。
-      responses:
-        '200':
-          description: 实时快照。
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PoolView'
-        '401':
-          description: 缺少或无效令牌。
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-  /v1/workers/register:
-    post:
-      operationId: registerWorker
-      summary: 注册或重放 Worker 启动会话
-      security:
-      - JoinToken: []
-      description: 同 installation_id/instance_id 重试返回同一会话与凭证。新 instance_id 撤销该安装旧会话和旧租约；初始
-        WARMING。pipeline=null 时不得 READY。
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/WorkerRegistrationRequest'
+              $ref: '#/components/schemas/PreparationRequest'
+  /api/resource/v1/preparations/{preparation_id}:
+    servers:
+    - url: http://localhost:8001
+      description: P1 开发占位；替换为可访问地址。
+    get:
+      tags:
+      - P1
+      operationId: getPreparation
+      summary: 查询模型准备
+      x-owner: P1
+      description: 查询模型准备
+      security:
+      - TaskToken: []
       responses:
         '200':
-          description: 同实例注册重放。
+          description: 成功；不表示独立业务质量已经合格。
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/WorkerRegistrationResponse'
+                $ref: '#/components/schemas/Preparation'
+        '401':
+          description: 缺失或无效令牌。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 令牌角色不允许。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 资源不存在；不能凭一次404推断先前POST不会晚到。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 服务内部错误；写请求的接纳结果未知，保留原ID对账，不另开一单。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      parameters:
+      - name: preparation_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+  /api/resource/v1/executions:
+    servers:
+    - url: http://localhost:8001
+      description: P1 开发占位；替换为可访问地址。
+    post:
+      tags:
+      - P1
+      operationId: createExecution
+      summary: 原子接纳P2选定节点的一次执行
+      x-owner: P1
+      description: 先核对幂等，再原子检查节点/会话/profile/空槽。业务拒绝也持久REJECTED并以409返回details.execution_id，GET可查。已拒ID不稍后接受。P1不跨机重试。
+      security:
+      - TaskToken: []
+      responses:
         '201':
-          description: 创建新会话。
+          description: 成功；不表示独立业务质量已经合格。
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/WorkerRegistrationResponse'
-        '401':
-          description: 缺少或无效令牌。
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '409':
-          description: 幂等载荷冲突、STALE_ATTEMPT、会话/状态冲突或尚未结束。
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '422':
-          description: 字段、流水线、图片或结果校验失败。
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-  /v1/workers/{worker_id}/heartbeat:
-    post:
-      operationId: heartbeatWorker
-      summary: 报告阶段与采样，续租并对账
-      security:
-      - WorkerToken: []
-      parameters:
-      - name: worker_id
-        in: path
-        required: true
-        schema:
-          type: string
-          pattern: ^[A-Za-z0-9_-]{1,100}$
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/HeartbeatRequest'
-      description: 每 3 秒。仅当前有效 active_attempts 可续租至 min(服务时间+15秒,硬截止)。READY 须能力匹配且3张校准通过。返回服务器活动租约使领取响应丢失可恢复；离线/超时旧尝试不可借心跳复活。
-      responses:
+                $ref: '#/components/schemas/Execution'
         '200':
-          description: 控制模式与租约对账。
+          description: 成功；不表示独立业务质量已经合格。
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/HeartbeatResponse'
+                $ref: '#/components/schemas/Execution'
         '401':
-          description: 缺少或无效令牌。
+          description: 缺失或无效令牌。
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: 角色、Worker 或会话权限不匹配。
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '404':
-          description: 资源不存在。
+          description: 令牌角色不允许。
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         '409':
-          description: 幂等载荷冲突、STALE_ATTEMPT、会话/状态冲突或尚未结束。
+          description: 幂等冲突、明确业务拒绝或当前状态不允许；执行/准备拒绝ID保存在details。
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         '422':
-          description: 字段、流水线、图片或结果校验失败。
+          description: 请求结构、输入或参数不合法。
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-  /v1/workers/{worker_id}/claim:
-    post:
-      operationId: claimTask
-      summary: 原子领取一张兼容任务
-      security:
-      - WorkerToken: []
-      parameters:
-      - name: worker_id
-        in: path
-        required: true
-        schema:
-          type: string
-          pattern: ^[A-Za-z0-9_-]{1,100}$
+        '500':
+          description: 服务内部错误；写请求的接纳结果未知，保留原ID对账，不另开一单。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ClaimRequest'
-      description: 在线、ACTIVE、READY、模型一致、空槽位才可首次领取。相同 claim_request_id 返回原租约，即使槽位已占用；若原尝试已撤销/结束则409。没有工作返回204且不持久化该请求为终态；新请求已有占用返回409
-        WORKER_BUSY。默认轮询间隔1秒。
+              $ref: '#/components/schemas/ExecutionRequest'
+  /api/resource/v1/executions/{execution_id}:
+    servers:
+    - url: http://localhost:8001
+      description: P1 开发占位；替换为可访问地址。
+    get:
+      tags:
+      - P1
+      operationId: getExecution
+      summary: 查询一次分派的确定状态
+      x-owner: P1
+      description: 查询一次分派的确定状态
+      security:
+      - TaskToken: []
       responses:
         '200':
-          description: 当前尝试的完整租约。
+          description: 成功；不表示独立业务质量已经合格。
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TaskLease'
-        '204':
-          description: 没有可用的兼容待办任务，无响应体。
+                $ref: '#/components/schemas/Execution'
         '401':
-          description: 缺少或无效令牌。
+          description: 缺失或无效令牌。
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: 角色、Worker 或会话权限不匹配。
+          description: 令牌角色不允许。
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         '404':
-          description: 资源不存在。
+          description: 资源不存在；不能凭一次404推断先前POST不会晚到。
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        '409':
-          description: 幂等载荷冲突、STALE_ATTEMPT、会话/状态冲突或尚未结束。
+        '500':
+          description: 服务内部错误；写请求的接纳结果未知，保留原ID对账，不另开一单。
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        '422':
-          description: 字段、流水线、图片或结果校验失败。
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-  /v1/workers/{worker_id}/mode:
+      parameters:
+      - name: execution_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+  /api/resource/v1/executions/{execution_id}/cancel:
+    servers:
+    - url: http://localhost:8001
+      description: P1 开发占位；替换为可访问地址。
     post:
-      operationId: setWorkerMode
-      summary: 正常退出或恢复接任务
+      tags:
+      - P1
+      operationId: cancelExecution
+      summary: 撤销一次执行并等待停止确认
+      x-owner: P1
+      description: 终态原样返回；活动执行CANCEL_REQUESTED并撤销提交权。成功与取消事务仲裁。未确认停止的在线节点仍不可接单。
+      security:
+      - TaskToken: []
+      responses:
+        '200':
+          description: 成功；不表示独立业务质量已经合格。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Execution'
+        '202':
+          description: 成功；不表示独立业务质量已经合格。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Execution'
+        '401':
+          description: 缺失或无效令牌。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 令牌角色不允许。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 资源不存在；不能凭一次404推断先前POST不会晚到。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 服务内部错误；写请求的接纳结果未知，保留原ID对账，不另开一单。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      parameters:
+      - name: execution_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+  /api/resource/v1/resources/{worker_id}/mode:
+    servers:
+    - url: http://localhost:8001
+      description: P1 开发占位；替换为可访问地址。
+    post:
+      tags:
+      - P1
+      operationId: setResourceMode
+      summary: 正常退出或恢复节点
+      x-owner: P1
+      description: DRAINING禁止新准备/执行，当前工作完成后PAUSED；ACTIVE须在线且满足就绪。
       security:
       - DemoToken: []
-      - WorkerToken: []
+      responses:
+        '200':
+          description: 成功；不表示独立业务质量已经合格。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourceNode'
+        '401':
+          description: 缺失或无效令牌。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 令牌角色不允许。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 资源不存在；不能凭一次404推断先前POST不会晚到。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: 幂等冲突、明确业务拒绝或当前状态不允许；执行/准备拒绝ID保存在details。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: 请求结构、输入或参数不合法。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 服务内部错误；写请求的接纳结果未知，保留原ID对账，不另开一单。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
       parameters:
       - name: worker_id
         in: path
         required: true
         schema:
           type: string
-          pattern: ^[A-Za-z0-9_-]{1,100}$
+          pattern: ^[A-Za-z0-9_-]{1,80}$
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/ModeRequest'
-      description: WorkerToken 只可控制自己。DRAINING 立即停止新领取，当前尝试保留续租，空闲后PAUSED。ACTIVE 恢复须满足就绪/在线条件；不能借此把离线设备假装在线。
+  /api/resource/v1/events:
+    servers:
+    - url: http://localhost:8001
+      description: P1 开发占位；替换为可访问地址。
+    get:
+      tags:
+      - P1
+      operationId: getResourceEvents
+      summary: 游标读取资源与执行事件
+      x-owner: P1
+      description: 返回event_id>after，按ID升序。next_after为最后返回ID，无新事件保持after；未读完has_more=true。实验期间不删除事件。
+      security:
+      - DemoToken: []
+      - TaskToken: []
       responses:
         '200':
-          description: 最新 Worker 状态。
+          description: 成功；不表示独立业务质量已经合格。
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/WorkerView'
+                $ref: '#/components/schemas/EventPage'
         '401':
-          description: 缺少或无效令牌。
+          description: 缺失或无效令牌。
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: 角色、Worker 或会话权限不匹配。
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '404':
-          description: 资源不存在。
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '409':
-          description: 幂等载荷冲突、STALE_ATTEMPT、会话/状态冲突或尚未结束。
+          description: 令牌角色不允许。
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         '422':
-          description: 字段、流水线、图片或结果校验失败。
+          description: 请求结构、输入或参数不合法。
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-  /v1/tasks/{task_id}/complete:
-    post:
-      operationId: completeTask
-      summary: 提交当前租约产物并幂等接纳
-      security:
-      - WorkerToken: []
-      parameters:
-      - name: task_id
-        in: path
-        required: true
-        schema:
-          type: string
-          pattern: ^[A-Za-z0-9_-]{1,100}$
-      description: meta 是 CompletionMeta 的 JSON 字符串；服务器必须解析并校验。当前会话、attempt、lease、硬期限和模型均需匹配。相同
-        submission_id 与内容重传返回相同已接纳结果；修改内容或过期尝试409。结果不是由客户端自己宣布成功。
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              properties:
-                meta:
-                  type: string
-                  description: JSON 序列化的 CompletionMeta。
-                  contentMediaType: application/json
-                  x-json-schema:
-                    $ref: '#/components/schemas/CompletionMeta'
-                cutout:
-                  type: string
-                  format: binary
-                white:
-                  type: string
-                  format: binary
-                thumbnail:
-                  type: string
-                  format: binary
-              required:
-              - meta
-              - cutout
-              - white
-              - thumbnail
-              additionalProperties: false
-            encoding:
-              meta:
-                contentType: application/json
-              cutout:
-                contentType: image/png
-              white:
-                contentType: image/jpeg
-              thumbnail:
-                contentType: image/webp
-      responses:
-        '200':
-          description: 首次或幂等接纳。
+        '500':
+          description: 服务内部错误；写请求的接纳结果未知，保留原ID对账，不另开一单。
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CompletionAck'
+                $ref: '#/components/schemas/Error'
+      parameters:
+      - name: after
+        in: query
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 100
+  /api/task/v1/healthz:
+    servers:
+    - url: http://localhost:8002
+      description: P2 开发占位；替换为可访问地址。
+    get:
+      tags:
+      - P2
+      operationId: p2Health
+      summary: P2服务及契约版本
+      x-owner: P2
+      description: 仅本服务健康，不保证P1在线。
+      security: []
+      responses:
+        '200':
+          description: 成功；不表示独立业务质量已经合格。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+        '500':
+          description: 服务内部错误；写请求的接纳结果未知，保留原ID对账，不另开一单。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /api/task/v1/task-types:
+    servers:
+    - url: http://localhost:8002
+      description: P2 开发占位；替换为可访问地址。
+    get:
+      tags:
+      - P2
+      operationId: getTaskTypes
+      summary: P2拆分器与P1目录交集
+      x-owner: P2
+      description: P2拆分器与P1目录交集
+      security:
+      - DemoToken: []
+      responses:
+        '200':
+          description: 成功；不表示独立业务质量已经合格。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TypeCatalog'
         '401':
-          description: 缺少或无效令牌。
+          description: 缺失或无效令牌。
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: 角色、Worker 或会话权限不匹配。
+          description: 令牌角色不允许。
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        '404':
-          description: 资源不存在。
+        '503':
+          description: 依赖不可用或profile未配置。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 服务内部错误；写请求的接纳结果未知，保留原ID对账，不另开一单。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /api/task/v1/jobs:
+    servers:
+    - url: http://localhost:8002
+      description: P2 开发占位；替换为可访问地址。
+    post:
+      tags:
+      - P2
+      operationId: createJob
+      summary: 幂等创建业务批次
+      x-owner: P2
+      description: 校验P1配置、原始文件SHA/类型/限制与语言。一个Job一种类型，每文件一个Task。相同client_request_id同参数返回当前Job，参数不同409。未配置503；已配置但无节点可等待。
+      security:
+      - DemoToken: []
+      responses:
+        '201':
+          description: 成功；不表示独立业务质量已经合格。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+        '200':
+          description: 成功；不表示独立业务质量已经合格。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+        '401':
+          description: 缺失或无效令牌。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 令牌角色不允许。
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         '409':
-          description: 幂等载荷冲突、STALE_ATTEMPT、会话/状态冲突或尚未结束。
+          description: 幂等冲突、明确业务拒绝或当前状态不允许；执行/准备拒绝ID保存在details。
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         '413':
-          description: 文件或像素数量超限。
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '415':
-          description: 不支持的格式或文件解码失败。
+          description: 文件、像素或规模超过限制。
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         '422':
-          description: 字段、流水线、图片或结果校验失败。
+          description: 请求结构、输入或参数不合法。
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-  /v1/tasks/{task_id}/fail:
-    post:
-      operationId: failTask
-      summary: 报告当前尝试失败
-      security:
-      - WorkerToken: []
-      parameters:
-      - name: task_id
-        in: path
-        required: true
-        schema:
-          type: string
-          pattern: ^[A-Za-z0-9_-]{1,100}$
+        '503':
+          description: 依赖不可用或profile未配置。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 服务内部错误；写请求的接纳结果未知，保留原ID对账，不另开一单。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/FailureRequest'
-      description: 校验当前租约。是否重试由服务端错误分类和最多3次尝试限制决定。可重试任务重新排队、对本节点冷却10秒；不可重试终止。相同已记录失败的重传返回原确认，不再次增加尝试或重排。
+              $ref: '#/components/schemas/JobCreateRequest'
+  /api/task/v1/jobs/{job_id}:
+    servers:
+    - url: http://localhost:8002
+      description: P2 开发占位；替换为可访问地址。
+    get:
+      tags:
+      - P2
+      operationId: getJob
+      summary: 逻辑任务与全部分派快照
+      x-owner: P2
+      description: 逻辑任务与全部分派快照
+      security:
+      - DemoToken: []
       responses:
         '200':
-          description: 重排或终止确认。
+          description: 成功；不表示独立业务质量已经合格。
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/FailureAck'
+                $ref: '#/components/schemas/Job'
         '401':
-          description: 缺少或无效令牌。
+          description: 缺失或无效令牌。
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: 角色、Worker 或会话权限不匹配。
+          description: 令牌角色不允许。
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         '404':
-          description: 资源不存在。
+          description: 资源不存在；不能凭一次404推断先前POST不会晚到。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 服务内部错误；写请求的接纳结果未知，保留原ID对账，不另开一单。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      parameters:
+      - name: job_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+  /api/task/v1/jobs/{job_id}/cancel:
+    servers:
+    - url: http://localhost:8002
+      description: P2 开发占位；替换为可访问地址。
+    post:
+      tags:
+      - P2
+      operationId: cancelJob
+      summary: 停止派新任务并对账取消在途执行
+      x-owner: P2
+      description: 已终态保持；活动Job持久取消标记。未知接单先对账再取消，不提前终止。保留已有成功结果。
+      security:
+      - DemoToken: []
+      responses:
+        '200':
+          description: 成功；不表示独立业务质量已经合格。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+        '202':
+          description: 成功；不表示独立业务质量已经合格。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+        '401':
+          description: 缺失或无效令牌。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 令牌角色不允许。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 资源不存在；不能凭一次404推断先前POST不会晚到。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 服务内部错误；写请求的接纳结果未知，保留原ID对账，不另开一单。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      parameters:
+      - name: job_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+  /api/task/v1/jobs/{job_id}/results:
+    servers:
+    - url: http://localhost:8002
+      description: P2 开发占位；替换为可访问地址。
+    get:
+      tags:
+      - P2
+      operationId: getJobResults
+      summary: 按输入顺序获取部分/最终结果
+      x-owner: P2
+      description: 每输入一项；未完成result=null，失败error保留。combined_text按input_index连接成功text，以两个换行分隔。
+      security:
+      - DemoToken: []
+      responses:
+        '200':
+          description: 成功；不表示独立业务质量已经合格。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobResults'
+        '401':
+          description: 缺失或无效令牌。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 令牌角色不允许。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 资源不存在；不能凭一次404推断先前POST不会晚到。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 服务内部错误；写请求的接纳结果未知，保留原ID对账，不另开一单。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      parameters:
+      - name: job_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+  /api/task/v1/jobs/{job_id}/download:
+    servers:
+    - url: http://localhost:8002
+      description: P2 开发占位；替换为可访问地址。
+    get:
+      tags:
+      - P2
+      operationId: downloadJob
+      summary: 终态ZIP及成功/失败/取消清单
+      x-owner: P2
+      description: 仅终态可下载；包含manifest.json、results.json、combined.txt及逐成功Task JSON。未结束409 JOB_NOT_TERMINAL。
+      security:
+      - DemoToken: []
+      responses:
+        '200':
+          description: 成功。
+          content:
+            application/zip:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: 缺失或无效令牌。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 令牌角色不允许。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 资源不存在；不能凭一次404推断先前POST不会晚到。
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         '409':
-          description: 幂等载荷冲突、STALE_ATTEMPT、会话/状态冲突或尚未结束。
+          description: 幂等冲突、明确业务拒绝或当前状态不允许；执行/准备拒绝ID保存在details。
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        '422':
-          description: 字段、流水线、图片或结果校验失败。
+        '500':
+          description: 服务内部错误；写请求的接纳结果未知，保留原ID对账，不另开一单。
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+      parameters:
+      - name: job_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
 components:
   securitySchemes:
     DemoToken:
       type: http
       scheme: bearer
-      description: 用户网页、压测与控制端令牌，环境变量DEMO_TOKEN。
-    JoinToken:
+      description: 用户/前端/验收：DEMO_TOKEN。禁止调用准备和执行接口。
+    TaskToken:
       type: http
       scheme: bearer
-      description: 只有注册使用的加入令牌JOIN_TOKEN。
-    WorkerToken:
-      type: http
-      scheme: bearer
-      description: 注册返回的会话级Worker令牌；只允许自身节点与租约。
+      description: P2服务端/验收：TASK_TOKEN。不得给浏览器。
   schemas:
-    Identifier:
-      type: string
-      pattern: ^[A-Za-z0-9_-]{1,100}$
+    Health:
+      type: object
+      properties:
+        service:
+          type: string
+          enum:
+          - p1_resource
+          - p2_task
+        contract_version:
+          type: string
+          const: 0.2.0
+        status:
+          type: string
+          const: ok
+        server_time:
+          type: string
+          format: date-time
+          pattern: Z$
+      required:
+      - service
+      - contract_version
+      - status
+      - server_time
+      additionalProperties: false
     Error:
       type: object
       properties:
         code:
           type: string
+          enum:
+          - UNAUTHORIZED
+          - FORBIDDEN
+          - INVALID_REQUEST
+          - INPUT_INVALID
+          - INPUT_TOO_LARGE
+          - UNSUPPORTED_MEDIA_TYPE
+          - UNSUPPORTED_TASK_TYPE
+          - PARAMETER_UNSUPPORTED
+          - NOT_FOUND
+          - IDEMPOTENCY_CONFLICT
+          - RESOURCE_BUSY
+          - NODE_UNAVAILABLE
+          - SESSION_CHANGED
+          - CAPABILITY_NOT_READY
+          - PROFILE_MISMATCH
+          - PROFILE_UNCONFIGURED
+          - DEPENDENCY_UNAVAILABLE
+          - NODE_OFFLINE
+          - LEASE_EXPIRED
+          - EXECUTION_TIMEOUT
+          - EXECUTION_ERROR
+          - RESULT_INVALID
+          - RESOURCE_SERVICE_RESTARTED
+          - MODEL_LOAD_FAILED
+          - MODEL_DOWNLOAD_FAILED
+          - MODEL_HASH_MISMATCH
+          - PREPARATION_TIMEOUT
+          - JOB_NOT_TERMINAL
+          - STALE_EXECUTION
+          - INTERNAL_ERROR
         message:
           type: string
+          minLength: 1
         retryable:
           type: boolean
+        request_id:
+          type: string
+          format: uuid
+        details:
+          type: object
+          properties:
+            execution_id:
+              type: string
+              format: uuid
+            preparation_id:
+              type: string
+              format: uuid
+            artifact_id:
+              type: string
+              pattern: ^[A-Za-z0-9_-]{1,80}$
+            job_id:
+              type: string
+              format: uuid
+            retry_after_seconds:
+              type: integer
+              minimum: 1
+            field:
+              type: string
+          required: []
+          additionalProperties: false
       required:
       - code
       - message
       - retryable
+      - request_id
+      - details
+      additionalProperties: false
+    TaskParameters:
+      type: object
+      properties:
+        language:
+          type: string
+          enum:
+          - auto
+          - zh
+          - en
+      required:
+      - language
+      additionalProperties: false
+    TaskTypeDescriptor:
+      type: object
+      properties:
+        task_type:
+          type: string
+          enum:
+          - ocr.image.v1
+          - asr.file.v1
+        display_name:
+          type: string
+          minLength: 1
+        profile_id:
+          type: string
+          pattern: ^[A-Za-z0-9][A-Za-z0-9_.-]{0,79}$
+        profile_digest:
+          anyOf:
+          - type: string
+            pattern: ^[a-f0-9]{64}$
+          - type: 'null'
+        configuration_state:
+          type: string
+          enum:
+          - UNCONFIGURED
+          - CONFIGURED
+        supported_languages:
+          type: array
+          items:
+            type: string
+            enum:
+            - auto
+            - zh
+            - en
+          minItems: 1
+          uniqueItems: true
+        input_mime_types:
+          type: array
+          items:
+            type: string
+            enum:
+            - image/jpeg
+            - image/png
+            - audio/wav
+          minItems: 1
+          uniqueItems: true
+        max_file_bytes:
+          type: integer
+          minimum: 1
+        max_pixels:
+          anyOf:
+          - type: integer
+            minimum: 1
+          - type: 'null'
+        max_duration_ms:
+          anyOf:
+          - type: integer
+            minimum: 1
+          - type: 'null'
+        max_inputs_per_job:
+          type: integer
+          const: 200
+        split_unit:
+          type: string
+          const: input_file
+        result_schema:
+          type: string
+          enum:
+          - OCRResult
+          - ASRResult
+        default_timeout_seconds:
+          type: integer
+          minimum: 10
+          maximum: 600
+        reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+      required:
+      - task_type
+      - display_name
+      - profile_id
+      - profile_digest
+      - configuration_state
+      - supported_languages
+      - input_mime_types
+      - max_file_bytes
+      - max_pixels
+      - max_duration_ms
+      - max_inputs_per_job
+      - split_unit
+      - result_schema
+      - default_timeout_seconds
+      - reason
+      additionalProperties: false
+    TypeCatalog:
+      type: object
+      properties:
+        contract_version:
+          type: string
+          const: 0.2.0
+        server_time:
+          type: string
+          format: date-time
+          pattern: Z$
+        task_types:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskTypeDescriptor'
+      required:
+      - contract_version
+      - server_time
+      - task_types
+      additionalProperties: false
+    TypeCatalogFile:
+      type: object
+      properties:
+        contract_version:
+          type: string
+          const: 0.2.0
+        status:
+          type: string
+          const: DESIGN_ONLY
+        note:
+          type: string
+        task_types:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskTypeDescriptor'
+          minItems: 2
+          maxItems: 2
+      required:
+      - contract_version
+      - status
+      - note
+      - task_types
+      additionalProperties: false
+    MediaInfo:
+      type: object
+      properties:
+        width:
+          anyOf:
+          - type: integer
+            minimum: 1
+          - type: 'null'
+        height:
+          anyOf:
+          - type: integer
+            minimum: 1
+          - type: 'null'
+        duration_ms:
+          anyOf:
+          - type: integer
+            minimum: 1
+          - type: 'null'
+        sample_rate_hz:
+          anyOf:
+          - type: integer
+            minimum: 1
+          - type: 'null'
+        channels:
+          anyOf:
+          - type: integer
+            minimum: 1
+          - type: 'null'
+        audio_encoding:
+          anyOf:
+          - type: string
+            enum:
+            - PCM_S16LE
+          - type: 'null'
+      required:
+      - width
+      - height
+      - duration_ms
+      - sample_rate_hz
+      - channels
+      - audio_encoding
+      additionalProperties: false
+    Artifact:
+      type: object
+      properties:
+        artifact_id:
+          type: string
+          pattern: ^[A-Za-z0-9_-]{1,80}$
+        kind:
+          type: string
+          enum:
+          - INPUT
+          - RESULT
+        original_name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        content_type:
+          type: string
+          enum:
+          - image/jpeg
+          - image/png
+          - audio/wav
+          - application/json
+        sha256:
+          type: string
+          pattern: ^[a-f0-9]{64}$
+        size_bytes:
+          type: integer
+          minimum: 1
+        media_info:
+          $ref: '#/components/schemas/MediaInfo'
+        download_path:
+          type: string
+          pattern: ^/api/resource/v1/artifacts/[A-Za-z0-9_-]+/content$
+        created_at:
+          type: string
+          format: date-time
+          pattern: Z$
+      required:
+      - artifact_id
+      - kind
+      - original_name
+      - content_type
+      - sha256
+      - size_bytes
+      - media_info
+      - download_path
+      - created_at
+      additionalProperties: false
+    UploadRequest:
+      type: object
+      properties:
+        upload_id:
+          type: string
+          format: uuid
+        file:
+          type: string
+          format: binary
+      required:
+      - upload_id
+      - file
       additionalProperties: false
     Hardware:
       type: object
@@ -727,7 +1483,6 @@ components:
           type: object
           additionalProperties:
             type: string
-          description: 只用于显示，不授予能力或改变后端。
         detection_errors:
           type: array
           items:
@@ -745,66 +1500,12 @@ components:
       - manual_labels
       - detection_errors
       additionalProperties: false
-    Capabilities:
-      type: object
-      properties:
-        pipeline_id:
-          type: string
-          enum:
-          - product_image_v1
-        model_id:
-          type: string
-          enum:
-          - u2net
-          - u2netp
-        model_sha256:
-          type: string
-          pattern: ^[a-f0-9]{64}$
-        backend:
-          type: string
-          enum:
-          - cpu
-          - cuda
-        runtime_provider:
-          type: string
-          enum:
-          - CPUExecutionProvider
-          - CUDAExecutionProvider
-        available_providers:
-          type: array
-          items:
-            type: string
-        concurrency:
-          type: integer
-          const: 1
-        cpu_threads:
-          type: integer
-          minimum: 1
-          maximum: 4
-        verified:
-          type: boolean
-        fallback_reason:
-          anyOf:
-          - type: string
-          - type: 'null'
-      required:
-      - pipeline_id
-      - model_id
-      - model_sha256
-      - backend
-      - runtime_provider
-      - available_providers
-      - concurrency
-      - cpu_threads
-      - verified
-      - fallback_reason
-      additionalProperties: false
     Calibration:
       type: object
       properties:
         sample_count:
           type: integer
-          const: 3
+          minimum: 1
         median_compute_ms:
           type: number
           exclusiveMinimum: 0
@@ -813,11 +1514,77 @@ components:
         finished_at:
           type: string
           format: date-time
+          pattern: Z$
       required:
       - sample_count
       - median_compute_ms
       - passed
       - finished_at
+      additionalProperties: false
+    Capability:
+      type: object
+      properties:
+        task_type:
+          type: string
+          enum:
+          - ocr.image.v1
+          - asr.file.v1
+        profile_id:
+          type: string
+          pattern: ^[A-Za-z0-9][A-Za-z0-9_.-]{0,79}$
+        profile_digest:
+          anyOf:
+          - type: string
+            pattern: ^[a-f0-9]{64}$
+          - type: 'null'
+        state:
+          type: string
+          enum:
+          - UNAVAILABLE
+          - NOT_PREPARED
+          - PREPARING
+          - READY
+          - ERROR
+        model_cached:
+          type: boolean
+        backend:
+          anyOf:
+          - type: string
+            enum:
+            - cpu
+            - cuda
+          - type: 'null'
+        runtime_provider:
+          anyOf:
+          - type: string
+          - type: 'null'
+        model_sha256:
+          anyOf:
+          - type: string
+            pattern: ^[a-f0-9]{64}$
+          - type: 'null'
+        verified:
+          type: boolean
+        calibration:
+          anyOf:
+          - $ref: '#/components/schemas/Calibration'
+          - type: 'null'
+        reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+      required:
+      - task_type
+      - profile_id
+      - profile_digest
+      - state
+      - model_cached
+      - backend
+      - runtime_provider
+      - model_sha256
+      - verified
+      - calibration
+      - reason
       additionalProperties: false
     Telemetry:
       type: object
@@ -825,6 +1592,7 @@ components:
         sampled_at:
           type: string
           format: date-time
+          pattern: Z$
         cpu_percent:
           anyOf:
           - type: number
@@ -832,11 +1600,6 @@ components:
             maximum: 100
           - type: 'null'
         ram_used_bytes:
-          anyOf:
-          - type: integer
-            minimum: 0
-          - type: 'null'
-        process_rss_bytes:
           anyOf:
           - type: integer
             minimum: 0
@@ -861,346 +1624,109 @@ components:
       - sampled_at
       - cpu_percent
       - ram_used_bytes
-      - process_rss_bytes
       - gpu_percent
       - gpu_memory_used_bytes
       - gpu_metric_source
       additionalProperties: false
-    PipelineSpec:
+    ResourceNode:
       type: object
       properties:
-        pipeline_id:
+        worker_id:
           type: string
-          enum:
-          - product_image_v1
-        model_id:
-          type: string
-          enum:
-          - u2net
-          - u2netp
-        model_sha256:
-          type: string
-          pattern: ^[a-f0-9]{64}$
-        preset:
-          type: string
-          enum:
-          - white_square
-        canvas_size:
-          type: integer
-          const: 1024
-        foreground_scale:
-          type: number
-          const: 0.8
-        thumbnail_size:
-          type: integer
-          const: 256
-        jpeg_quality:
-          type: integer
-          const: 92
-        webp_quality:
-          type: integer
-          const: 85
-      required:
-      - pipeline_id
-      - model_id
-      - model_sha256
-      - preset
-      - canvas_size
-      - foreground_scale
-      - thumbnail_size
-      - jpeg_quality
-      - webp_quality
-      additionalProperties: false
-    Asset:
-      type: object
-      properties:
-        asset_id:
-          type: string
-          pattern: ^[A-Za-z0-9_-]{1,100}$
-        kind:
-          type: string
-          enum:
-          - input
-          - cutout
-          - white
-          - thumbnail
-        original_name:
-          type: string
-        content_type:
-          type: string
-          enum:
-          - image/png
-          - image/jpeg
-          - image/webp
-        sha256:
-          type: string
-          pattern: ^[a-f0-9]{64}$
-        size_bytes:
-          type: integer
-          minimum: 0
-        width:
-          type: integer
-          minimum: 1
-        height:
-          type: integer
-          minimum: 1
-        download_path:
-          type: string
-          pattern: ^/v1/assets/
-      required:
-      - asset_id
-      - kind
-      - original_name
-      - content_type
-      - sha256
-      - size_bytes
-      - width
-      - height
-      - download_path
-      additionalProperties: false
-    ResultArtifacts:
-      type: object
-      properties:
-        cutout:
-          $ref: '#/components/schemas/Asset'
-        white:
-          $ref: '#/components/schemas/Asset'
-        thumbnail:
-          $ref: '#/components/schemas/Asset'
-      required:
-      - cutout
-      - white
-      - thumbnail
-      additionalProperties: false
-    ResultTimings:
-      type: object
-      properties:
-        download_ms:
-          type: number
-          minimum: 0
-        inference_ms:
-          type: number
-          minimum: 0
-        postprocess_ms:
-          type: number
-          minimum: 0
-        total_worker_ms:
-          type: number
-          minimum: 0
-          description: 下载开始至产物就绪，排除结果上传；用本机单调时钟。
-      required:
-      - download_ms
-      - inference_ms
-      - postprocess_ms
-      - total_worker_ms
-      additionalProperties: false
-    WorkerRegistrationRequest:
-      type: object
-      properties:
-        installation_id:
-          type: string
-          format: uuid
-        instance_id:
+          pattern: ^[A-Za-z0-9_-]{1,80}$
+        session_id:
           type: string
           format: uuid
         name:
           type: string
           minLength: 1
           maxLength: 80
-        hardware:
-          $ref: '#/components/schemas/Hardware'
-      required:
-      - installation_id
-      - instance_id
-      - name
-      - hardware
-      additionalProperties: false
-    WorkerRegistrationResponse:
-      type: object
-      properties:
-        worker_id:
-          type: string
-          pattern: ^[A-Za-z0-9_-]{1,100}$
-        session_id:
-          type: string
-          pattern: ^[A-Za-z0-9_-]{1,100}$
-        worker_token:
-          type: string
-          minLength: 20
-        heartbeat_interval_seconds:
-          type: integer
-          const: 3
-        lease_ttl_seconds:
-          type: integer
-          const: 15
-        attempt_timeout_seconds:
-          type: integer
-          const: 120
-        max_attempts:
-          type: integer
-          const: 3
-        pipeline:
-          anyOf:
-          - $ref: '#/components/schemas/PipelineSpec'
-          - type: 'null'
-        server_time:
-          type: string
-          format: date-time
-      required:
-      - worker_id
-      - session_id
-      - worker_token
-      - heartbeat_interval_seconds
-      - lease_ttl_seconds
-      - attempt_timeout_seconds
-      - max_attempts
-      - pipeline
-      - server_time
-      additionalProperties: false
-    ActiveAttempt:
-      type: object
-      properties:
-        task_id:
-          type: string
-          pattern: ^[A-Za-z0-9_-]{1,100}$
-        attempt_id:
-          type: string
-          pattern: ^[A-Za-z0-9_-]{1,100}$
-        lease_token:
-          type: string
-          minLength: 16
-      required:
-      - task_id
-      - attempt_id
-      - lease_token
-      additionalProperties: false
-    HeartbeatRequest:
-      type: object
-      properties:
-        session_id:
-          type: string
-          pattern: ^[A-Za-z0-9_-]{1,100}$
-        phase:
+        connection:
           type: string
           enum:
-          - WARMING
-          - READY
-          - ERROR
-        capabilities:
-          anyOf:
-          - $ref: '#/components/schemas/Capabilities'
-          - type: 'null'
-        calibration:
-          anyOf:
-          - $ref: '#/components/schemas/Calibration'
-          - type: 'null'
-        active_attempts:
-          type: array
-          items:
-            $ref: '#/components/schemas/ActiveAttempt'
-          maxItems: 1
-        telemetry:
-          $ref: '#/components/schemas/Telemetry'
-        error:
-          anyOf:
-          - $ref: '#/components/schemas/Error'
-          - type: 'null'
-      required:
-      - session_id
-      - phase
-      - capabilities
-      - calibration
-      - active_attempts
-      - telemetry
-      - error
-      additionalProperties: false
-    TaskLease:
-      type: object
-      properties:
-        task_id:
-          type: string
-          pattern: ^[A-Za-z0-9_-]{1,100}$
-        job_id:
-          type: string
-          pattern: ^[A-Za-z0-9_-]{1,100}$
-        attempt_id:
-          type: string
-          pattern: ^[A-Za-z0-9_-]{1,100}$
-        session_id:
-          type: string
-          pattern: ^[A-Za-z0-9_-]{1,100}$
-        lease_token:
-          type: string
-          minLength: 16
-        lease_expires_at:
-          type: string
-          format: date-time
-        hard_deadline_at:
-          type: string
-          format: date-time
-        input:
-          $ref: '#/components/schemas/Asset'
-        pipeline:
-          $ref: '#/components/schemas/PipelineSpec'
-      required:
-      - task_id
-      - job_id
-      - attempt_id
-      - session_id
-      - lease_token
-      - lease_expires_at
-      - hard_deadline_at
-      - input
-      - pipeline
-      additionalProperties: false
-    HeartbeatResponse:
-      type: object
-      properties:
-        server_time:
-          type: string
-          format: date-time
+          - ONLINE
+          - OFFLINE
         mode:
           type: string
           enum:
           - ACTIVE
           - DRAINING
           - PAUSED
-        active_leases:
+        hardware:
+          $ref: '#/components/schemas/Hardware'
+        capabilities:
           type: array
           items:
-            $ref: '#/components/schemas/TaskLease'
-          maxItems: 1
-        revoked_attempt_ids:
+            $ref: '#/components/schemas/Capability'
+        max_slots:
+          type: integer
+          const: 1
+        reserved_slots:
+          type: integer
+          minimum: 0
+          maximum: 1
+        available_slots:
+          type: integer
+          minimum: 0
+          maximum: 1
+        active_execution_ids:
           type: array
           items:
             type: string
-            pattern: ^[A-Za-z0-9_-]{1,100}$
-        ready:
-          type: boolean
-        reason:
+            format: uuid
+          maxItems: 1
+        active_preparation_id:
           anyOf:
           - type: string
+            format: uuid
+          - type: 'null'
+        cleanup_pending:
+          type: boolean
+        last_seen_at:
+          anyOf:
+          - type: string
+            format: date-time
+            pattern: Z$
+          - type: 'null'
+        telemetry:
+          anyOf:
+          - $ref: '#/components/schemas/Telemetry'
           - type: 'null'
       required:
-      - server_time
+      - worker_id
+      - session_id
+      - name
+      - connection
       - mode
-      - active_leases
-      - revoked_attempt_ids
-      - ready
-      - reason
+      - hardware
+      - capabilities
+      - max_slots
+      - reserved_slots
+      - available_slots
+      - active_execution_ids
+      - active_preparation_id
+      - cleanup_pending
+      - last_seen_at
+      - telemetry
       additionalProperties: false
-    ClaimRequest:
+    ResourceSnapshot:
       type: object
       properties:
-        session_id:
+        contract_version:
           type: string
-          pattern: ^[A-Za-z0-9_-]{1,100}$
-        claim_request_id:
+          const: 0.2.0
+        server_time:
           type: string
-          format: uuid
+          format: date-time
+          pattern: Z$
+        resources:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResourceNode'
       required:
-      - session_id
-      - claim_request_id
+      - contract_version
+      - server_time
+      - resources
       additionalProperties: false
     ModeRequest:
       type: object
@@ -1213,79 +1739,311 @@ components:
       required:
       - mode
       additionalProperties: false
-    WorkerView:
+    PreparationRequest:
       type: object
       properties:
+        preparation_id:
+          type: string
+          format: uuid
         worker_id:
           type: string
-          pattern: ^[A-Za-z0-9_-]{1,100}$
-        session_id:
+          pattern: ^[A-Za-z0-9_-]{1,80}$
+        worker_session_id:
           type: string
-          pattern: ^[A-Za-z0-9_-]{1,100}$
-        name:
-          type: string
-        phase:
+          format: uuid
+        task_type:
           type: string
           enum:
-          - WARMING
-          - READY
-          - ERROR
-        mode:
+          - ocr.image.v1
+          - asr.file.v1
+        profile_id:
+          type: string
+          pattern: ^[A-Za-z0-9][A-Za-z0-9_.-]{0,79}$
+        profile_digest:
+          type: string
+          pattern: ^[a-f0-9]{64}$
+      required:
+      - preparation_id
+      - worker_id
+      - worker_session_id
+      - task_type
+      - profile_id
+      - profile_digest
+      additionalProperties: false
+    Preparation:
+      type: object
+      properties:
+        preparation_id:
+          type: string
+          format: uuid
+        worker_id:
+          type: string
+          pattern: ^[A-Za-z0-9_-]{1,80}$
+        worker_session_id:
+          type: string
+          format: uuid
+        task_type:
           type: string
           enum:
-          - ACTIVE
-          - DRAINING
-          - PAUSED
+          - ocr.image.v1
+          - asr.file.v1
+        profile_id:
+          type: string
+          pattern: ^[A-Za-z0-9][A-Za-z0-9_.-]{0,79}$
+        profile_digest:
+          type: string
+          pattern: ^[a-f0-9]{64}$
         status:
           type: string
           enum:
-          - WARMING
+          - REJECTED
+          - ACCEPTED
+          - DOWNLOADING
+          - LOADING
+          - VERIFYING
           - READY
-          - BUSY
-          - DRAINING
-          - PAUSED
-          - OFFLINE
-          - ERROR
-        hardware:
-          $ref: '#/components/schemas/Hardware'
-        capabilities:
-          anyOf:
-          - $ref: '#/components/schemas/Capabilities'
-          - type: 'null'
-        calibration:
-          anyOf:
-          - $ref: '#/components/schemas/Calibration'
-          - type: 'null'
-        last_seen_at:
+          - FAILED
+        created_at:
           type: string
           format: date-time
-        telemetry:
+          pattern: Z$
+        finished_at:
           anyOf:
-          - $ref: '#/components/schemas/Telemetry'
+          - type: string
+            format: date-time
+            pattern: Z$
           - type: 'null'
-        accepted_tasks:
-          type: integer
-          minimum: 0
-        active_task_ids:
-          type: array
-          items:
-            type: string
-            pattern: ^[A-Za-z0-9_-]{1,100}$
-          maxItems: 1
+        progress:
+          anyOf:
+          - type: number
+            minimum: 0
+            maximum: 1
+          - type: 'null'
+        error:
+          anyOf:
+          - $ref: '#/components/schemas/Error'
+          - type: 'null'
       required:
+      - preparation_id
       - worker_id
-      - session_id
-      - name
-      - phase
-      - mode
+      - worker_session_id
+      - task_type
+      - profile_id
+      - profile_digest
       - status
-      - hardware
-      - capabilities
-      - calibration
-      - last_seen_at
-      - telemetry
-      - accepted_tasks
-      - active_task_ids
+      - created_at
+      - finished_at
+      - progress
+      - error
+      additionalProperties: false
+    ExecutionRequest:
+      type: object
+      properties:
+        execution_id:
+          type: string
+          format: uuid
+        job_id:
+          type: string
+          format: uuid
+        task_id:
+          type: string
+          format: uuid
+        attempt_no:
+          type: integer
+          minimum: 1
+          maximum: 3
+        worker_id:
+          type: string
+          pattern: ^[A-Za-z0-9_-]{1,80}$
+        worker_session_id:
+          type: string
+          format: uuid
+        task_type:
+          type: string
+          enum:
+          - ocr.image.v1
+          - asr.file.v1
+        profile_id:
+          type: string
+          pattern: ^[A-Za-z0-9][A-Za-z0-9_.-]{0,79}$
+        profile_digest:
+          type: string
+          pattern: ^[a-f0-9]{64}$
+        input_artifact_id:
+          type: string
+          pattern: ^[A-Za-z0-9_-]{1,80}$
+        parameters:
+          $ref: '#/components/schemas/TaskParameters'
+        timeout_seconds:
+          type: integer
+          minimum: 10
+          maximum: 600
+      required:
+      - execution_id
+      - job_id
+      - task_id
+      - attempt_no
+      - worker_id
+      - worker_session_id
+      - task_type
+      - profile_id
+      - profile_digest
+      - input_artifact_id
+      - parameters
+      - timeout_seconds
+      additionalProperties: false
+    ExecutionTimings:
+      type: object
+      properties:
+        download_ms:
+          type: number
+          minimum: 0
+        inference_ms:
+          type: number
+          minimum: 0
+        postprocess_ms:
+          type: number
+          minimum: 0
+        write_output_ms:
+          type: number
+          minimum: 0
+        total_worker_ms:
+          type: number
+          minimum: 0
+      required:
+      - download_ms
+      - inference_ms
+      - postprocess_ms
+      - write_output_ms
+      - total_worker_ms
+      additionalProperties: false
+    Execution:
+      type: object
+      properties:
+        execution_id:
+          type: string
+          format: uuid
+        job_id:
+          type: string
+          format: uuid
+        task_id:
+          type: string
+          format: uuid
+        attempt_no:
+          type: integer
+          minimum: 1
+          maximum: 3
+        worker_id:
+          type: string
+          pattern: ^[A-Za-z0-9_-]{1,80}$
+        worker_session_id:
+          type: string
+          format: uuid
+        task_type:
+          type: string
+          enum:
+          - ocr.image.v1
+          - asr.file.v1
+        profile_id:
+          type: string
+          pattern: ^[A-Za-z0-9][A-Za-z0-9_.-]{0,79}$
+        profile_digest:
+          type: string
+          pattern: ^[a-f0-9]{64}$
+        input_artifact_id:
+          type: string
+          pattern: ^[A-Za-z0-9_-]{1,80}$
+        parameters:
+          $ref: '#/components/schemas/TaskParameters'
+        timeout_seconds:
+          type: integer
+          minimum: 10
+          maximum: 600
+        status:
+          type: string
+          enum:
+          - REJECTED
+          - ACCEPTED
+          - RUNNING
+          - CANCEL_REQUESTED
+          - SUCCEEDED
+          - FAILED
+          - CANCELLED
+        input_sha256:
+          anyOf:
+          - type: string
+            pattern: ^[a-f0-9]{64}$
+          - type: 'null'
+        created_at:
+          type: string
+          format: date-time
+          pattern: Z$
+        accepted_at:
+          anyOf:
+          - type: string
+            format: date-time
+            pattern: Z$
+          - type: 'null'
+        started_at:
+          anyOf:
+          - type: string
+            format: date-time
+            pattern: Z$
+          - type: 'null'
+        finished_at:
+          anyOf:
+          - type: string
+            format: date-time
+            pattern: Z$
+          - type: 'null'
+        lease_expires_at:
+          anyOf:
+          - type: string
+            format: date-time
+            pattern: Z$
+          - type: 'null'
+        hard_deadline_at:
+          anyOf:
+          - type: string
+            format: date-time
+            pattern: Z$
+          - type: 'null'
+        result_artifact:
+          anyOf:
+          - $ref: '#/components/schemas/Artifact'
+          - type: 'null'
+        timings:
+          anyOf:
+          - $ref: '#/components/schemas/ExecutionTimings'
+          - type: 'null'
+        error:
+          anyOf:
+          - $ref: '#/components/schemas/Error'
+          - type: 'null'
+      required:
+      - execution_id
+      - job_id
+      - task_id
+      - attempt_no
+      - worker_id
+      - worker_session_id
+      - task_type
+      - profile_id
+      - profile_digest
+      - input_artifact_id
+      - parameters
+      - timeout_seconds
+      - status
+      - input_sha256
+      - created_at
+      - accepted_at
+      - started_at
+      - finished_at
+      - lease_expires_at
+      - hard_deadline_at
+      - result_artifact
+      - timings
+      - error
       additionalProperties: false
     Event:
       type: object
@@ -1296,29 +2054,49 @@ components:
         occurred_at:
           type: string
           format: date-time
+          pattern: Z$
         type:
           type: string
-          description: 如 worker.registered / worker.offline / task.requeued / task.succeeded
-            / task.stale_rejected。
+          enum:
+          - node.registered
+          - node.offline
+          - node.mode_changed
+          - profile.preparing
+          - profile.ready
+          - profile.failed
+          - execution.accepted
+          - execution.rejected
+          - execution.running
+          - execution.succeeded
+          - execution.failed
+          - execution.cancel_requested
+          - execution.cancelled
+          - execution.stale_rejected
+          - service.restarted
         worker_id:
           anyOf:
           - type: string
-            pattern: ^[A-Za-z0-9_-]{1,100}$
+            pattern: ^[A-Za-z0-9_-]{1,80}$
           - type: 'null'
         job_id:
           anyOf:
           - type: string
-            pattern: ^[A-Za-z0-9_-]{1,100}$
+            format: uuid
           - type: 'null'
         task_id:
           anyOf:
           - type: string
-            pattern: ^[A-Za-z0-9_-]{1,100}$
+            format: uuid
           - type: 'null'
-        attempt_id:
+        execution_id:
           anyOf:
           - type: string
-            pattern: ^[A-Za-z0-9_-]{1,100}$
+            format: uuid
+          - type: 'null'
+        preparation_id:
+          anyOf:
+          - type: string
+            format: uuid
           - type: 'null'
         message:
           type: string
@@ -1329,37 +2107,242 @@ components:
       - worker_id
       - job_id
       - task_id
-      - attempt_id
+      - execution_id
+      - preparation_id
       - message
       additionalProperties: false
-    PoolView:
+    EventPage:
       type: object
       properties:
-        server_time:
-          type: string
-          format: date-time
-        pipeline:
-          anyOf:
-          - $ref: '#/components/schemas/PipelineSpec'
-          - type: 'null'
-        workers:
-          type: array
-          items:
-            $ref: '#/components/schemas/WorkerView'
-        queue_depth:
-          type: integer
-          minimum: 0
         events:
           type: array
           items:
             $ref: '#/components/schemas/Event'
           maxItems: 100
+        next_after:
+          type: integer
+          minimum: 0
+        has_more:
+          type: boolean
       required:
-      - server_time
-      - pipeline
-      - workers
-      - queue_depth
       - events
+      - next_after
+      - has_more
+      additionalProperties: false
+    OCRBlock:
+      type: object
+      properties:
+        text:
+          type: string
+        bbox:
+          type: array
+          items:
+            type: number
+            minimum: 0
+          minItems: 4
+          maxItems: 4
+        confidence:
+          anyOf:
+          - type: number
+            minimum: 0
+            maximum: 1
+          - type: 'null'
+      required:
+      - text
+      - bbox
+      - confidence
+      additionalProperties: false
+    OCRResult:
+      type: object
+      properties:
+        schema_version:
+          type: string
+          const: '1.0'
+        task_type:
+          type: string
+          const: ocr.image.v1
+        input_artifact_id:
+          type: string
+          pattern: ^[A-Za-z0-9_-]{1,80}$
+        image_width:
+          type: integer
+          minimum: 1
+        image_height:
+          type: integer
+          minimum: 1
+        text:
+          type: string
+        blocks:
+          type: array
+          items:
+            $ref: '#/components/schemas/OCRBlock'
+      required:
+      - schema_version
+      - task_type
+      - input_artifact_id
+      - image_width
+      - image_height
+      - text
+      - blocks
+      additionalProperties: false
+    ASRSegment:
+      type: object
+      properties:
+        start_ms:
+          type: integer
+          minimum: 0
+        end_ms:
+          type: integer
+          minimum: 1
+        text:
+          type: string
+      required:
+      - start_ms
+      - end_ms
+      - text
+      additionalProperties: false
+    ASRResult:
+      type: object
+      properties:
+        schema_version:
+          type: string
+          const: '1.0'
+        task_type:
+          type: string
+          const: asr.file.v1
+        input_artifact_id:
+          type: string
+          pattern: ^[A-Za-z0-9_-]{1,80}$
+        duration_ms:
+          type: integer
+          minimum: 1
+          maximum: 60000
+        language:
+          anyOf:
+          - type: string
+            minLength: 1
+          - type: 'null'
+        text:
+          type: string
+        segments:
+          type: array
+          items:
+            $ref: '#/components/schemas/ASRSegment'
+      required:
+      - schema_version
+      - task_type
+      - input_artifact_id
+      - duration_ms
+      - language
+      - text
+      - segments
+      additionalProperties: false
+    ExecutionSummary:
+      type: object
+      properties:
+        execution_id:
+          type: string
+          format: uuid
+        attempt_no:
+          type: integer
+          minimum: 1
+          maximum: 3
+        worker_id:
+          type: string
+          pattern: ^[A-Za-z0-9_-]{1,80}$
+        status:
+          type: string
+          enum:
+          - REJECTED
+          - ACCEPTED
+          - RUNNING
+          - CANCEL_REQUESTED
+          - SUCCEEDED
+          - FAILED
+          - CANCELLED
+        accepted_at:
+          anyOf:
+          - type: string
+            format: date-time
+            pattern: Z$
+          - type: 'null'
+        finished_at:
+          anyOf:
+          - type: string
+            format: date-time
+            pattern: Z$
+          - type: 'null'
+        error:
+          anyOf:
+          - $ref: '#/components/schemas/Error'
+          - type: 'null'
+      required:
+      - execution_id
+      - attempt_no
+      - worker_id
+      - status
+      - accepted_at
+      - finished_at
+      - error
+      additionalProperties: false
+    LogicalTask:
+      type: object
+      properties:
+        task_id:
+          type: string
+          format: uuid
+        input_index:
+          type: integer
+          minimum: 0
+        input:
+          $ref: '#/components/schemas/Artifact'
+        status:
+          type: string
+          enum:
+          - QUEUED
+          - WAITING_FOR_RESOURCES
+          - DISPATCHING
+          - RUNNING
+          - CANCELLING
+          - SUCCEEDED
+          - FAILED
+          - CANCELLED
+        attempts_used:
+          type: integer
+          minimum: 0
+          maximum: 3
+        current_execution_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+        dispatches:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExecutionSummary'
+        result_artifact:
+          anyOf:
+          - $ref: '#/components/schemas/Artifact'
+          - type: 'null'
+        waiting_reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+        error:
+          anyOf:
+          - $ref: '#/components/schemas/Error'
+          - type: 'null'
+      required:
+      - task_id
+      - input_index
+      - input
+      - status
+      - attempts_used
+      - current_execution_id
+      - dispatches
+      - result_artifact
+      - waiting_reason
+      - error
       additionalProperties: false
     JobCreateRequest:
       type: object
@@ -1367,349 +2350,584 @@ components:
         client_request_id:
           type: string
           format: uuid
-        input_ids:
+        task_type:
+          type: string
+          enum:
+          - ocr.image.v1
+          - asr.file.v1
+        profile_id:
+          type: string
+          pattern: ^[A-Za-z0-9][A-Za-z0-9_.-]{0,79}$
+        profile_digest:
+          type: string
+          pattern: ^[a-f0-9]{64}$
+        input_artifact_ids:
           type: array
           items:
             type: string
-            pattern: ^[A-Za-z0-9_-]{1,100}$
+            pattern: ^[A-Za-z0-9_-]{1,80}$
           minItems: 1
-          maxItems: 500
+          maxItems: 200
           uniqueItems: true
-        preset:
-          type: string
-          enum:
-          - white_square
+        parameters:
+          $ref: '#/components/schemas/TaskParameters'
       required:
       - client_request_id
-      - input_ids
-      - preset
+      - task_type
+      - profile_id
+      - profile_digest
+      - input_artifact_ids
+      - parameters
       additionalProperties: false
-    JobCreated:
+    JobCounts:
+      type: object
+      properties:
+        total:
+          type: integer
+          minimum: 0
+        queued:
+          type: integer
+          minimum: 0
+        waiting_for_resources:
+          type: integer
+          minimum: 0
+        dispatching:
+          type: integer
+          minimum: 0
+        running:
+          type: integer
+          minimum: 0
+        cancelling:
+          type: integer
+          minimum: 0
+        succeeded:
+          type: integer
+          minimum: 0
+        failed:
+          type: integer
+          minimum: 0
+        cancelled:
+          type: integer
+          minimum: 0
+      required:
+      - total
+      - queued
+      - waiting_for_resources
+      - dispatching
+      - running
+      - cancelling
+      - succeeded
+      - failed
+      - cancelled
+      additionalProperties: false
+    Job:
       type: object
       properties:
         job_id:
           type: string
-          pattern: ^[A-Za-z0-9_-]{1,100}$
-        status:
-          type: string
-          enum:
-          - QUEUED
-          - WAITING_FOR_WORKERS
-        created_at:
-          type: string
-          format: date-time
-        duplicate:
-          type: boolean
-      required:
-      - job_id
-      - status
-      - created_at
-      - duplicate
-      additionalProperties: false
-    AttemptView:
-      type: object
-      properties:
-        attempt_id:
-          type: string
-          pattern: ^[A-Za-z0-9_-]{1,100}$
-        worker_id:
-          type: string
-          pattern: ^[A-Za-z0-9_-]{1,100}$
-        session_id:
-          type: string
-          pattern: ^[A-Za-z0-9_-]{1,100}$
-        status:
-          type: string
-          enum:
-          - RUNNING
-          - SUCCEEDED
-          - FAILED
-          - EXPIRED
-          - REVOKED
-        claimed_at:
-          type: string
-          format: date-time
-        lease_expires_at:
-          type: string
-          format: date-time
-        hard_deadline_at:
-          type: string
-          format: date-time
-        finished_at:
-          anyOf:
-          - type: string
-            format: date-time
-          - type: 'null'
-        timings:
-          anyOf:
-          - $ref: '#/components/schemas/ResultTimings'
-          - type: 'null'
-        error:
-          anyOf:
-          - $ref: '#/components/schemas/Error'
-          - type: 'null'
-      required:
-      - attempt_id
-      - worker_id
-      - session_id
-      - status
-      - claimed_at
-      - lease_expires_at
-      - hard_deadline_at
-      - finished_at
-      - timings
-      - error
-      additionalProperties: false
-    TaskView:
-      type: object
-      properties:
-        task_id:
-          type: string
-          pattern: ^[A-Za-z0-9_-]{1,100}$
-        input:
-          $ref: '#/components/schemas/Asset'
-        status:
-          type: string
-          enum:
-          - QUEUED
-          - RUNNING
-          - SUCCEEDED
-          - FAILED
-        current_attempt_id:
-          anyOf:
-          - type: string
-            pattern: ^[A-Za-z0-9_-]{1,100}$
-          - type: 'null'
-        final_worker_id:
-          anyOf:
-          - type: string
-            pattern: ^[A-Za-z0-9_-]{1,100}$
-          - type: 'null'
-        attempts:
-          type: array
-          items:
-            $ref: '#/components/schemas/AttemptView'
-          maxItems: 3
-        result:
-          anyOf:
-          - $ref: '#/components/schemas/ResultArtifacts'
-          - type: 'null'
-        error:
-          anyOf:
-          - $ref: '#/components/schemas/Error'
-          - type: 'null'
-        created_at:
-          type: string
-          format: date-time
-        finished_at:
-          anyOf:
-          - type: string
-            format: date-time
-          - type: 'null'
-      required:
-      - task_id
-      - input
-      - status
-      - current_attempt_id
-      - final_worker_id
-      - attempts
-      - result
-      - error
-      - created_at
-      - finished_at
-      additionalProperties: false
-    JobDetail:
-      type: object
-      properties:
-        job_id:
-          type: string
-          pattern: ^[A-Za-z0-9_-]{1,100}$
+          format: uuid
         client_request_id:
           type: string
           format: uuid
-        preset:
+        task_type:
           type: string
           enum:
-          - white_square
+          - ocr.image.v1
+          - asr.file.v1
+        profile_id:
+          type: string
+          pattern: ^[A-Za-z0-9][A-Za-z0-9_.-]{0,79}$
+        profile_digest:
+          type: string
+          pattern: ^[a-f0-9]{64}$
+        parameters:
+          $ref: '#/components/schemas/TaskParameters'
         status:
           type: string
           enum:
           - QUEUED
-          - WAITING_FOR_WORKERS
+          - WAITING_FOR_RESOURCES
           - RUNNING
+          - CANCELLING
           - SUCCEEDED
           - PARTIAL_FAILED
           - FAILED
+          - CANCELLED
         created_at:
           type: string
           format: date-time
+          pattern: Z$
         started_at:
           anyOf:
           - type: string
             format: date-time
+            pattern: Z$
           - type: 'null'
         finished_at:
           anyOf:
           - type: string
             format: date-time
+            pattern: Z$
           - type: 'null'
+        cancel_requested:
+          type: boolean
+        dependency_status:
+          type: string
+          enum:
+          - AVAILABLE
+          - UNREACHABLE
+          - UNKNOWN
         counts:
-          type: object
-          properties:
-            total:
-              type: integer
-              minimum: 0
-            queued:
-              type: integer
-              minimum: 0
-            running:
-              type: integer
-              minimum: 0
-            succeeded:
-              type: integer
-              minimum: 0
-            failed:
-              type: integer
-              minimum: 0
-          required:
-          - total
-          - queued
-          - running
-          - succeeded
-          - failed
-          additionalProperties: false
+          $ref: '#/components/schemas/JobCounts'
         tasks:
           type: array
           items:
-            $ref: '#/components/schemas/TaskView'
+            $ref: '#/components/schemas/LogicalTask'
+          minItems: 1
+          maxItems: 200
         download_path:
           anyOf:
           - type: string
-            pattern: ^/v1/jobs/
+            pattern: ^/api/task/v1/jobs/[A-Za-z0-9_-]+/download$
           - type: 'null'
       required:
       - job_id
       - client_request_id
-      - preset
+      - task_type
+      - profile_id
+      - profile_digest
+      - parameters
       - status
       - created_at
       - started_at
       - finished_at
+      - cancel_requested
+      - dependency_status
       - counts
       - tasks
       - download_path
       additionalProperties: false
-    CompletionMeta:
+    ResultItem:
       type: object
       properties:
-        session_id:
-          type: string
-          pattern: ^[A-Za-z0-9_-]{1,100}$
-        attempt_id:
-          type: string
-          pattern: ^[A-Za-z0-9_-]{1,100}$
-        lease_token:
-          type: string
-          minLength: 16
-        submission_id:
-          type: string
-          format: uuid
-        pipeline_id:
-          type: string
-          enum:
-          - product_image_v1
-        model_sha256:
-          type: string
-          pattern: ^[a-f0-9]{64}$
-        timings:
-          $ref: '#/components/schemas/ResultTimings'
-      required:
-      - session_id
-      - attempt_id
-      - lease_token
-      - submission_id
-      - pipeline_id
-      - model_sha256
-      - timings
-      additionalProperties: false
-    CompletionAck:
-      type: object
-      properties:
+        input_index:
+          type: integer
+          minimum: 0
         task_id:
           type: string
-          pattern: ^[A-Za-z0-9_-]{1,100}$
-        attempt_id:
+          format: uuid
+        input_artifact_id:
           type: string
-          pattern: ^[A-Za-z0-9_-]{1,100}$
+          pattern: ^[A-Za-z0-9_-]{1,80}$
+        original_name:
+          type: string
+        status:
+          type: string
+          enum:
+          - QUEUED
+          - WAITING_FOR_RESOURCES
+          - DISPATCHING
+          - RUNNING
+          - CANCELLING
+          - SUCCEEDED
+          - FAILED
+          - CANCELLED
+        result:
+          oneOf:
+          - $ref: '#/components/schemas/OCRResult'
+          - $ref: '#/components/schemas/ASRResult'
+          - type: 'null'
+        error:
+          anyOf:
+          - $ref: '#/components/schemas/Error'
+          - type: 'null'
+      required:
+      - input_index
+      - task_id
+      - input_artifact_id
+      - original_name
+      - status
+      - result
+      - error
+      additionalProperties: false
+    JobResults:
+      type: object
+      properties:
+        job_id:
+          type: string
+          format: uuid
+        task_type:
+          type: string
+          enum:
+          - ocr.image.v1
+          - asr.file.v1
+        status:
+          type: string
+          enum:
+          - QUEUED
+          - WAITING_FOR_RESOURCES
+          - RUNNING
+          - CANCELLING
+          - SUCCEEDED
+          - PARTIAL_FAILED
+          - FAILED
+          - CANCELLED
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResultItem'
+          minItems: 1
+          maxItems: 200
+        combined_text:
+          type: string
+      required:
+      - job_id
+      - task_type
+      - status
+      - items
+      - combined_text
+      additionalProperties: false
+    BaselineInput:
+      type: object
+      properties:
+        input_index:
+          type: integer
+          minimum: 0
+        input_artifact_id:
+          type: string
+          pattern: ^[A-Za-z0-9_-]{1,80}$
+        local_path:
+          type: string
+          minLength: 1
+        input_sha256:
+          type: string
+          pattern: ^[a-f0-9]{64}$
+      required:
+      - input_index
+      - input_artifact_id
+      - local_path
+      - input_sha256
+      additionalProperties: false
+    BaselineRecord:
+      type: object
+      properties:
+        record_type:
+          type: string
+          const: file
+        run_id:
+          type: string
+          pattern: ^[A-Za-z0-9_-]{1,80}$
+        worker_id:
+          type: string
+          pattern: ^[A-Za-z0-9_-]{1,80}$
+        task_type:
+          type: string
+          enum:
+          - ocr.image.v1
+          - asr.file.v1
+        profile_id:
+          type: string
+          pattern: ^[A-Za-z0-9][A-Za-z0-9_.-]{0,79}$
+        profile_digest:
+          type: string
+          pattern: ^[a-f0-9]{64}$
+        input_index:
+          type: integer
+          minimum: 0
+        input_artifact_id:
+          type: string
+          pattern: ^[A-Za-z0-9_-]{1,80}$
+        input_sha256:
+          type: string
+          pattern: ^[a-f0-9]{64}$
+        backend:
+          type: string
+          enum:
+          - cpu
+          - cuda
+        started_at:
+          type: string
+          format: date-time
+          pattern: Z$
+        finished_at:
+          type: string
+          format: date-time
+          pattern: Z$
+        elapsed_ms:
+          type: number
+          exclusiveMinimum: 0
         status:
           type: string
           enum:
           - SUCCEEDED
-        duplicate:
-          type: boolean
-        result:
-          $ref: '#/components/schemas/ResultArtifacts'
-      required:
-      - task_id
-      - attempt_id
-      - status
-      - duplicate
-      - result
-      additionalProperties: false
-    FailureRequest:
-      type: object
-      properties:
-        session_id:
-          type: string
-          pattern: ^[A-Za-z0-9_-]{1,100}$
-        attempt_id:
-          type: string
-          pattern: ^[A-Za-z0-9_-]{1,100}$
-        lease_token:
-          type: string
-          minLength: 16
+          - FAILED
+        result_path:
+          anyOf:
+          - type: string
+            minLength: 1
+          - type: 'null'
+        result_sha256:
+          anyOf:
+          - type: string
+            pattern: ^[a-f0-9]{64}$
+          - type: 'null'
         error:
-          $ref: '#/components/schemas/Error'
+          anyOf:
+          - $ref: '#/components/schemas/Error'
+          - type: 'null'
       required:
-      - session_id
-      - attempt_id
-      - lease_token
+      - record_type
+      - run_id
+      - worker_id
+      - task_type
+      - profile_id
+      - profile_digest
+      - input_index
+      - input_artifact_id
+      - input_sha256
+      - backend
+      - started_at
+      - finished_at
+      - elapsed_ms
+      - status
+      - result_path
+      - result_sha256
       - error
       additionalProperties: false
-    FailureAck:
+    BaselineSummary:
       type: object
       properties:
-        task_id:
+        record_type:
           type: string
-          pattern: ^[A-Za-z0-9_-]{1,100}$
-        attempt_id:
+          const: summary
+        run_id:
           type: string
-          pattern: ^[A-Za-z0-9_-]{1,100}$
-        task_status:
+          pattern: ^[A-Za-z0-9_-]{1,80}$
+        started_at:
+          type: string
+          format: date-time
+          pattern: Z$
+        finished_at:
+          type: string
+          format: date-time
+          pattern: Z$
+        wall_ms:
+          type: number
+          exclusiveMinimum: 0
+        warmup_ms:
+          type: number
+          minimum: 0
+        total:
+          type: integer
+          minimum: 1
+        succeeded:
+          type: integer
+          minimum: 0
+        failed:
+          type: integer
+          minimum: 0
+      required:
+      - record_type
+      - run_id
+      - started_at
+      - finished_at
+      - wall_ms
+      - warmup_ms
+      - total
+      - succeeded
+      - failed
+      additionalProperties: false
+    RuntimeProfile:
+      type: object
+      properties:
+        task_type:
           type: string
           enum:
-          - QUEUED
-          - FAILED
-        duplicate:
+          - ocr.image.v1
+          - asr.file.v1
+        profile_id:
+          type: string
+          pattern: ^[A-Za-z0-9][A-Za-z0-9_.-]{0,79}$
+        model_id:
+          type: string
+          minLength: 1
+        model_source:
+          type: string
+          minLength: 1
+        model_sha256:
+          type: string
+          pattern: ^[a-f0-9]{64}$
+        weights_license_verified:
           type: boolean
+          const: true
+        dependencies:
+          type: object
+          minProperties: 1
+          additionalProperties:
+            type: string
+            minLength: 1
+        preprocessing:
+          type: string
+          minLength: 1
+        postprocessing:
+          type: string
+          minLength: 1
+        minimum_ram_bytes:
+          type: integer
+          minimum: 1
+        supported_languages:
+          type: array
+          items:
+            type: string
+            enum:
+            - auto
+            - zh
+            - en
+          minItems: 1
+          uniqueItems: true
+        allowed_backends:
+          type: array
+          items:
+            type: string
+            enum:
+            - cpu
+            - cuda
+          minItems: 1
+          uniqueItems: true
+        output_schema:
+          type: string
+          enum:
+          - OCRResult
+          - ASRResult
+        frozen_at:
+          type: string
+          format: date-time
+          pattern: Z$
       required:
-      - task_id
-      - attempt_id
-      - task_status
-      - duplicate
+      - task_type
+      - profile_id
+      - model_id
+      - model_source
+      - model_sha256
+      - weights_license_verified
+      - dependencies
+      - preprocessing
+      - postprocessing
+      - minimum_ram_bytes
+      - supported_languages
+      - allowed_backends
+      - output_schema
+      - frozen_at
       additionalProperties: false
-    Health:
+      description: 发布的单profile锁文件。故意不含profile_digest：该摘要计算整个锁文件原始字节后，在外部目录/请求中记录。模型实际验证仍需人工及设备证据。
+    ProfileDraft:
       type: object
       properties:
+        task_type:
+          type: string
+          enum:
+          - ocr.image.v1
+          - asr.file.v1
+        profile_id:
+          type: string
+          pattern: ^[A-Za-z0-9][A-Za-z0-9_.-]{0,79}$
+        configuration_state:
+          type: string
+          const: UNCONFIGURED
+        profile_digest:
+          type: 'null'
+        model_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+        model_source:
+          anyOf:
+          - type: string
+          - type: 'null'
+        model_sha256:
+          anyOf:
+          - type: string
+            pattern: ^[a-f0-9]{64}$
+          - type: 'null'
+        weights_license_verified:
+          type: boolean
+        dependencies:
+          type: object
+          additionalProperties:
+            anyOf:
+            - type: string
+            - type: 'null'
+        preprocessing:
+          anyOf:
+          - type: string
+          - type: 'null'
+        postprocessing:
+          anyOf:
+          - type: string
+          - type: 'null'
+        minimum_ram_bytes:
+          anyOf:
+          - type: integer
+            minimum: 1
+          - type: 'null'
+        supported_languages:
+          type: array
+          items:
+            type: string
+            enum:
+            - auto
+            - zh
+            - en
+          minItems: 1
+          uniqueItems: true
+        verified_devices:
+          type: array
+          items:
+            type: string
+            pattern: ^[A-Za-z0-9_-]{1,80}$
+        frozen_at:
+          anyOf:
+          - type: string
+            format: date-time
+            pattern: Z$
+          - type: 'null'
+      required:
+      - task_type
+      - profile_id
+      - configuration_state
+      - profile_digest
+      - model_id
+      - model_source
+      - model_sha256
+      - weights_license_verified
+      - dependencies
+      - preprocessing
+      - postprocessing
+      - minimum_ram_bytes
+      - supported_languages
+      - verified_devices
+      - frozen_at
+      additionalProperties: false
+    RuntimeManifestTemplate:
+      type: object
+      properties:
+        contract_version:
+          type: string
+          const: 0.2.0
         status:
           type: string
-          enum:
-          - ok
-        api_version:
+          const: UNVERIFIED_TEMPLATE
+        note:
           type: string
-          enum:
-          - 0.1.0
+        profiles:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProfileDraft'
+          minItems: 2
+          maxItems: 2
       required:
+      - contract_version
       - status
-      - api_version
+      - note
+      - profiles
       additionalProperties: false
