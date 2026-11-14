@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from pathlib import Path
 from typing import Optional
 
@@ -65,20 +66,30 @@ class Catalog:
         self._model_hashes.clear()
         for t in self._types:
             lock = self._dir / f"{t['profile_id']}.lock.json"
-            if lock.exists():
+            t.update(profile_digest=None, configuration_state="UNCONFIGURED")
+            if t["task_type"] != "ocr.image.v1" or not lock.is_file():
+                t["reason"] = t.get("reason") or "profile 锁文件未发布。"
+                continue
+            try:
                 raw = lock.read_bytes()
-                digest = hashlib.sha256(raw).hexdigest()
-                model_sha = json.loads(raw).get("model_sha256")
-                if model_sha:
-                    self._model_hashes[t["profile_id"]] = model_sha
-                t["profile_digest"] = digest
-                t["configuration_state"] = "CONFIGURED"
-                t["reason"] = t.get("reason")
-            else:
-                t["profile_digest"] = None
-                t["configuration_state"] = "UNCONFIGURED"
-                if not t.get("reason"):
-                    t["reason"] = "profile 锁文件未发布。"
+                profile = json.loads(raw)
+                model_sha = profile["model_sha256"]
+                if (
+                    profile["task_type"] != t["task_type"] or profile["profile_id"] != t["profile_id"]
+                    or not re.fullmatch(r"[a-f0-9]{64}", model_sha)
+                    or profile["weights_license_verified"] is not True
+                    or "cpu" not in profile["allowed_backends"]
+                ):
+                    raise ValueError("profile 锁文件字段与目录不一致")
+            except (OSError, ValueError, KeyError, TypeError):
+                t["reason"] = "profile 锁文件无效。"
+                continue
+            self._model_hashes[t["profile_id"]] = model_sha
+            t.update(
+                profile_digest=hashlib.sha256(raw).hexdigest(),
+                configuration_state="CONFIGURED",
+                reason=None,
+            )
 
     def reload(self) -> None:
         self._load()

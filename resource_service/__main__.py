@@ -8,7 +8,10 @@ from .service import create_app
 
 
 def main() -> None:
-    cfg = load_config()
+    try:
+        cfg = load_config()
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
     app = create_app(cfg)
     uvicorn.run(app, host=cfg.bind_host, port=cfg.port, log_level="info")
 

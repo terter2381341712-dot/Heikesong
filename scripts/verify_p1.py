@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import io
+import json
 import os
 import shutil
 import socket
@@ -35,11 +36,16 @@ REPO = Path(__file__).resolve().parent.parent
 PY = sys.executable
 LOCK = REPO / "profiles" / "ocr.default.v1.lock.json"
 
+SNAPSHOTS: dict = {}
 RESULTS: list[tuple[str, str, str]] = []  # (case, status, evidence)
+REQUIRED_CASES = {
+    "R01a", "R02", "R03", "R04", "R05", "E2E", "R06", "R07", "R08",
+    "R09", "R10", "R11", "L13", "X01", "L14",
+}
 
 
 def record(case: str, ok: Optional[bool], evidence: str) -> None:
-    status = "PASS" if ok is True else ("FAIL" if ok is False else "MANUAL")
+    status = "PASS" if ok is True else ("FAIL" if ok is False else "NOT_RUN")
     RESULTS.append((case, status, evidence))
     print(f"  [{status}] {case}: {evidence}")
 
@@ -90,6 +96,8 @@ class Server:
         deadline = time.time() + 25
         while time.time() < deadline:
             try:
+                if self.proc.poll() is not None:
+                    break
                 if httpx.get(f"{self.base}/api/resource/v1/healthz", timeout=1).status_code == 200:
                     return
             except httpx.HTTPError:
@@ -108,6 +116,7 @@ class Server:
             self.proc.wait(timeout=10)
         except subprocess.TimeoutExpired:
             self.proc.kill()
+            self.proc.wait(timeout=5)
         self.proc = None
         try:
             self._logf.close()
@@ -140,7 +149,7 @@ class Agent:
         while time.time() < deadline:
             nodes = api_nodes(self.server)
             for n in nodes:
-                if n["name"] == self.name and n["connection"] == "ONLINE":
+                if n["name"] == self.name and n["connection"] == "ONLINE" and not n["cleanup_pending"]:
                     return n
             time.sleep(0.3)
         raise RuntimeError(f"节点未上线，日志见 {self.log}")
@@ -153,6 +162,7 @@ class Agent:
             self.proc.wait(timeout=10)
         except subprocess.TimeoutExpired:
             self.proc.kill()
+            self.proc.wait(timeout=5)
         self.proc = None
         try:
             self._logf.close()
@@ -324,8 +334,16 @@ def case_r05(server: Server, node: dict) -> Optional[dict]:
     if prep.status_code != 202:
         record("R05 模型准备", False, f"准备受理失败 {prep.status_code} {prep.text[:120]}")
         return None
-    final = wait_prep(server, prep.json()["preparation_id"])
+    preparation_id = prep.json()["preparation_id"]
+    SNAPSHOTS["accepted_preparation"] = prep.json()
+    resources = api_nodes(server)
+    for resource in resources:
+        if resource["active_preparation_id"] == preparation_id:
+            SNAPSHOTS["preparing_resource"] = resource
+            break
+    final = wait_prep(server, preparation_id)
     ready_ok = final["status"] == "READY"
+    SNAPSHOTS["ready_preparation"] = final
     nodes = api_nodes(server)
     cap = next(
         (c for c in nodes[0]["capabilities"] if c["task_type"] == "ocr.image.v1"), {}
@@ -347,10 +365,16 @@ def case_full_execution(server: Server, node: dict, digest: str, text: str = "VE
         record("E2E 单图执行", False, f"受理失败 {r.status_code} {r.text[:120]}")
         return None
     final = wait_exec(server, body["execution_id"])
+    SNAPSHOTS["executed"] = final
     if final["status"] != "SUCCEEDED":
         record("E2E 单图执行", False, f"终态 {final['status']} {final.get('error')}")
         return None
-    result = httpx.get(f"{server.base}{final['result_artifact']['download_path']}", headers=TASK, timeout=30).json()
+    download = httpx.get(f"{server.base}{final['result_artifact']['download_path']}", headers=TASK, timeout=30)
+    download.raise_for_status()
+    result = download.json()
+    SNAPSHOTS["input_artifact"] = art
+    SNAPSHOTS["ocr_result"] = result
+    assert hashlib.sha256(download.content).hexdigest() == final["result_artifact"]["sha256"]
     text_ok = text.lower() in result["text"].lower().replace("\n", " ")
     media_ok = isinstance(final["result_artifact"]["media_info"], dict)
     timings = final.get("timings") or {}
@@ -398,6 +422,10 @@ def case_r07(server: Server, node: dict, digest: str) -> None:
     rejected_body = exec_body(node, "nonexistent0", digest)
     rej1 = post_exec(server, rejected_body)
     rej2 = post_exec(server, rejected_body)
+    rejected_id = rejected_body["execution_id"]
+    SNAPSHOTS["rejected_execution"] = httpx.get(
+        f"{server.base}/api/resource/v1/executions/{rejected_id}", headers=TASK, timeout=10
+    ).raise_for_status().json()
     ok = (
         first.status_code == 201 and replay.status_code == 200
         and changed.status_code == 409 and changed.json()["code"] == "IDEMPOTENCY_CONFLICT"
@@ -444,6 +472,7 @@ def case_r08(server: Server, node: dict, digest: str) -> None:
         timeout=10,
     )
     after = httpx.get(f"{server.base}/api/resource/v1/executions/{eid}", headers=TASK, timeout=10).json()
+    SNAPSHOTS["cancelled_execution"] = after
     ok = (
         cancel.status_code == 202 and status == "CANCELLED"
         and late.status_code == 409 and late.json()["code"] == "STALE_EXECUTION"
@@ -516,13 +545,6 @@ def case_r11(server: Server, digest: str) -> None:
                 "gpu_name": None, "gpu_vram_bytes": None, "gpu_info_source": "unavailable",
                 "manual_labels": {}, "detection_errors": [],
             },
-            "capabilities": [{
-                "task_type": "ocr.image.v1", "profile_id": "ocr.default.v1",
-                "profile_digest": digest, "state": "READY", "model_cached": True,
-                "backend": "cpu", "runtime_provider": "protocol-check",
-                "model_sha256": None, "verified": True, "calibration": None,
-                "reason": "协议检查用模拟能力",
-            }],
         },
         timeout=10,
     )
@@ -532,6 +554,18 @@ def case_r11(server: Server, digest: str) -> None:
     info = reg.json()
     node = {"worker_id": info["worker_id"], "session_id": info["session_id"],
             "node_secret": info["node_secret"]}
+    prefix = f"{server.base}/api/resource/internal/v1/nodes/{node['worker_id']}"
+    auth = {k: node[k] for k in ("session_id", "node_secret")}
+    prep = prepare(server, node, digest).raise_for_status().json()
+    httpx.post(prefix + "/claim", json=auth, timeout=10).raise_for_status()
+    ready = httpx.post(f"{prefix}/preparations/{prep['preparation_id']}/status", json={
+        **auth,
+        "status": "READY", "backend": "cpu", "runtime_provider": "CPUExecutionProvider",
+        "model_sha256": json.loads(LOCK.read_bytes())["model_sha256"],
+        "calibration": {"sample_count": 3, "median_compute_ms": 100, "passed": True,
+                        "finished_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())},
+    }, timeout=10).raise_for_status().json()
+    assert ready["status"] == "READY"
     art = upload(server).json()
     body = exec_body(node, art["artifact_id"], digest)
     accepted = post_exec(server, body)
@@ -543,7 +577,8 @@ def case_r11(server: Server, digest: str) -> None:
         json={"session_id": info["session_id"], "node_secret": info["node_secret"]}, timeout=10,
     )
     claimed = claim.status_code == 200 and claim.json().get("execution") is not None
-    last_beat = time.time()
+    httpx.post(prefix + "/heartbeat", json=auth, timeout=10).raise_for_status()
+    last_beat = time.monotonic()
     deadline = time.time() + 25
     offline_after = None
     exec_status = None
@@ -553,10 +588,26 @@ def case_r11(server: Server, digest: str) -> None:
                       headers=TASK, timeout=10).json()
         exec_status = e["status"]
         if n and n["connection"] == "OFFLINE" and offline_after is None:
-            offline_after = time.time() - last_beat
+            offline_after = time.monotonic() - last_beat
         if offline_after is not None and exec_status == "FAILED":
             break
         time.sleep(0.5)
+    if offline_after is not None:
+        SNAPSHOTS["mock_offline_resource"] = n
+        SNAPSHOTS["mock_failed_execution"] = e
+        replaced = httpx.post(
+            f"{server.base}/api/resource/internal/v1/nodes/register", headers=JOIN,
+            json={"worker_id": node["worker_id"], "name": n["name"], "hardware": n["hardware"]},
+            timeout=10,
+        ).raise_for_status().json()
+        fresh = next(x for x in api_nodes(server) if x["worker_id"] == node["worker_id"])
+        blocked = fresh["cleanup_pending"] and fresh["available_slots"] == 0
+        httpx.post(prefix + "/confirm_idle", json={
+            k: replaced[k] for k in ("session_id", "node_secret")
+        }, timeout=10).raise_for_status()
+        released = next(x for x in api_nodes(server) if x["worker_id"] == node["worker_id"])
+        record("L13 清理屏障（协议模拟）", blocked and released["available_slots"] == 1,
+               f"重新注册后仍阻塞={blocked} 确认静止后槽位={released['available_slots']}")
     ok = claimed and offline_after is not None and offline_after <= 18 and exec_status == "FAILED"
     record("R11 失联检测", ok,
            f"模拟节点领取={claimed} 离线耗时={offline_after!r}s(阈值18) 执行终态={exec_status}")
@@ -565,9 +616,9 @@ def case_r11(server: Server, digest: str) -> None:
 def case_x01(data_dir: Path, digest: str) -> None:
     """重启恢复：成功结果保留、活动执行确定失败、旧会话失效。"""
     server = Server(data_dir)
-    server.start()
+    agent = Agent(server, data_dir.parent / "agent-x01", "x01-node")
     try:
-        agent = Agent(server, data_dir.parent / "agent-x01", "x01-node")
+        server.start()
         agent.start()
         node = agent.wait_online()
         prep = prepare(server, node, digest)
@@ -622,21 +673,35 @@ def case_x01(data_dir: Path, digest: str) -> None:
                    f"成功结果保留={kept_ok} 结果文件可取={bool(file_ok)} "
                    f"活动执行={dead['status']}/{(dead.get('error') or {}).get('code')} "
                    f"旧会话被拒={old_session.status_code} restarted事件={restarted_evt}")
+            agent.server = server2
+            agent.start()
+            rejoined = agent.wait_online()
+            reprepare = prepare(server2, rejoined, digest).raise_for_status().json()
+            ready = wait_prep(server2, reprepare["preparation_id"])
+            record("L14 新会话重准备（P1）",
+                   rejoined["session_id"] != node["session_id"] and ready["status"] == "READY",
+                   f"同一节点={rejoined['worker_id'] == node['worker_id']} 准备={ready['status']}")
         finally:
+            agent.stop()
             server2.stop()
     finally:
+        agent.stop()
         server.stop()
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--keep-data", action="store_true")
+    parser.add_argument("--evidence", type=Path, help="写入去凭证的 JSON 证据")
     args = parser.parse_args()
 
     if not LOCK.exists():
         print(f"缺少 profile 锁文件：{LOCK}", file=sys.stderr)
         return 2
 
+    RESULTS.clear()
+    SNAPSHOTS.clear()
+    started_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     tmp = Path(tempfile.mkdtemp(prefix="p1-verify-"))
     print(f"临时数据目录：{tmp}\n")
     digest = profile_digest()
@@ -651,6 +716,7 @@ def main() -> int:
         print("启动 node_agent …")
         agent.start()
         node = agent.wait_online()
+        SNAPSHOTS["not_prepared_resource"] = dict(node)
         # 补上 node_secret（公开快照不含，测试 R08 晚到提交用）
         node["_secret"] = _read_agent_secret(tmp / "agent")
         print(f"节点上线：{node['worker_id']} ({node['hardware']['cpu_name']})\n")
@@ -664,6 +730,7 @@ def main() -> int:
         prep = case_r05(server, node)
         if prep and prep["ready"]:
             node = next(n for n in api_nodes(server) if n["worker_id"] == node["worker_id"])
+            SNAPSHOTS["ready_resource"] = dict(node)
             node["_secret"] = _read_agent_secret(tmp / "agent")
             case_full_execution(server, node, digest)
 
@@ -691,6 +758,11 @@ def main() -> int:
         agent.stop()
         server.stop()
 
+    completed_cases = {case.split()[0] for case, _, _ in RESULTS}
+    for skipped in sorted(REQUIRED_CASES - completed_cases):
+        record(skipped, None, "本机必测用例未执行")
+        rc = 2
+
     print("\n" + "=" * 78)
     print(f"{'用例':<26} {'结果':<8} 证据")
     print("-" * 78)
@@ -698,13 +770,26 @@ def main() -> int:
         print(f"{case:<26} {status:<8} {ev[:120]}")
     passed = sum(1 for _, s, _ in RESULTS if s == "PASS")
     failed = sum(1 for _, s, _ in RESULTS if s == "FAIL")
-    manual = sum(1 for _, s, _ in RESULTS if s == "MANUAL")
+    not_run = sum(1 for _, s, _ in RESULTS if s == "NOT_RUN")
     print("-" * 78)
-    print(f"PASS {passed} / FAIL {failed} / MANUAL {manual}")
+    print(f"PASS {passed} / FAIL {failed} / NOT_RUN {not_run}")
     if args.keep_data:
         print(f"数据保留在 {tmp}")
     else:
         shutil.rmtree(tmp, ignore_errors=True)
+    if args.evidence:
+        args.evidence.parent.mkdir(parents=True, exist_ok=True)
+        evidence = {
+            "plan_version": "1.0", "contract_version": "0.2.0",
+            "p1_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=REPO, text=True).strip(),
+            "p2_commit": None, "mode": "P1_LOCAL_ONLY", "profile_digest": digest,
+            "started_at": started_at, "finished_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "command": [sys.executable, *sys.argv],
+            "cases": [{"case": case, "status": status, "observed": observed}
+                      for case, status, observed in RESULTS],
+            "public_snapshots": SNAPSHOTS,
+        }
+        args.evidence.write_text(json.dumps(evidence, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     return rc or int(failed > 0)
 
 

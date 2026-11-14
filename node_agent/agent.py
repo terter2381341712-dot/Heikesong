@@ -16,13 +16,36 @@ import socket
 import sys
 import threading
 import time
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Optional
 
 import httpx
 
+from resource_service.config import REPO_ROOT
+from resource_service.media import probe_image
+from resource_service.resultschema import validate_ocr_result
+from resource_service.timeutil import iso_now
+from runners.profile import ProfileError, load_locked_runner
+
 from .hardware import detect_hardware
 from .telemetry import sample
+
+
+@contextmanager
+def lock_node_directory(data_dir: Path):
+    """同一节点目录只允许一个 Agent 运行，进程退出由系统释放锁。"""
+    with (data_dir / "agent.lock").open("a+b") as lock:
+        if os.name == "nt":
+            import msvcrt
+
+            lock.seek(0)
+            msvcrt.locking(lock.fileno(), msvcrt.LK_NBLCK, 1)
+        else:
+            import fcntl
+
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        yield
 
 
 class Agent:
@@ -41,8 +64,10 @@ class Agent:
         self.worker_id: Optional[str] = None
         self.session_id: Optional[str] = None
         self.node_secret: Optional[str] = None
+        self._prepared = None
         self._stop = False
         self._session_stale = False
+        self._confirm_idle = False
         self._state_lock = threading.Lock()
         self._client = httpx.Client(timeout=10.0)
 
@@ -83,6 +108,8 @@ class Agent:
                     self.session_id = data["session_id"]
                     self.node_secret = data["node_secret"]
                     self._session_stale = False
+                    self._confirm_idle = data["confirm_idle"]
+                self._prepared = None
                 self._save_worker_id(self.worker_id)
                 print(f"[agent] 注册成功 worker_id={self.worker_id}", file=sys.stderr)
                 return
@@ -127,6 +154,11 @@ class Agent:
                 if self._session_stale:
                     # 仅在主线程空闲时重新注册，旧推理尚未结束时不释放槽位。
                     self.register()
+                elif self._confirm_idle:
+                    self._confirm_idle = self._internal(
+                        f"/api/resource/internal/v1/nodes/{self.worker_id}/confirm_idle",
+                        self._auth_payload(),
+                    ) is None
                 else:
                     self._try_claim_and_work()
                 time.sleep(self.CLAIM_INTERVAL)
@@ -181,93 +213,48 @@ class Agent:
 
     def _do_preparation(self, prep: dict) -> None:
         """模型准备：加载执行器并对固定样本真实试跑；通过才上报 READY。"""
-        from runners.base import load_runner
-
         prep_id = prep["preparation_id"]
-        task_type = prep["task_type"]
+        profile_key = (prep["task_type"], prep["profile_id"], prep["profile_digest"])
+        profiles_dir = Path(os.environ.get("NODE_PROFILES_DIR", REPO_ROOT / "profiles"))
+        self._prepared = None
         self._prep_status(prep_id, {"status": "LOADING", "progress": 0.2})
         try:
-            runner = load_runner(task_type)
-            runner.ensure_engine()
-        except Exception as e:
-            self._prep_status(
-                prep_id,
-                {
-                    "status": "FAILED",
-                    "error_code": "MODEL_LOAD_FAILED",
-                    "error_message": f"执行器加载失败：{e}",
-                    "error_retryable": True,
-                },
-            )
+            raw = (profiles_dir / f"{prep['profile_id']}.lock.json").read_bytes()
+            runner, model_sha, provider = load_locked_runner(raw, *profile_key)
+            self._prep_status(prep_id, {"status": "VERIFYING", "progress": 0.6})
+            calibration = self._self_test(prep["task_type"], runner)
+            if not calibration["passed"]:
+                raise ProfileError("MODEL_LOAD_FAILED", "OCR 校准样本未达到要求")
+        except Exception as exc:
+            print(f"[agent] 准备失败：{exc}", file=sys.stderr)
+            code = exc.code if isinstance(exc, ProfileError) else "MODEL_LOAD_FAILED"
+            self._prep_status(prep_id, {
+                "status": "FAILED",
+                "error_code": code,
+                "error_message": str(exc) if isinstance(exc, ProfileError) else "节点无法加载或自测模型，详见节点日志",
+                "error_retryable": False,
+            })
             return
 
-        self._prep_status(prep_id, {"status": "VERIFYING", "progress": 0.6})
-        try:
-            calibration = self._self_test(task_type, runner)
-        except Exception as e:
-            self._prep_status(
-                prep_id,
-                {
-                    "status": "FAILED",
-                    "error_code": "MODEL_LOAD_FAILED",
-                    "error_message": f"自测失败：{e}",
-                    "error_retryable": True,
-                },
-            )
-            return
-
-        from datetime import datetime, timezone
-
-        now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-        # F10：自测未通过不得上报 READY
-        if not calibration["passed"]:
-            self._prep_status(
-                prep_id,
-                {
-                    "status": "FAILED",
-                    "error_code": "MODEL_LOAD_FAILED",
-                    "error_message": (
-                        f"自测未通过：{calibration['sample_count']} 个样本中"
-                        f"仅 {calibration['non_empty']} 个产生识别结果"
-                    ),
-                    "error_retryable": True,
-                    "calibration": {
-                        "sample_count": calibration["sample_count"],
-                        "median_compute_ms": calibration["median_compute_ms"],
-                        "passed": False,
-                        "finished_at": now,
-                    },
-                },
-            )
-            return
-        if task_type == "ocr.image.v1":
-            from runners.rapidocr_runner import combined_model_sha256
-
-            model_sha = combined_model_sha256()
-            provider = "CPUExecutionProvider"
-        else:
-            model_sha = None
-            provider = None
-        self._prep_status(
-            prep_id,
-            {
-                "status": "READY",
-                "progress": 1.0,
-                "backend": "cpu",
-                "runtime_provider": provider,
-                "model_sha256": model_sha,
-                "model_cached": True,
-                "calibration": {
-                    "sample_count": calibration["sample_count"],
-                    "median_compute_ms": calibration["median_compute_ms"],
-                    "passed": calibration["passed"],
-                    "finished_at": now,
-                },
+        # 先保留已核验的 runner，READY 回包丢失时仍可履行已接纳的执行。
+        self._prepared = (profile_key, runner)
+        self._prep_status(prep_id, {
+            "status": "READY",
+            "progress": 1.0,
+            "backend": "cpu",
+            "runtime_provider": provider,
+            "model_sha256": model_sha,
+            "model_cached": True,
+            "calibration": {
+                "sample_count": calibration["sample_count"],
+                "median_compute_ms": calibration["median_compute_ms"],
+                "passed": True,
+                "finished_at": iso_now(),
             },
-        )
+        })
 
     def _self_test(self, task_type: str, runner) -> dict:
-        """固定合成样本真实试跑：3 张样本，输出耗时中位数；OCR 要求至少一张非空。"""
+        """固定合成样本真实试跑：3 张样本，逐张核对文本及结果结构。"""
         import statistics
 
         from PIL import Image, ImageDraw, ImageFont
@@ -286,16 +273,20 @@ class Agent:
             path = self.data_dir / "calibration" / f"sample-{i}.png"
             path.parent.mkdir(parents=True, exist_ok=True)
             img.save(path, format="PNG")
-            samples.append(path)
+            samples.append((path, label))
 
-        durations, non_empty = [], 0
-        for path in samples:
+        durations, non_empty, matches = [], 0, 0
+        for path, label in samples:
             t0 = time.monotonic()
             result = runner.execute(path, {"width": None, "height": None}, {}, path.parent)
             durations.append((time.monotonic() - t0) * 1000)
             if task_type == "ocr.image.v1" and result.get("blocks"):
                 non_empty += 1
-        passed = non_empty >= 1 if task_type == "ocr.image.v1" else True
+                result["input_artifact_id"] = "calibration"
+                validate_ocr_result(result, "calibration")
+                if " ".join(result["text"].upper().split()) == label:
+                    matches += 1
+        passed = matches == len(samples)
         return {
             "sample_count": len(samples),
             "non_empty": non_empty,
@@ -306,8 +297,6 @@ class Agent:
     # ---------- 单次执行 ----------
 
     def _do_execution(self, execution: dict) -> None:
-        from runners.base import load_runner
-
         execution_id = execution["execution_id"]
         timings: dict[str, float] = {
             "download_ms": 0.0,
@@ -324,7 +313,10 @@ class Agent:
             timings["download_ms"] = (time.monotonic() - t0) * 1000
 
             t0 = time.monotonic()
-            runner = load_runner(execution["task_type"])
+            key = (execution["task_type"], execution["profile_id"], execution["profile_digest"])
+            if self._prepared is None or self._prepared[0] != key:
+                raise ProfileError("PROFILE_MISMATCH", "节点缺少本会话核验过的 profile")
+            runner = self._prepared[1]
             media_info = execution["input_media_info"]
             result = runner.execute(
                 Path(input_path), media_info, execution.get("parameters", {}), workdir
@@ -356,14 +348,15 @@ class Agent:
                 )
         except Exception as e:
             print(f"[agent] 执行 {execution_id} 失败：{e}", file=sys.stderr)
+            code = e.code if isinstance(e, ProfileError) else "EXECUTION_ERROR"
             self._internal(
                 f"/api/resource/internal/v1/nodes/{self.worker_id}/executions/{execution_id}/complete",
                 {
                     **self._auth_payload(),
                     "outcome": "FAILED",
-                    "error_code": "EXECUTION_ERROR",
+                    "error_code": code,
                     "error_message": "节点执行失败，详见节点日志",
-                    "error_retryable": True,
+                    "error_retryable": code == "EXECUTION_ERROR",
                 },
             )
 
@@ -379,7 +372,11 @@ class Agent:
         )
         resp.raise_for_status()
         if hashlib.sha256(resp.content).hexdigest() != execution["input_sha256"]:
-            raise ValueError("下载文件 SHA-256 与执行记录不符")
+            raise ProfileError("INPUT_INVALID", "下载文件 SHA-256 与执行记录不符")
+        try:
+            probe_image(resp.content, execution["input_content_type"], decode=True)
+        except ValueError as exc:
+            raise ProfileError("INPUT_INVALID", "输入文件无法解码") from exc
         target = self.data_dir / "work" / execution["execution_id"] / "input.bin"
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(resp.content)
@@ -397,7 +394,12 @@ def main() -> None:
     parser.add_argument("--server", default=os.environ.get("RESOURCE_BASE_URL", "http://127.0.0.1:8001"))
     parser.add_argument("--name", default=socket.gethostname()[:80])
     args = parser.parse_args()
-    Agent(server=args.server, name=args.name).run()
+    agent = Agent(server=args.server, name=args.name)
+    try:
+        with lock_node_directory(agent.data_dir):
+            agent.run()
+    except BlockingIOError:
+        parser.exit(2, "节点数据目录已被另一个 Agent 占用\n")
 
 
 if __name__ == "__main__":

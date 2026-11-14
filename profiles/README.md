@@ -3,8 +3,7 @@
 运行时配置由 resource_service 从本目录读取：
 
 - `task_types.json`：任务类型目录（运行时副本，来源为共享契约 `contracts/task-types.json`）。
-- `<profile_id>.lock.json`：**profile 锁文件**。存在即表示该类型 `CONFIGURED`，
-  服务自动计算锁文件原字节的 SHA256 作为 `profile_digest`。
+- `<profile_id>.lock.json`：**profile 锁文件**。资源服务为支持且锁文件通过检查的类型标记 `CONFIGURED`，以锁文件原始字节的 SHA-256 作为 `profile_digest`。
 
 ## 发布一个 profile 的流程
 

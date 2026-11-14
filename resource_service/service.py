@@ -151,7 +151,8 @@ class State:
             # 旧 agent 的凭证因此失效，心跳 409 后自动重注册
             for node_row in conn.execute("SELECT worker_id FROM nodes").fetchall():
                 conn.execute(
-                    "UPDATE nodes SET connection='OFFLINE', session_id=?, node_secret=?, last_seen_at=NULL WHERE worker_id=?",
+                    "UPDATE nodes SET connection='OFFLINE', session_id=?, node_secret=?, last_seen_at=NULL,"
+                    " cleanup_pending=1 WHERE worker_id=?",
                     (
                         str(uuid.uuid4()),
                         secrets.token_hex(16),
@@ -322,7 +323,7 @@ def _handle_replay(
     if status == "REJECTED":
         error = parse_json(error_raw) or {}
         raise ApiError(
-            503 if error.get("code") == "PROFILE_UNCONFIGURED" else 409,
+            409,
             error.get("code", "INTERNAL_ERROR"),
             error.get("message", "先前已拒绝"),
             retryable=bool(error.get("retryable", False)),
@@ -570,6 +571,12 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
                     != (type_desc["profile_id"], type_desc["profile_digest"])
                 ):
                     reject = (503, "PROFILE_UNCONFIGURED", "profile 未配置或摘要不匹配", False)
+                elif any(
+                    cap["task_type"] == body.task_type and cap["profile_id"] == body.profile_id
+                    and cap["state"] == "UNAVAILABLE"
+                    for cap in parse_json(node["capabilities"], [])
+                ):
+                    reject = (409, "NODE_UNAVAILABLE", "节点无法准备该 profile", False)
             if reject is not None:
                 status_code, code, message, retryable = reject
                 error = {
@@ -841,16 +848,15 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
         worker_id = _sanitize_worker_id(worker_id)
         session_id = str(uuid.uuid4())
         node_secret = secrets.token_hex(16)
-        # F02：注册时按目录发布 NOT_PREPARED 能力（agent 提供的条目优先）
-        agent_caps = [c.model_dump() for c in body.capabilities]
-        reported = {c["task_type"] for c in agent_caps}
+        unavailable = {
+            (cap.task_type, cap.profile_id): cap.reason
+            for cap in body.capabilities if cap.state == "UNAVAILABLE" and cap.reason
+        }
         caps_init = [
-            c for c in agent_caps
-        ] + [
             {
                 "task_type": t["task_type"],
                 "profile_id": t["profile_id"],
-                "profile_digest": t["profile_digest"],
+                "profile_digest": None,
                 "state": "NOT_PREPARED" if t["profile_digest"] else "UNAVAILABLE",
                 "model_cached": False,
                 "backend": None,
@@ -861,17 +867,23 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
                 "reason": "等待准备" if t["profile_digest"] else t["reason"],
             }
             for t in s.catalog.all()
-            if t["task_type"] not in reported
         ]
+        for cap in caps_init:
+            reason = unavailable.get((cap["task_type"], cap["profile_id"]))
+            if reason:
+                cap.update(state="UNAVAILABLE", reason=reason)
         with s.db.write() as conn:
             existing = conn.execute(
-                "SELECT worker_id FROM nodes WHERE worker_id=?", (worker_id,)
+                "SELECT * FROM nodes WHERE worker_id=?", (worker_id,)
             ).fetchone()
             if existing:
-                _end_node_work(s, conn, worker_id, now, "节点重新注册")
+                if existing["connection"] == "ONLINE" and (
+                    s.node_active_executions(worker_id) or s.node_active_preparation(worker_id)
+                ):
+                    raise ApiError(409, "RESOURCE_BUSY", "旧会话仍有工作", retryable=True)
                 conn.execute(
                     "UPDATE nodes SET session_id=?, node_secret=?, name=?, hardware=?, capabilities=?, connection='ONLINE',"
-                    " cleanup_pending=0, last_seen_at=?, telemetry=NULL WHERE worker_id=?",
+                    " last_seen_at=?, telemetry=NULL WHERE worker_id=?",
                     (
                         session_id,
                         node_secret,
@@ -903,27 +915,43 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
             "worker_id": worker_id,
             "session_id": session_id,
             "node_secret": node_secret,
+            "confirm_idle": existing is not None and bool(existing["cleanup_pending"]),
             "heartbeat_interval_s": 3,
             "lease_interval_s": LEASE_SECONDS,
         }
 
+    @app.post("/api/resource/internal/v1/nodes/{worker_id}/confirm_idle")
+    def node_confirm_idle(worker_id: str, body: ClaimRequest):
+        s = state()
+        with s.db.write() as conn:
+            node = _get_node_or_404(s, worker_id)
+            _require_node_auth(node, body.session_id, body.node_secret)
+            if node["cleanup_pending"] and _cleanup_execution(conn, worker_id, body.session_id):
+                raise ApiError(409, "RESOURCE_BUSY", "等待当前会话确认停止", retryable=True)
+            conn.execute("UPDATE nodes SET cleanup_pending=0 WHERE worker_id=?", (worker_id,))
+        return {"ok": True}
+
     @app.post("/api/resource/internal/v1/nodes/{worker_id}/heartbeat")
     def node_heartbeat(worker_id: str, body: HeartbeatRequest):
         s = state()
-        incoming = [c.model_dump() for c in body.capabilities]
         with s.db.write() as conn:
             node = _get_node_or_404(s, worker_id)
             _require_node_auth(node, body.session_id, body.node_secret)
             now_dt = utcnow()
             now = iso(now_dt)
-            caps = parse_json(node["capabilities"], [])
-            if incoming:
-                reported = {c["task_type"] for c in incoming}
-                caps = [c for c in caps if c.get("task_type") not in reported] + incoming
+            caps = {
+                (cap["task_type"], cap["profile_id"]): cap
+                for cap in parse_json(node["capabilities"], [])
+            }
+            for cap in body.capabilities:
+                previous = caps.get((cap.task_type, cap.profile_id))
+                if (previous and previous["state"] == "NOT_PREPARED"
+                        and cap.state == "UNAVAILABLE" and cap.reason):
+                    previous.update(state="UNAVAILABLE", reason=cap.reason)
             conn.execute(
                 "UPDATE nodes SET last_seen_at=?, connection='ONLINE', telemetry=?, capabilities=? WHERE worker_id=?",
                 (now, canonical_json(body.telemetry.model_dump()) if body.telemetry else None,
-                 canonical_json(caps), worker_id),
+                 canonical_json(list(caps.values())), worker_id),
             )
             conn.execute(
                 "UPDATE executions SET lease_expires_at=MIN(?, hard_deadline_at)"
@@ -966,7 +994,11 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
                 (worker_id, body.session_id),
             ).fetchone()
             if prep is not None:
-                return {**empty, "preparation": s.preparation_dict(prep)}
+                conn.execute(
+                    "UPDATE preparations SET status='LOADING' WHERE preparation_id=?",
+                    (prep["preparation_id"],),
+                )
+                return {**empty, "preparation": dict(s.preparation_dict(prep), status="LOADING")}
             row = conn.execute(
                 "SELECT * FROM executions WHERE worker_id=? AND worker_session_id=? AND status='ACCEPTED'"
                 " AND lease_expires_at>? AND hard_deadline_at>? ORDER BY accepted_at LIMIT 1",
@@ -997,6 +1029,7 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
             "input_artifact_id": row["input_artifact_id"],
             "input_sha256": row["input_sha256"],
             "input_media_info": parse_json(artifact["media_info"], {}) if artifact else {},
+            "input_content_type": artifact["content_type"] if artifact else None,
             "parameters": parse_json(row["parameters"]),
             "timeout_seconds": row["timeout_seconds"],
             "hard_deadline_at": row["hard_deadline_at"],
@@ -1027,7 +1060,8 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
             error_code, error_message = body.error_code, body.error_message
             if status == "READY":
                 expected = s.catalog.model_sha256(row["profile_id"])
-                if not body.calibration or not body.calibration.passed or not body.backend or not body.runtime_provider:
+                if (not body.calibration or not body.calibration.passed
+                        or body.backend != "cpu" or body.runtime_provider != "CPUExecutionProvider"):
                     status, error_code, error_message = "FAILED", "MODEL_LOAD_FAILED", "缺少通过的自测或实际后端"
                 elif not expected or body.model_sha256 != expected:
                     status, error_code, error_message = "FAILED", "MODEL_HASH_MISMATCH", "模型 SHA 与锁文件不符"
@@ -1102,39 +1136,51 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
             node = _get_node_or_404(s, worker_id)
             _require_node_auth(node, body.session_id, body.node_secret)
             row = _session_execution(conn, worker_id, execution_id, body.session_id)
-            now = iso_now()
+            now = iso(utcnow())
+            result_bytes = None
             if body.outcome == "SUCCEEDED" and body.result is not None:
                 result_bytes = canonical_json(body.result).encode("utf-8")
                 sha = hashlib.sha256(result_bytes).hexdigest()
                 if row["status"] == "SUCCEEDED":
                     saved = s.execution_dict(row)
-                    if saved["result_artifact"]["sha256"] == sha:
+                    if saved["result_artifact"] and saved["result_artifact"]["sha256"] == sha:
                         return saved
-            if row["status"] != "RUNNING":
-                stale_reason = "执行未运行或提交权已撤销"
-            elif row["hard_deadline_at"] <= now or row["lease_expires_at"] <= now:
-                stale_reason = "执行硬期限或租约已到期"
-            else:
-                stale_reason = None
+            stale_reason = _submission_rejection(row, now)
+            error = None
+            if not stale_reason and body.outcome == "SUCCEEDED":
+                try:
+                    if body.result is None:
+                        raise ResultInvalid("SUCCEEDED 提交缺少 result")
+                    _validate_execution_result(s, row, body.result)
+                except ResultInvalid as exc:
+                    error = _err("RESULT_INVALID", exc.message, False)
+            elif not stale_reason:
+                code = body.error_code or "EXECUTION_ERROR"
+                error = _err(
+                    code, body.error_message or "执行失败",
+                    bool(body.error_retryable) and code not in ("INPUT_INVALID", "RESULT_INVALID", "PROFILE_MISMATCH"),
+                )
+
+            if not stale_reason and not error:
+                artifact_id = new_artifact_id()
+                target = s.config.artifacts_dir / f"{artifact_id}.bin"
+                tmp = target.with_suffix(".tmp")
+                tmp.write_bytes(result_bytes)
+                tmp.replace(target)
+                now = iso(utcnow())
+                stale_reason = _submission_rejection(row, now)
+                if stale_reason:
+                    target.unlink()
 
             if stale_reason:
                 s.db.insert_event(
                     now, "execution.stale_rejected", f"结果提交被拒收 {execution_id}",
                     worker_id=worker_id, execution_id=execution_id,
                 )
-            elif body.outcome == "SUCCEEDED":
-                if body.result is None:
-                    raise ApiError(409, "RESULT_INVALID", "SUCCEEDED 提交缺少 result")
-                try:
-                    _validate_execution_result(s, row, body.result)
-                except ResultInvalid as exc:
-                    raise ApiError(409, "RESULT_INVALID", f"结果不合规：{exc.message}") from exc
-                artifact_id = new_artifact_id()
-                target = s.config.artifacts_dir / f"{artifact_id}.bin"
-                tmp = target.with_suffix(".tmp")
-                tmp.write_bytes(result_bytes)
-                tmp.replace(target)
-                timings = body.timings if body.timings is not None else {
+            elif error:
+                _finish_execution(s, conn, row, now, "FAILED", error)
+            else:
+                timings = body.timings.model_dump() if body.timings is not None else {
                     "download_ms": 0, "inference_ms": 0, "postprocess_ms": 0,
                     "write_output_ms": 0, "total_worker_ms": 0,
                 }
@@ -1145,19 +1191,18 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
                     (artifact_id, f"execution-{execution_id}.json", sha, len(result_bytes),
                      canonical_json(_NULL_MEDIA), now),
                 )
-                conn.execute(
+                updated = conn.execute(
                     "UPDATE executions SET status='SUCCEEDED', finished_at=?, result_artifact_id=?,"
-                    " timings=?, error=NULL WHERE execution_id=?",
-                    (now, artifact_id, canonical_json(timings), execution_id),
+                    " timings=?, error=NULL WHERE execution_id=? AND worker_session_id=? AND status='RUNNING'"
+                    " AND lease_expires_at>? AND hard_deadline_at>?",
+                    (now, artifact_id, canonical_json(timings), execution_id, body.session_id, now, now),
                 )
+                if updated.rowcount != 1:
+                    target.unlink()
+                    raise ApiError(409, "STALE_EXECUTION", "提交权已撤销")
                 s.db.insert_event(
                     now, "execution.succeeded", f"执行成功 {execution_id}",
                     worker_id=worker_id, execution_id=execution_id,
-                )
-            else:
-                _finish_execution(
-                    s, conn, row, now, "FAILED",
-                    _err(body.error_code or "EXECUTION_ERROR", body.error_message or "执行失败", bool(body.error_retryable)),
                 )
             fresh = s.db.query_one("SELECT * FROM executions WHERE execution_id=?", (execution_id,))
         if stale_reason:
@@ -1238,6 +1283,13 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
                 if not st.node_active_executions(worker_id) and not st.node_active_preparation(worker_id):
                     conn.execute("UPDATE nodes SET mode='PAUSED' WHERE worker_id=?", (worker_id,))
                     st.db.insert_event(now, "node.mode_changed", "节点完成工作并进入 PAUSED", worker_id=worker_id)
+
+    def _submission_rejection(row, now: str):
+        if row["status"] != "RUNNING":
+            return "执行未运行或提交权已撤销"
+        if row["hard_deadline_at"] <= now or row["lease_expires_at"] <= now:
+            return "执行硬期限或租约已到期"
+        return None
 
     def _session_execution(conn, worker_id: str, execution_id: str, session_id: str):
         row = conn.execute("SELECT * FROM executions WHERE execution_id=?", (execution_id,)).fetchone()
@@ -1345,6 +1397,10 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
             and c.get("profile_digest") == body.profile_digest
             and c.get("state") == "READY"
             and c.get("verified") is True
+            and (c.get("calibration") or {}).get("passed") is True
+            and c.get("runtime_provider") == "CPUExecutionProvider"
+            and c.get("backend") == "cpu"
+            and c.get("model_sha256") == s.catalog.model_sha256(body.profile_id)
             for c in capabilities
         )
         if not ready:
@@ -1390,7 +1446,10 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
             "SELECT capabilities FROM nodes WHERE worker_id=?", (worker_id,)
         ).fetchone()
         caps = parse_json(row["capabilities"], []) if row else []
-        caps = [c for c in caps if c.get("task_type") != capability["task_type"]]
+        caps = [
+            c for c in caps
+            if (c["task_type"], c["profile_id"]) != (capability["task_type"], capability["profile_id"])
+        ]
         caps.append(capability)
         conn.execute(
             "UPDATE nodes SET capabilities=? WHERE worker_id=?",

@@ -1,6 +1,8 @@
 """执行生命周期：幂等、业务拒绝持久化、领取、完成、取消、晚到拒收。"""
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
+from threading import Barrier
 from time import monotonic, sleep
 
 from resource_service import service
@@ -265,9 +267,6 @@ def test_claim_run_complete_download(client_with_profile):
 
 
 def test_concurrent_execution_replay(client_with_profile):
-    from concurrent.futures import ThreadPoolExecutor
-    from threading import Barrier
-
     client, digest, node, artifact = setup_ready(client_with_profile)
     body = make_execution_request(node, artifact["artifact_id"], digest)
     barrier = Barrier(2)
@@ -281,6 +280,53 @@ def test_concurrent_execution_replay(client_with_profile):
         replies = [first.result(), second.result()]
     assert sorted(reply.status_code for reply in replies) == [200, 201]
     assert all(reply.json()["execution_id"] == body["execution_id"] for reply in replies)
+
+
+def test_concurrent_preparation_replay(client_with_profile):
+    client, digest = client_with_profile
+    node = register_node(client)
+    preparation_id = str(uuid.uuid4())
+    request = {
+        "preparation_id": preparation_id, "worker_id": node["worker_id"],
+        "worker_session_id": node["session_id"], "task_type": "ocr.image.v1",
+        "profile_id": "ocr.default.v1", "profile_digest": digest,
+    }
+    barrier = Barrier(2)
+
+    def post():
+        barrier.wait(timeout=5)
+        return client.post("/api/resource/v1/preparations", json=request, headers=TASK)
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        first, second = (pool.submit(post) for _ in range(2))
+        replies = [first.result(), second.result()]
+    assert sorted(reply.status_code for reply in replies) == [200, 202]
+    assert all(reply.json()["preparation_id"] == preparation_id for reply in replies)
+    auth = {k: node[k] for k in ("session_id", "node_secret")}
+    path = f"/api/resource/internal/v1/nodes/{node['worker_id']}/claim"
+    assert client.post(path, json=auth).json()["preparation"]["preparation_id"] == preparation_id
+    assert client.post(path, json=auth).json()["preparation"] is None
+
+
+def test_missing_worker_rejections_persist(client_with_profile):
+    client, digest, node, artifact = setup_ready(client_with_profile)
+    request = make_execution_request(node, artifact["artifact_id"], digest, worker_id="missing")
+    preparation = {k: request[k] for k in (
+        "worker_id", "worker_session_id", "task_type", "profile_id", "profile_digest"
+    )}
+    preparation["preparation_id"] = str(uuid.uuid4())
+    for resource, payload, id_field in (
+        ("executions", request, "execution_id"),
+        ("preparations", preparation, "preparation_id"),
+    ):
+        path = f"/api/resource/v1/{resource}"
+        for _ in range(2):
+            rejected = client.post(path, json=payload, headers=TASK)
+            assert rejected.status_code == 409
+            assert rejected.json()["code"] == "NOT_FOUND"
+            assert rejected.json()["details"][id_field] == payload[id_field]
+        saved = client.get(f"{path}/{payload[id_field]}", headers=TASK).json()
+        assert saved["status"] == "REJECTED"
 
 
 def test_hard_timeout_blocks_slot_until_worker_ack(client_with_profile, monkeypatch):
@@ -314,6 +360,31 @@ def test_hard_timeout_blocks_slot_until_worker_ack(client_with_profile, monkeypa
     assert client.post("/api/resource/v1/executions", json=next_request, headers=TASK).status_code == 201
 
 
+def test_lease_boundary_blocks_completion_before_scan(client_with_profile, monkeypatch):
+    client, digest, node, artifact = setup_ready(client_with_profile)
+    monkeypatch.setattr(service, "SCAN_INTERVAL_SECONDS", 60)
+    request = make_execution_request(node, artifact["artifact_id"], digest)
+    assert client.post("/api/resource/v1/executions", json=request, headers=TASK).status_code == 201
+    worker = f"/api/resource/internal/v1/nodes/{node['worker_id']}"
+    auth = {key: node[key] for key in ("session_id", "node_secret")}
+    assert client.post(worker + "/claim", json=auth).json()["execution"] is not None
+    execution_id = request["execution_id"]
+    path = f"/api/resource/v1/executions/{execution_id}"
+    snapshot = client.get(path, headers=TASK).json()
+    from resource_service.timeutil import parse_iso
+
+    monkeypatch.setattr(service, "utcnow", lambda: parse_iso(snapshot["lease_expires_at"]))
+    assert client.post(worker + "/heartbeat", json=auth).status_code == 200
+    fresh = client.get(path, headers=TASK).json()
+    assert fresh["lease_expires_at"] == snapshot["lease_expires_at"]
+    late = client.post(
+        f"{worker}/executions/{execution_id}/complete",
+        json={**auth, "outcome": "FAILED", "error_code": "EXECUTION_ERROR"},
+    )
+    assert late.status_code == 409
+    assert late.json()["code"] == "STALE_EXECUTION"
+
+
 def test_invalid_result_rejected_not_published(client_with_profile):
     client, digest, node, artifact = setup_ready(client_with_profile)
     body = make_execution_request(node, artifact["artifact_id"], digest)
@@ -335,10 +406,12 @@ def test_invalid_result_rejected_not_published(client_with_profile):
         f"/api/resource/internal/v1/nodes/{node['worker_id']}/executions/{body['execution_id']}/complete",
         json={"session_id": node["session_id"], "node_secret": node["node_secret"], "outcome": "SUCCEEDED", "result": bad_result},
     )
-    assert complete.status_code == 409
-    assert complete.json()["code"] == "RESULT_INVALID"
+    assert complete.status_code == 200
+    assert complete.json()["error"]["code"] == "RESULT_INVALID"
     got = client.get(f"/api/resource/v1/executions/{body['execution_id']}", headers=TASK)
-    assert got.json()["status"] == "RUNNING"  # 未发布，保持 RUNNING
+    assert got.json()["status"] == "FAILED"
+    assert got.json()["error"]["retryable"] is False
+    assert got.json()["result_artifact"] is None
 
 
 def test_cancel_flow(client_with_profile):

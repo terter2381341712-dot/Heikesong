@@ -32,13 +32,16 @@ class Config:
 
 def load_config() -> Config:
     data_dir = Path(os.environ.get("RESOURCE_DATA_DIR", "./data/resource")).resolve()
+    tokens = [os.environ.get(key, "").strip() for key in ("DEMO_TOKEN", "TASK_TOKEN", "JOIN_TOKEN")]
+    if not all(tokens) or len(set(tokens)) != len(tokens):
+        raise ValueError("DEMO_TOKEN、TASK_TOKEN、JOIN_TOKEN 必须非空且各不相同")
     return Config(
         bind_host=os.environ.get("RESOURCE_BIND_HOST", "0.0.0.0"),
         port=int(os.environ.get("RESOURCE_PORT", "8001")),
         data_dir=data_dir,
-        demo_token=os.environ.get("DEMO_TOKEN", ""),
-        task_token=os.environ.get("TASK_TOKEN", ""),
-        join_token=os.environ.get("JOIN_TOKEN", ""),
+        demo_token=tokens[0],
+        task_token=tokens[1],
+        join_token=tokens[2],
         profiles_dir=Path(
             os.environ.get("RESOURCE_PROFILES_DIR", str(REPO_ROOT / "profiles"))
         ).resolve(),

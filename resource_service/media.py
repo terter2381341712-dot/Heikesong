@@ -29,7 +29,7 @@ def probe_media(content_type: str, data: bytes) -> dict:
     return _null_media()
 
 
-def probe_image(data: bytes, content_type: str) -> dict:
+def probe_image(data: bytes, content_type: str, *, decode: bool = False) -> dict:
     media = _null_media()
     try:
         with Image.open(io.BytesIO(data)) as img:
@@ -46,7 +46,10 @@ def probe_image(data: bytes, content_type: str) -> dict:
             media["height"] = int(height)
         # 重新打开以便 Pillow 在文件开头校验内容。
         with Image.open(io.BytesIO(data)) as img:
-            img.verify()
+            if decode:
+                img.load()
+            else:
+                img.verify()
     except (UnidentifiedImageError, OSError, SyntaxError, ValueError) as exc:
         raise ValueError("IMAGE_UNDECODABLE") from exc
     return media

@@ -11,12 +11,16 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import sys
 import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Optional
+from typing import Optional
+
+from resource_service.resultschema import ResultInvalid, validate_ocr_result
+from runners.profile import load_locked_runner
 
 
 def _iso_now() -> str:
@@ -61,7 +65,7 @@ def main() -> int:
     args = parser.parse_args()
 
     run_id = args.run_id
-    if not run_id or len(run_id) > 80 or not all(c.isalnum() or c in "_-" for c in run_id):
+    if not re.fullmatch(r"[A-Za-z0-9_-]{1,80}", run_id) or args.threads < 0:
         print("invalid --run-id", file=sys.stderr)
         return 2
 
@@ -98,8 +102,19 @@ def main() -> int:
             if not line:
                 continue
             item = json.loads(line)
-            if not all(k in item for k in ("input_index", "input_artifact_id", "local_path", "input_sha256")):
-                raise ValueError(f"manifest 行缺少必填字段: {item}")
+            if (
+                not isinstance(item, dict)
+                or item.keys() != {"input_index", "input_artifact_id", "local_path", "input_sha256"}
+                or type(item["input_index"]) is not int or item["input_index"] < 0
+                or not isinstance(item["local_path"], str) or not item["local_path"]
+                or not isinstance(item["input_artifact_id"], str)
+                or not re.fullmatch(r"[A-Za-z0-9_-]{1,80}", item["input_artifact_id"])
+                or not isinstance(item["input_sha256"], str)
+                or not re.fullmatch(r"[a-f0-9]{64}", item["input_sha256"])
+            ):
+                raise ValueError("manifest 行不符合 BaselineInput")
+            if any(previous["input_index"] == item["input_index"] for previous in inputs):
+                raise ValueError("manifest 重复 input_index")
             inputs.append(item)
     except (json.JSONDecodeError, ValueError) as e:
         print(f"manifest 解析失败: {e}", file=sys.stderr)
@@ -114,10 +129,10 @@ def main() -> int:
     results_dir.mkdir(exist_ok=True)
 
     try:
-        from runners.base import load_runner
-
-        runner = load_runner(task_type)
-        runner.ensure_engine()
+        runner, model_sha, provider = load_locked_runner(
+            lock_bytes, task_type, profile_id, profile_digest, args.backend, args.threads
+        )
+        print(f"backend={provider} model_sha256={model_sha}", file=sys.stderr)
     except Exception as e:
         print(f"执行器加载失败: {e}", file=sys.stderr)
         return 2
@@ -169,13 +184,15 @@ def main() -> int:
             if actual_sha != item["input_sha256"]:
                 raise ValueError(f"输入 SHA 不匹配：期望 {item['input_sha256']}，实际 {actual_sha}")
             result = runner.execute(local, {}, {}, results_dir)
+            result["input_artifact_id"] = item["input_artifact_id"]
+            validate_ocr_result(result, item["input_artifact_id"])
             out_file = results_dir / f"{int(item['input_index']):04d}-{item['input_artifact_id']}.json"
             out_file.write_text(json.dumps(result, ensure_ascii=False), encoding="utf-8")
             result_path = str(out_file)
             result_sha = hashlib.sha256(out_file.read_bytes()).hexdigest()
         except Exception as e:
             status = "FAILED"
-            error = _error("EXECUTION_ERROR", str(e), retryable=False)
+            error = _error("RESULT_INVALID" if isinstance(e, ResultInvalid) else "EXECUTION_ERROR", str(e))
         record["finished_at"] = _iso_now()
         record["elapsed_ms"] = round(_now_ms() - t0, 3)
         record["status"] = status

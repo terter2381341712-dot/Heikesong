@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import io
+import uuid
 import wave
 
 import pytest
@@ -46,7 +47,8 @@ def client_with_profile(tmp_path):
             "profile_id": "ocr.default.v1",
             "task_type": "ocr.image.v1",
             "model_sha256": "0" * 64,
-            "backend": "cpu",
+            "allowed_backends": ["cpu"],
+            "weights_license_verified": True,
         }
     ).encode("utf-8")
     (profiles_dir / "ocr.default.v1.lock.json").write_bytes(lock_content)
@@ -108,7 +110,33 @@ def register_node(client, name="test-node", capabilities=None, worker_id=None):
         "/api/resource/internal/v1/nodes/register", json=body, headers=JOIN
     )
     assert resp.status_code == 200, resp.text
-    return resp.json()
+    node = resp.json()
+    for capability in capabilities or []:
+        if capability["state"] != "READY" or not capability["profile_digest"]:
+            continue
+        prep_id = str(uuid.uuid4())
+        assert client.post("/api/resource/v1/preparations", headers=TASK, json={
+            "preparation_id": prep_id,
+            "worker_id": node["worker_id"],
+            "worker_session_id": node["session_id"],
+            **{k: capability[k] for k in ("task_type", "profile_id", "profile_digest")},
+        }).status_code == 202
+        auth = {k: node[k] for k in ("session_id", "node_secret")}
+        prefix = f"/api/resource/internal/v1/nodes/{node['worker_id']}"
+        assert client.post(prefix + "/claim", json=auth).json()["preparation"]["preparation_id"] == prep_id
+        prepared = client.post(f"{prefix}/preparations/{prep_id}/status", json={
+            **auth,
+            "status": "READY",
+            "backend": "cpu",
+            "runtime_provider": "CPUExecutionProvider",
+            "model_sha256": "0" * 64,
+            "calibration": {
+                "sample_count": 3, "median_compute_ms": 100, "passed": True,
+                "finished_at": "2026-11-14T04:30:00Z",
+            },
+        })
+        assert prepared.json()["status"] == "READY", prepared.text
+    return node
 
 
 def minimal_hardware() -> dict:

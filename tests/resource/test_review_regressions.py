@@ -83,7 +83,7 @@ def test_f02_registration_publishes_not_prepared_capabilities(client_with_profil
     caps = resources[0]["capabilities"]
     ocr = next(c for c in caps if c["task_type"] == "ocr.image.v1")
     assert ocr["state"] == "NOT_PREPARED"
-    assert ocr["profile_digest"] == digest
+    assert ocr["profile_digest"] is None
     assert ocr["verified"] is False
     # 心跳不带 capabilities，能力应保留
     hb = client.post(

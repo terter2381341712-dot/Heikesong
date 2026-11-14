@@ -1,6 +1,7 @@
 """结果 schema 校验：OCRResult / ASRResult（OpenAPI components 定义）。"""
 from __future__ import annotations
 
+import re
 from typing import Any, Optional
 
 RESULT_SCHEMA_VERSION = "1.0"
@@ -25,6 +26,7 @@ def _check_common(result: dict, task_type: str, input_artifact_id: str) -> None:
     _require(isinstance(result, dict), "结果必须是对象")
     _require(result.get("schema_version") == RESULT_SCHEMA_VERSION, "schema_version 必须为 '1.0'")
     _require(result.get("task_type") == task_type, "task_type 与执行请求不符")
+    _require(bool(re.fullmatch(r"[A-Za-z0-9_-]{1,80}", input_artifact_id)), "input_artifact_id 非法")
     _require(result.get("input_artifact_id") == input_artifact_id, "input_artifact_id 与执行请求不符")
 
 
@@ -58,6 +60,7 @@ def validate_ocr_result(result: dict, input_artifact_id: str) -> None:
         _require(x0 <= x1 and y0 <= y1, "bbox 必须满足 x0<=x1, y0<=y1")
         _require(x1 <= w and y1 <= h, "bbox 必须在图像范围内")
         conf = block.get("confidence")
+        _require("confidence" in block, "block.confidence 缺失")
         _require(conf is None or (_num(conf) and 0 <= conf <= 1), "confidence 必须在 0..1 或 null")
 
 
@@ -74,6 +77,7 @@ def validate_asr_result(result: dict, input_artifact_id: str) -> None:
         "duration_ms 必须在 1..60000",
     )
     lang = result.get("language")
+    _require("language" in result, "language 缺失")
     _require(lang is None or (isinstance(lang, str) and len(lang) >= 1), "language 必须是字符串或 null")
     _require(isinstance(result.get("text"), str), "text 必须是字符串")
     segments = result.get("segments")

@@ -6,24 +6,17 @@
 from __future__ import annotations
 
 import hashlib
-import sys
-import time
 from pathlib import Path
 from typing import Any, Optional
 
 import numpy as np
 from PIL import Image, ImageOps
 
-_ENGINE: Optional[Any] = None
-
-
-def _load_engine() -> Any:
-    global _ENGINE
-    if _ENGINE is None:
-        from rapidocr import RapidOCR
-
-        _ENGINE = RapidOCR()
-    return _ENGINE
+MODEL_NAMES = {
+    "Det": "PP-OCRv6_det_small.onnx",
+    "Cls": "ch_ppocr_mobile_v2.0_cls_mobile.onnx",
+    "Rec": "PP-OCRv6_rec_small.onnx",
+}
 
 
 def model_files() -> list[Path]:
@@ -31,7 +24,7 @@ def model_files() -> list[Path]:
     import rapidocr
 
     models_dir = Path(rapidocr.__file__).parent / "models"
-    return sorted(models_dir.glob("*.onnx"))
+    return sorted(models_dir / name for name in MODEL_NAMES.values())
 
 
 def combined_model_sha256() -> str:
@@ -66,13 +59,36 @@ def _reading_order_key(block: dict) -> tuple[float, float]:
 class RapidOCRRunner:
     task_type = "ocr.image.v1"
 
-    def __init__(self) -> None:
+    def __init__(self, threads: int = 0) -> None:
         self._engine: Optional[Any] = None
+        self._threads = threads
 
     def ensure_engine(self) -> Any:
         if self._engine is None:
-            self._engine = _load_engine()
+            from rapidocr import RapidOCR
+
+            paths = {path.name: path for path in model_files()}
+            params = {
+                f"{stage}.model_path": str(paths[name]) for stage, name in MODEL_NAMES.items()
+            }
+            if self._threads:
+                params["EngineConfig.onnxruntime.intra_op_num_threads"] = self._threads
+                params["EngineConfig.onnxruntime.inter_op_num_threads"] = 1
+            self._engine = RapidOCR(params=params)
+            self._engine._load_det_model()
+            self._engine._load_cls_model()
+            self._engine._load_rec_model()
         return self._engine
+
+    def runtime_provider(self) -> str:
+        engine = self.ensure_engine()
+        providers = [
+            stage.session.session.get_providers()
+            for stage in (engine.text_det, engine.text_cls, engine.text_rec)
+        ]
+        if any(active != ["CPUExecutionProvider"] for active in providers):
+            raise ValueError("当前 profile 要求三组模型均使用 CPUExecutionProvider")
+        return providers[0][0]
 
     def execute(
         self,

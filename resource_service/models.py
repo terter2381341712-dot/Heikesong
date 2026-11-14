@@ -135,12 +135,22 @@ class ExecutionRequest(_Strict):
     timeout_seconds: int = Field(ge=10, le=600)
 
 
+class ExecutionTimings(_Strict):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+
+    download_ms: float = Field(ge=0)
+    inference_ms: float = Field(ge=0)
+    postprocess_ms: float = Field(ge=0)
+    write_output_ms: float = Field(ge=0)
+    total_worker_ms: float = Field(ge=0)
+
+
 class ExecutionCompleteRequest(_Strict):
     session_id: str = Field(pattern=UUID_PAT)
     node_secret: str = _secret_field()
     outcome: Literal["SUCCEEDED", "FAILED"]
     result: Optional[dict[str, Any]] = None
-    timings: Optional[dict[str, float]] = None
+    timings: Optional[ExecutionTimings] = None
     error_code: Optional[str] = None
     error_message: Optional[str] = None
     error_retryable: Optional[bool] = None

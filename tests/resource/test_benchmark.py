@@ -6,9 +6,10 @@ import sys
 import uuid
 from pathlib import Path
 
+import pytest
 from PIL import Image, ImageDraw, ImageFont
 
-import pytest
+from resource_service.resultschema import validate_ocr_result
 
 pytest.importorskip("rapidocr")
 
@@ -65,21 +66,26 @@ def test_benchmark_end_to_end(tmp_path):
         timeout=300,
     )
     assert proc.returncode == 0, proc.stderr[-2000:]
-    lines = [json.loads(l) for l in proc.stdout.strip().splitlines() if l.strip()]
-    records = [l for l in lines if l["record_type"] == "file"]
-    summary = [l for l in lines if l["record_type"] == "summary"]
+    lines = [json.loads(line) for line in proc.stdout.splitlines() if line.strip()]
+    records = [row for row in lines if row["record_type"] == "file"]
+    summary = [row for row in lines if row["record_type"] == "summary"]
     assert len(records) == 2
     assert len(summary) == 1
     assert summary[0]["total"] == 2
     assert summary[0]["succeeded"] == 2
     assert summary[0]["failed"] == 0
     assert summary[0]["warmup_ms"] >= 0
-    for r in records:
+    for r, source in zip(records, inputs):
         assert r["run_id"] == "test-run-1"
         assert r["task_type"] == "ocr.image.v1"
         assert len(r["profile_digest"]) == 64
         assert r["status"] == "SUCCEEDED"
-        assert Path(r["result_path"]).exists()
+        assert r["input_sha256"] == source["input_sha256"]
+        assert r["backend"] == "cpu"
+        result = Path(r["result_path"]).read_bytes()
+        assert hashlib.sha256(result).hexdigest() == r["result_sha256"]
+        validate_ocr_result(json.loads(result), source["input_artifact_id"])
+    assert "backend=CPUExecutionProvider model_sha256=" in proc.stderr
     # 持久副本
     persisted = out_dir / "baseline-test-run-1.jsonl"
     assert persisted.exists()
@@ -121,7 +127,7 @@ def test_benchmark_sha_mismatch_fails(tmp_path):
         timeout=300,
     )
     assert proc.returncode == 1  # 输入失败，但工具本身正常运行
-    lines = [json.loads(l) for l in proc.stdout.strip().splitlines() if l.strip()]
+    lines = [json.loads(line) for line in proc.stdout.splitlines() if line.strip()]
     assert lines[-1]["failed"] == 1
     assert lines[0]["status"] == "FAILED"
     assert lines[0]["error"]["code"] == "EXECUTION_ERROR"
