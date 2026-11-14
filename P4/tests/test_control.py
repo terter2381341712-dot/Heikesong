@@ -25,9 +25,11 @@ def test_uploaded_images_use_original_bytes_and_timestamped_results(panel, monke
     def run(argv, **kwargs):
         inputs = Path(argv[argv.index("--inputs") + 1])
         output = Path(argv[argv.index("--out") + 1])
+        # Match the real verifier's contract: its output directory must be new.
+        output.mkdir(parents=True, exist_ok=False)
         assert list(inputs.iterdir())[0].read_bytes() == raw
         assert list(inputs.iterdir())[0].name == "001-my-image.png"
-        observed.append(output)
+        observed.append(output.parent)
         control.save(output / "report.json", {"successful_workers": ["worker-a"]})
         control.save(
             output / "executions.json",

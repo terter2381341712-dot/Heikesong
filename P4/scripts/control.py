@@ -732,6 +732,7 @@ class Panel:
         self.progress(
             f"测试 {title}：正在提交 {len(prepared) if images is not None else 2} 张图片，等待 OCR 与结果核验…"
         )
+        verification = output / "verification"
         with (self.directory / "test.log").open("wb") as log:
             result = subprocess.run(
                 [
@@ -742,7 +743,7 @@ class Panel:
                     "--inputs",
                     str(image_dir),
                     "--out",
-                    str(output),
+                    str(verification),
                     "--timeout",
                     "180",
                     "--profiles-dir",
@@ -754,18 +755,19 @@ class Panel:
             )
         if result.returncode:
             raise ValueError(f"测试未通过，证据保留于 {output}；查看测试日志。")
-        report = read_json(output / "report.json")
+        report = read_json(verification / "report.json")
         resources = request_json(
             self.config["resource_url"] + "/api/resource/v1/resources",
             token=self.config["tokens"]["DEMO_TOKEN"],
             timeout=3,
         )["resources"]
         names = {n["worker_id"]: n.get("name", n["worker_id"]) for n in resources}
-        for execution in read_json(output / "executions.json"):
+        for execution in read_json(verification / "executions.json"):
             worker = execution["worker_id"]
             self.progress(
                 f"设备 {names.get(worker, worker)}：执行 {execution['execution_id']}，输入 {execution.get('input_sha256', '')[:12]}，结果 {execution['status']}"
             )
+        shutil.copyfile(verification / "results.zip", output / "results.zip")
         self.last_result = output / "results.zip"
         self.last_result_title = title
         self.progress(
