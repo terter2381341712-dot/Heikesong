@@ -1,0 +1,46 @@
+{
+  "status": "UNVERIFIED_TEMPLATE",
+  "note": "这是模板，尚未在任何设备实测。P2填写版本和真实权重SHA后，交P1冻结为运行时contracts/pipeline-manifest.json。null不能当成已就绪。",
+  "pipeline_id": "product_image_v1",
+  "model_id": "u2net",
+  "model_sha256": null,
+  "model_source": "https://github.com/danielgatis/rembg",
+  "weights_license_verified": false,
+  "versions": {
+    "python": "3.11.x (计划)",
+    "rembg": null,
+    "onnxruntime_cpu": null,
+    "onnxruntime_gpu": null,
+    "pillow": null
+  },
+  "preset": "white_square",
+  "input": {
+    "max_bytes": 10485760,
+    "max_pixels": 20000000,
+    "normalized_max_side": 1024,
+    "orientation": "EXIF transpose",
+    "transparent_input_background": "#FFFFFF",
+    "normalized_mode": "RGB",
+    "normalized_format": "PNG"
+  },
+  "output": {
+    "canvas": 1024,
+    "foreground_longest_fraction": 0.8,
+    "transparent_png": true,
+    "white_jpeg_quality": 92,
+    "thumbnail_webp_size": 256,
+    "thumbnail_webp_quality": 85
+  },
+  "execution": {
+    "slots_per_worker": 1,
+    "batch_size": 1,
+    "cpu_thread_rule": "max(1, min(4, logical_cores // 2)); unknown cores => 1",
+    "heartbeat_seconds": 3,
+    "lease_seconds": 15,
+    "attempt_timeout_seconds": 120,
+    "max_attempts": 3,
+    "failed_worker_cooldown_seconds": 10
+  },
+  "verified_devices": [],
+  "frozen_at": null
+}

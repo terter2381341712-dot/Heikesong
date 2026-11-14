@@ -1,0 +1,21 @@
+{
+  "health": "Health",
+  "register_request": "WorkerRegistrationRequest",
+  "register_response": "WorkerRegistrationResponse",
+  "upload_response": "Asset",
+  "heartbeat_request": "HeartbeatRequest",
+  "heartbeat_response": "HeartbeatResponse",
+  "claim_request": "ClaimRequest",
+  "claim_response": "TaskLease",
+  "create_job_request": "JobCreateRequest",
+  "create_job_response": "JobCreated",
+  "completion_meta": "CompletionMeta",
+  "completion_response": "CompletionAck",
+  "failure_request": "FailureRequest",
+  "failure_response": "FailureAck",
+  "mode_request": "ModeRequest",
+  "mode_response": "WorkerView",
+  "pool_response": "PoolView",
+  "job_response": "JobDetail",
+  "stale_error": "Error"
+}

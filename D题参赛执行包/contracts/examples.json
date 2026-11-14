@@ -1,0 +1,499 @@
+{
+  "_notice": "全部是合成接口样例；数值、设备、SHA与凭证均非实测，不得用于参赛性能报告或冒充已运行结果。",
+  "health": {
+    "status": "ok",
+    "api_version": "0.1.0"
+  },
+  "register_request": {
+    "installation_id": "11111111-1111-4111-8111-111111111111",
+    "instance_id": "22222222-2222-4222-8222-222222222222",
+    "name": "MOCK Node",
+    "hardware": {
+      "os": "macOS",
+      "arch": "arm64",
+      "cpu_name": "MOCK CPU",
+      "logical_cores": 8,
+      "ram_total_bytes": 17179869184,
+      "ram_available_bytes": 8589934592,
+      "gpu_name": null,
+      "gpu_vram_bytes": null,
+      "gpu_info_source": "unavailable",
+      "manual_labels": {
+        "display_note": "合成样例，非本机探测"
+      },
+      "detection_errors": []
+    }
+  },
+  "register_response": {
+    "worker_id": "worker_1",
+    "session_id": "session_1",
+    "worker_token": "MOCK_WORKER_TOKEN_NOT_VALID",
+    "heartbeat_interval_seconds": 3,
+    "lease_ttl_seconds": 15,
+    "attempt_timeout_seconds": 120,
+    "max_attempts": 3,
+    "pipeline": {
+      "pipeline_id": "product_image_v1",
+      "model_id": "u2net",
+      "model_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "preset": "white_square",
+      "canvas_size": 1024,
+      "foreground_scale": 0.8,
+      "thumbnail_size": 256,
+      "jpeg_quality": 92,
+      "webp_quality": 85
+    },
+    "server_time": "2026-11-14T04:00:00Z"
+  },
+  "upload_response": {
+    "asset_id": "asset_input_1",
+    "kind": "input",
+    "original_name": "MOCK_input",
+    "content_type": "image/png",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "size_bytes": 1000,
+    "width": 1024,
+    "height": 768,
+    "download_path": "/v1/assets/asset_input_1"
+  },
+  "heartbeat_request": {
+    "session_id": "session_1",
+    "phase": "READY",
+    "capabilities": {
+      "pipeline_id": "product_image_v1",
+      "model_id": "u2net",
+      "model_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "backend": "cpu",
+      "runtime_provider": "CPUExecutionProvider",
+      "available_providers": [
+        "CPUExecutionProvider"
+      ],
+      "concurrency": 1,
+      "cpu_threads": 4,
+      "verified": true,
+      "fallback_reason": null
+    },
+    "calibration": {
+      "sample_count": 3,
+      "median_compute_ms": 1000,
+      "passed": true,
+      "finished_at": "2026-11-14T04:00:00Z"
+    },
+    "active_attempts": [
+      {
+        "task_id": "task_1",
+        "attempt_id": "attempt_1",
+        "lease_token": "MOCK_LEASE_NOT_A_REAL_TOKEN"
+      }
+    ],
+    "telemetry": {
+      "sampled_at": "2026-11-14T04:00:00Z",
+      "cpu_percent": 50,
+      "ram_used_bytes": 8589934592,
+      "process_rss_bytes": 1073741824,
+      "gpu_percent": null,
+      "gpu_memory_used_bytes": null,
+      "gpu_metric_source": "unavailable"
+    },
+    "error": null
+  },
+  "heartbeat_response": {
+    "server_time": "2026-11-14T04:00:00Z",
+    "mode": "ACTIVE",
+    "active_leases": [
+      {
+        "task_id": "task_1",
+        "job_id": "job_1",
+        "attempt_id": "attempt_1",
+        "session_id": "session_1",
+        "lease_token": "MOCK_LEASE_NOT_A_REAL_TOKEN",
+        "lease_expires_at": "2026-11-14T04:00:15Z",
+        "hard_deadline_at": "2026-11-14T04:02:00Z",
+        "input": {
+          "asset_id": "asset_input_1",
+          "kind": "input",
+          "original_name": "MOCK_input",
+          "content_type": "image/png",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size_bytes": 1000,
+          "width": 1024,
+          "height": 768,
+          "download_path": "/v1/assets/asset_input_1"
+        },
+        "pipeline": {
+          "pipeline_id": "product_image_v1",
+          "model_id": "u2net",
+          "model_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "preset": "white_square",
+          "canvas_size": 1024,
+          "foreground_scale": 0.8,
+          "thumbnail_size": 256,
+          "jpeg_quality": 92,
+          "webp_quality": 85
+        }
+      }
+    ],
+    "revoked_attempt_ids": [],
+    "ready": true,
+    "reason": null
+  },
+  "claim_request": {
+    "session_id": "session_1",
+    "claim_request_id": "33333333-3333-4333-8333-333333333333"
+  },
+  "claim_response": {
+    "task_id": "task_1",
+    "job_id": "job_1",
+    "attempt_id": "attempt_1",
+    "session_id": "session_1",
+    "lease_token": "MOCK_LEASE_NOT_A_REAL_TOKEN",
+    "lease_expires_at": "2026-11-14T04:00:15Z",
+    "hard_deadline_at": "2026-11-14T04:02:00Z",
+    "input": {
+      "asset_id": "asset_input_1",
+      "kind": "input",
+      "original_name": "MOCK_input",
+      "content_type": "image/png",
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "size_bytes": 1000,
+      "width": 1024,
+      "height": 768,
+      "download_path": "/v1/assets/asset_input_1"
+    },
+    "pipeline": {
+      "pipeline_id": "product_image_v1",
+      "model_id": "u2net",
+      "model_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "preset": "white_square",
+      "canvas_size": 1024,
+      "foreground_scale": 0.8,
+      "thumbnail_size": 256,
+      "jpeg_quality": 92,
+      "webp_quality": 85
+    }
+  },
+  "create_job_request": {
+    "client_request_id": "11111111-1111-4111-8111-111111111111",
+    "input_ids": [
+      "asset_input_1"
+    ],
+    "preset": "white_square"
+  },
+  "create_job_response": {
+    "job_id": "job_1",
+    "status": "QUEUED",
+    "created_at": "2026-11-14T04:00:00Z",
+    "duplicate": false
+  },
+  "completion_meta": {
+    "session_id": "session_1",
+    "attempt_id": "attempt_1",
+    "lease_token": "MOCK_LEASE_NOT_A_REAL_TOKEN",
+    "submission_id": "22222222-2222-4222-8222-222222222222",
+    "pipeline_id": "product_image_v1",
+    "model_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "timings": {
+      "download_ms": 100,
+      "inference_ms": 1000,
+      "postprocess_ms": 100,
+      "total_worker_ms": 1200
+    }
+  },
+  "completion_response": {
+    "task_id": "task_1",
+    "attempt_id": "attempt_1",
+    "status": "SUCCEEDED",
+    "duplicate": false,
+    "result": {
+      "cutout": {
+        "asset_id": "asset_cutout_1",
+        "kind": "cutout",
+        "original_name": "MOCK_cutout",
+        "content_type": "image/png",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "size_bytes": 1000,
+        "width": 1024,
+        "height": 1024,
+        "download_path": "/v1/assets/asset_cutout_1"
+      },
+      "white": {
+        "asset_id": "asset_white_1",
+        "kind": "white",
+        "original_name": "MOCK_white",
+        "content_type": "image/jpeg",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "size_bytes": 1000,
+        "width": 1024,
+        "height": 1024,
+        "download_path": "/v1/assets/asset_white_1"
+      },
+      "thumbnail": {
+        "asset_id": "asset_thumb_1",
+        "kind": "thumbnail",
+        "original_name": "MOCK_thumbnail",
+        "content_type": "image/webp",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "size_bytes": 1000,
+        "width": 256,
+        "height": 256,
+        "download_path": "/v1/assets/asset_thumb_1"
+      }
+    }
+  },
+  "failure_request": {
+    "session_id": "session_1",
+    "attempt_id": "attempt_1",
+    "lease_token": "MOCK_LEASE_NOT_A_REAL_TOKEN",
+    "error": {
+      "code": "MODEL_RUNTIME_ERROR",
+      "message": "合成错误示例",
+      "retryable": true
+    }
+  },
+  "failure_response": {
+    "task_id": "task_1",
+    "attempt_id": "attempt_1",
+    "task_status": "QUEUED",
+    "duplicate": false
+  },
+  "mode_request": {
+    "mode": "DRAINING"
+  },
+  "mode_response": {
+    "worker_id": "worker_1",
+    "session_id": "session_1",
+    "name": "MOCK Node",
+    "phase": "READY",
+    "mode": "PAUSED",
+    "status": "PAUSED",
+    "hardware": {
+      "os": "macOS",
+      "arch": "arm64",
+      "cpu_name": "MOCK CPU",
+      "logical_cores": 8,
+      "ram_total_bytes": 17179869184,
+      "ram_available_bytes": 8589934592,
+      "gpu_name": null,
+      "gpu_vram_bytes": null,
+      "gpu_info_source": "unavailable",
+      "manual_labels": {
+        "display_note": "合成样例，非本机探测"
+      },
+      "detection_errors": []
+    },
+    "capabilities": {
+      "pipeline_id": "product_image_v1",
+      "model_id": "u2net",
+      "model_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "backend": "cpu",
+      "runtime_provider": "CPUExecutionProvider",
+      "available_providers": [
+        "CPUExecutionProvider"
+      ],
+      "concurrency": 1,
+      "cpu_threads": 4,
+      "verified": true,
+      "fallback_reason": null
+    },
+    "calibration": {
+      "sample_count": 3,
+      "median_compute_ms": 1000,
+      "passed": true,
+      "finished_at": "2026-11-14T04:00:00Z"
+    },
+    "last_seen_at": "2026-11-14T04:00:03Z",
+    "telemetry": {
+      "sampled_at": "2026-11-14T04:00:00Z",
+      "cpu_percent": 50,
+      "ram_used_bytes": 8589934592,
+      "process_rss_bytes": 1073741824,
+      "gpu_percent": null,
+      "gpu_memory_used_bytes": null,
+      "gpu_metric_source": "unavailable"
+    },
+    "accepted_tasks": 1,
+    "active_task_ids": []
+  },
+  "pool_response": {
+    "server_time": "2026-11-14T04:00:03Z",
+    "pipeline": {
+      "pipeline_id": "product_image_v1",
+      "model_id": "u2net",
+      "model_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "preset": "white_square",
+      "canvas_size": 1024,
+      "foreground_scale": 0.8,
+      "thumbnail_size": 256,
+      "jpeg_quality": 92,
+      "webp_quality": 85
+    },
+    "workers": [
+      {
+        "worker_id": "worker_1",
+        "session_id": "session_1",
+        "name": "MOCK Node",
+        "phase": "READY",
+        "mode": "ACTIVE",
+        "status": "READY",
+        "hardware": {
+          "os": "macOS",
+          "arch": "arm64",
+          "cpu_name": "MOCK CPU",
+          "logical_cores": 8,
+          "ram_total_bytes": 17179869184,
+          "ram_available_bytes": 8589934592,
+          "gpu_name": null,
+          "gpu_vram_bytes": null,
+          "gpu_info_source": "unavailable",
+          "manual_labels": {
+            "display_note": "合成样例，非本机探测"
+          },
+          "detection_errors": []
+        },
+        "capabilities": {
+          "pipeline_id": "product_image_v1",
+          "model_id": "u2net",
+          "model_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "backend": "cpu",
+          "runtime_provider": "CPUExecutionProvider",
+          "available_providers": [
+            "CPUExecutionProvider"
+          ],
+          "concurrency": 1,
+          "cpu_threads": 4,
+          "verified": true,
+          "fallback_reason": null
+        },
+        "calibration": {
+          "sample_count": 3,
+          "median_compute_ms": 1000,
+          "passed": true,
+          "finished_at": "2026-11-14T04:00:00Z"
+        },
+        "last_seen_at": "2026-11-14T04:00:03Z",
+        "telemetry": {
+          "sampled_at": "2026-11-14T04:00:00Z",
+          "cpu_percent": 50,
+          "ram_used_bytes": 8589934592,
+          "process_rss_bytes": 1073741824,
+          "gpu_percent": null,
+          "gpu_memory_used_bytes": null,
+          "gpu_metric_source": "unavailable"
+        },
+        "accepted_tasks": 1,
+        "active_task_ids": []
+      }
+    ],
+    "queue_depth": 0,
+    "events": [
+      {
+        "event_id": 1,
+        "occurred_at": "2026-11-14T04:00:03Z",
+        "type": "task.succeeded",
+        "worker_id": "worker_1",
+        "job_id": "job_1",
+        "task_id": "task_1",
+        "attempt_id": "attempt_1",
+        "message": "MOCK：合成成功事件"
+      }
+    ]
+  },
+  "job_response": {
+    "job_id": "job_1",
+    "client_request_id": "11111111-1111-4111-8111-111111111111",
+    "preset": "white_square",
+    "status": "SUCCEEDED",
+    "created_at": "2026-11-14T04:00:00Z",
+    "started_at": "2026-11-14T04:00:00Z",
+    "finished_at": "2026-11-14T04:00:03Z",
+    "counts": {
+      "total": 1,
+      "queued": 0,
+      "running": 0,
+      "succeeded": 1,
+      "failed": 0
+    },
+    "tasks": [
+      {
+        "task_id": "task_1",
+        "input": {
+          "asset_id": "asset_input_1",
+          "kind": "input",
+          "original_name": "MOCK_input",
+          "content_type": "image/png",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size_bytes": 1000,
+          "width": 1024,
+          "height": 768,
+          "download_path": "/v1/assets/asset_input_1"
+        },
+        "status": "SUCCEEDED",
+        "current_attempt_id": "attempt_1",
+        "final_worker_id": "worker_1",
+        "attempts": [
+          {
+            "attempt_id": "attempt_1",
+            "worker_id": "worker_1",
+            "session_id": "session_1",
+            "status": "SUCCEEDED",
+            "claimed_at": "2026-11-14T04:00:00Z",
+            "lease_expires_at": "2026-11-14T04:00:15Z",
+            "hard_deadline_at": "2026-11-14T04:02:00Z",
+            "finished_at": "2026-11-14T04:00:03Z",
+            "timings": {
+              "download_ms": 100,
+              "inference_ms": 1000,
+              "postprocess_ms": 100,
+              "total_worker_ms": 1200
+            },
+            "error": null
+          }
+        ],
+        "result": {
+          "cutout": {
+            "asset_id": "asset_cutout_1",
+            "kind": "cutout",
+            "original_name": "MOCK_cutout",
+            "content_type": "image/png",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "size_bytes": 1000,
+            "width": 1024,
+            "height": 1024,
+            "download_path": "/v1/assets/asset_cutout_1"
+          },
+          "white": {
+            "asset_id": "asset_white_1",
+            "kind": "white",
+            "original_name": "MOCK_white",
+            "content_type": "image/jpeg",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "size_bytes": 1000,
+            "width": 1024,
+            "height": 1024,
+            "download_path": "/v1/assets/asset_white_1"
+          },
+          "thumbnail": {
+            "asset_id": "asset_thumb_1",
+            "kind": "thumbnail",
+            "original_name": "MOCK_thumbnail",
+            "content_type": "image/webp",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "size_bytes": 1000,
+            "width": 256,
+            "height": 256,
+            "download_path": "/v1/assets/asset_thumb_1"
+          }
+        },
+        "error": null,
+        "created_at": "2026-11-14T04:00:00Z",
+        "finished_at": "2026-11-14T04:00:03Z"
+      }
+    ],
+    "download_path": "/v1/jobs/job_1/download"
+  },
+  "stale_error": {
+    "code": "STALE_ATTEMPT",
+    "message": "当前任务已不属于此尝试，结果未计入。",
+    "retryable": false
+  }
+}

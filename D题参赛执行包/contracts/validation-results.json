@@ -1,0 +1,9 @@
+{
+  "openapi_3_1": "PASS",
+  "paths": 13,
+  "operations": 13,
+  "schemas": 31,
+  "resolved_refs": 98,
+  "examples_validated": 19,
+  "missing_links": []
+}
