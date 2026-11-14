@@ -71,6 +71,8 @@ summary { padding-block: 5px; color: #6b4e3e; cursor: pointer; }
 <button data-action class="secondary" id="on">开启这台电脑的计算</button><button data-action class="secondary" id="off">暂停这台电脑的计算</button><button data-action id="test">测试两张图片</button><button data-action class="danger" id="stop">停止本机服务</button>
 <button class="secondary" id="download" hidden>下载最近测试结果 ZIP</button>
 <div id="testJobLinks" hidden><a id="openTestProgress" target="_blank" rel="noopener noreferrer">查看测试进度</a><a id="openTestResults" target="_blank" rel="noopener noreferrer" hidden>查看测试结果</a></div>
+<h3 id="resultTitle" hidden></h3>
+<div><label>选择自己的图片（PNG/JPG，可多选，最多 20 张、总计 20 MB）<input type="file" id="images" accept="image/png,image/jpeg" multiple></label><div id="imageSelection" class="sub">尚未选择图片</div><button data-action id="uploadTest">上传图片并测试</button><p class="sub">“测试两张图片”使用内置示例；“上传图片并测试”只测试你选择的图片。</p></div>
 <p class="sub">暂停计算会保留中心服务，执行中的任务需等待节点确认停止。“停止本机服务”会关闭本页启动的计算节点和中心服务。中心运行时也可勾选或取消“本机也提供计算”。关闭网页不会停止服务。</p>
 </section>
 <section class="card"><h2>中心已连接的设备</h2><div id="nodes" class="sub">启动中心后显示。</div></section>
@@ -114,6 +116,7 @@ if(!$('testJobLinks').hidden){
   $('openTestResults').hidden=d.ocr_test.state==='running';
 }
 $('download').hidden=!d.has_result;
+$('uploadTest').disabled=d.busy||d.mode!=='center';$('images').disabled=d.busy||d.mode!=='center';$('resultTitle').hidden=!d.has_result;$('resultTitle').textContent=d.result_title?'测试结果 · '+d.result_title:'';$('download').dataset.filename=d.result_filename||'p4-results.zip';
 let ns=JSON.stringify(d.addresses);if(ns!==networks){networks=ns;$('network').replaceChildren();for(let a of d.addresses)$('network').add(new Option(a,a));$('network').value=d.address}
 if(d.last_center)$('manual').placeholder=d.last_center;
 $('nodes').replaceChildren();for(let n of d.nodes||[]){let row=document.createElement('div');row.className='node';let cap=(n.capabilities||[]).find(c=>c.task_type==='ocr.image.v1');row.textContent=n.name+' · '+n.connection+' / '+n.mode+' · OCR '+(cap?cap.state:'未知');$('nodes').append(row)}if(!(d.nodes||[]).length)$('nodes').textContent=d.mode==='center'?'等待设备加入…':'在中心电脑查看实际设备状态。';
@@ -149,6 +152,8 @@ $('workbenchToken').onclick=async()=>{
 $('join').onclick=async()=>{let address=$('manual').value.trim()||$('centers').value;let code=$('code').value.trim();if(!/^\d{6}$/.test(code)){$('error').textContent='请填写中心显示的六位配对码。';return}if(!address){await find();address=$('centers').value}if(!address){$('error').textContent='未发现中心，请确认中心已启动；也可展开输入中心地址。';return}action('/api/join',{address,code})};
 for(let key of ['on','off','test','stop'])$(key).onclick=()=>action('/api/'+key);
 $('reconnect').onclick=()=>action('/api/reconnect');
-$('download').onclick=async()=>{try{let r=await fetch('/api/result.zip',{headers:{'X-P4-Session':session}});if(!r.ok)throw Error('结果暂不可下载');let url=URL.createObjectURL(await r.blob());let a=document.createElement('a');a.href=url;a.download='p4-results.zip';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}catch(e){$('error').textContent=e.message}};
+$('images').onchange=()=>{$('imageSelection').textContent=Array.from($('images').files).map(f=>f.name).join('、')||'尚未选择图片'};
+$('uploadTest').onclick=async()=>{let files=Array.from($('images').files);if(!files.length||files.length>20||files.reduce((s,f)=>s+f.size,0)>20*1024*1024){$('error').textContent='请选择 1–20 张图片，总大小不超过 20 MB。';return}if(requesting)return;requesting=true;$('uploadTest').disabled=true;try{let images=await Promise.all(files.map(f=>new Promise((resolve,reject)=>{let r=new FileReader();r.onload=()=>resolve({name:f.name,data:r.result.split(',')[1]});r.onerror=()=>reject(Error('无法读取图片：'+f.name));r.readAsDataURL(f)})));requesting=false;await action('/api/test-images',{images})}catch(e){$('error').textContent=e.message}finally{requesting=false;await refresh()}};
+$('download').onclick=async()=>{try{let r=await fetch('/api/result.zip',{headers:{'X-P4-Session':session}});if(!r.ok)throw Error('结果暂不可下载');let url=URL.createObjectURL(await r.blob());let a=document.createElement('a');a.href=url;a.download=$('download').dataset.filename||'p4-results.zip';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}catch(e){$('error').textContent=e.message}};
 refresh();find();setInterval(refresh,2500);
 </script></html>
