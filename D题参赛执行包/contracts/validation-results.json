@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-11-14T03:13:28.816410Z",
+  "checked_at": "2026-11-14T03:39:10.270632Z",
   "contract_version": "0.2.0",
   "openapi_3_1": "PASS",
   "paths": 20,
@@ -10,7 +10,7 @@
   "catalog_and_manifest_schema": "PASS",
   "semantic_fixture_checks": 25,
   "negative_schema_checks": 8,
-  "local_links_checked": 62,
+  "local_links_checked": 60,
   "missing_links": [],
   "acceptance_cases": 44,
   "runtime_acceptance": "NOT_RUN",
