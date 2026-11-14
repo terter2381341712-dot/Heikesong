@@ -1,5 +1,7 @@
+import base64
 import http.client
 import json
+import re
 import sys
 import threading
 import time
@@ -10,6 +12,64 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 import control  # noqa: E402
+
+
+def test_uploaded_images_use_original_bytes_and_timestamped_results(panel, monkeypatch):
+    raw = base64.b64decode(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a8uoAAAAASUVORK5CYII="
+    )
+    image = {"name": "../my-image.png", "data": base64.b64encode(raw).decode()}
+    panel.runtime.selected = {"P1": sys.executable, "P2": sys.executable}
+    observed = []
+
+    def run(argv, **kwargs):
+        inputs = Path(argv[argv.index("--inputs") + 1])
+        output = Path(argv[argv.index("--out") + 1])
+        assert list(inputs.iterdir())[0].read_bytes() == raw
+        assert list(inputs.iterdir())[0].name == "001-my-image.png"
+        observed.append(output)
+        control.save(output / "report.json", {"successful_workers": ["worker-a"]})
+        control.save(
+            output / "executions.json",
+            [{"worker_id": "worker-a", "execution_id": "exec-a", "status": "SUCCEEDED"}],
+        )
+        (output / "results.zip").write_bytes(b"zip-result")
+        return SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr(control.subprocess, "run", run)
+    monkeypatch.setattr(control, "request_json", lambda *a, **k: {"resources": []})
+    panel.test_job([image])
+    panel.test_job([image])
+    assert observed[0] != observed[1]
+    assert re.fullmatch(r"test-\d{8}-\d{6}-[a-f0-9]{8}", observed[0].name)
+    assert re.fullmatch(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}（北京时间）", panel.last_result_title)
+    assert control.read_json(observed[0] / "test-info.json")["source"] == "upload"
+    assert panel.status()["result_filename"] == observed[-1].name + ".zip"
+
+
+@pytest.mark.parametrize(
+    "images", [[], [{"name": "bad.png", "data": "invalid!"}], [{"name": "bad.exe", "data": "YWJj"}]]
+)
+def test_invalid_upload_creates_no_test_directory(panel, images):
+    with pytest.raises(ValueError):
+        panel.test_job(images)
+    assert not list(panel.directory.glob("test-*"))
+
+
+def test_upload_endpoint_requires_session_and_accepts_larger_image_payload(
+    panel, server, monkeypatch
+):
+    images = [{"name": "photo.png", "data": "A" * 10000}]
+    received = []
+    monkeypatch.setattr(panel, "test_job", received.append)
+    assert call(server, "/api/test-images", {"images": images})[0] == 403
+    assert not received
+    assert (
+        call(server, "/api/test-images", {"images": images}, {"X-P4-Session": panel.session})[0]
+        == 202
+    )
+    panel.worker.join(2)
+    assert received == [images]
 
 
 @pytest.fixture
