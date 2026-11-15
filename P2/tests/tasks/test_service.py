@@ -11,6 +11,28 @@ from task_service.contract import validate
 from task_service.store import Store
 
 
+async def test_accepted_job_finishes_without_browser_queries(rig):
+    job = await rig.create()
+    runner = asyncio.create_task(rig.service.run())
+    try:
+        # No GET /jobs or browser heartbeat after acceptance. Only the server
+        # scheduler talks to P1 and advances the durable job state.
+        for _ in range(120):
+            saved = rig.service.store.get(job["job_id"])["job"]
+            if saved["status"] == "SUCCEEDED":
+                break
+            rig.service.wake.set()
+            await asyncio.sleep(0.025)
+        assert saved["status"] == "SUCCEEDED"
+        assert not saved["cancel_requested"]
+    finally:
+        runner.cancel()
+        try:
+            await runner
+        except asyncio.CancelledError:
+            pass
+
+
 async def test_scheduler_continues_after_poll_timeout_on_python39(rig, monkeypatch):
     from types import SimpleNamespace
 

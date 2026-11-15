@@ -48,8 +48,8 @@ const taskBaseUrl = readBaseUrl('TASK_BASE_URL');
 const resourceId = '[A-Za-z0-9_-]{1,80}';
 const uuid = '[a-fA-F0-9]{8}(?:-[a-fA-F0-9]{4}){3}-[a-fA-F0-9]{12}';
 const resourceRoutes = {
-  GET: new RegExp(`^/api/resource/v1/(healthz|resources|artifacts/${resourceId}(/content)?)$`),
-  POST: new RegExp(`^/api/resource/v1/(artifacts|resources/${resourceId}/mode)$`),
+  GET: new RegExp(`^/api/resource/v1/(healthz|performance|resources|artifacts/${resourceId}(/content)?)$`),
+  POST: new RegExp(`^/api/resource/v1/(performance|artifacts|resources/${resourceId}/mode)$`),
 };
 const taskRoutes = {
   GET: new RegExp(`^/api/task/v1/(healthz|task-types|jobs/${uuid}(/(results|download))?)$`),
@@ -77,6 +77,7 @@ const staticFiles = new Map([
   ['/api.js', ['api.js', 'text/javascript; charset=utf-8']],
   ['/media.js', ['media.js', 'text/javascript; charset=utf-8']],
   ['/render.js', ['render.js', 'text/javascript; charset=utf-8']],
+  ['/performance.js', ['performance.js', 'text/javascript; charset=utf-8']],
   ['/device-control.js', ['device-control.js', 'text/javascript; charset=utf-8']],
 ]);
 const workflowVideo = new URL('./public/assets/ether-node.mp4', import.meta.url);
@@ -287,7 +288,8 @@ const server = createServer(async (request, response) => {
     } else if (mock && await mock(request, response, path)) {
       return;
     } else if (resourceRoutes[request.method]?.test(path)) {
-      proxy(request, response, path, await upstreamFor(request, 'resource'), 'P1 资源服务', demoToken);
+      const query = path === '/api/resource/v1/performance' ? new URL(request.url, 'http://localhost').search : '';
+      proxy(request, response, path + query, await upstreamFor(request, 'resource'), 'P1 资源服务', demoToken);
     } else if (taskRoutes[request.method]?.test(path)) {
       proxy(request, response, path, await upstreamFor(request, 'task'), 'P2 任务服务', demoToken);
     } else if (!mockMode && nodeRoutes[request.method]?.test(path)) {

@@ -153,6 +153,8 @@ function jobPath(id) {
 }
 
 export const resourceApi = {
+  performance: (signal, jobId) => request('P1', `${RESOURCE}/performance${jobId ? `?job_id=${encodeURIComponent(jobId)}` : ''}`, { signal }),
+  importPerformance: (reports) => request('P1', `${RESOURCE}/performance`, { method: 'POST', body: { reports } }),
   health: (signal) => health('P1', `${RESOURCE}/healthz`, 'p1_resource', signal),
   snapshot: (signal) => catalog('P1', `${RESOURCE}/resources`, signal, 'resources'),
   upload,

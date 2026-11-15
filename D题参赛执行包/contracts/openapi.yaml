@@ -9,6 +9,62 @@ tags:
 - name: P2
   description: P2用户Job、拆分、节点选择、业务重试和汇总；不执行模型。
 paths:
+  /api/resource/v1/performance:
+    servers:
+    - url: http://localhost:8001
+    get:
+      tags: [P1]
+      operationId: getPerformance
+      parameters:
+      - name: job_id
+        in: query
+        required: false
+        schema: {type: string}
+        description: Scope live processing speed to this accepted job; omitted uses recent activity.
+      summary: CPU/GPU observed rates, utilization averages and imported benchmark evidence
+      description: Observed success rates are not quality-checked useful throughput. Pool efficiency is Ppool divided by sum of standalone Pi; speedup is Ppool divided by maximum Pi.
+      security:
+      - DemoToken: []
+      - TaskToken: []
+      responses:
+        '200':
+          description: Recent or job-scoped execution wall-time rates, per-image worker timing, five-minute observations, and measured comparisons.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+    post:
+      tags: [P1]
+      operationId: importPerformance
+      summary: Validate standalone CPU/GPU and pooled throughput reports and recompute ratios
+      security:
+      - DemoToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reports]
+              properties:
+                reports:
+                  type: array
+                  minItems: 1
+                  maxItems: 40
+                  items:
+                    type: object
+                    additionalProperties: true
+      responses:
+        '200':
+          description: Stored comparison, computed from correct counts and measured windows.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '422':
+          description: Incomplete, incomparable or non-quality-checked evidence.
   /api/resource/v1/resources/{worker_id}/prefetch:
     post:
       tags:

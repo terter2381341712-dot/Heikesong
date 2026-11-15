@@ -8,6 +8,11 @@ from pathlib import Path
 from typing import Any, Iterable, Optional
 
 _SCHEMA = """
+CREATE TABLE IF NOT EXISTS performance_telemetry (
+  worker_id TEXT NOT NULL, sampled_at TEXT NOT NULL, telemetry TEXT NOT NULL,
+  PRIMARY KEY(worker_id, sampled_at)
+);
+CREATE INDEX IF NOT EXISTS performance_telemetry_time ON performance_telemetry(sampled_at);
 CREATE TABLE IF NOT EXISTS input_prefetches (
   worker_id TEXT PRIMARY KEY, session_id TEXT NOT NULL, revision INTEGER NOT NULL,
   hint TEXT, expires_at TEXT
@@ -135,6 +140,13 @@ class Database:
                     "ALTER TABLE nodes ADD COLUMN node_secret TEXT NOT NULL DEFAULT ''"
                 )
             cols = {r[1] for r in self._conn.execute("PRAGMA table_info(preparations)")}
+            execution_cols = {r[1] for r in self._conn.execute("PRAGMA table_info(executions)")}
+            if "performance_backend" not in execution_cols:
+                self._conn.execute("ALTER TABLE executions ADD COLUMN performance_backend TEXT")
+            for column in ("performance_started_at", "performance_finished_at"):
+                if column not in execution_cols:
+                    self._conn.execute(f"ALTER TABLE executions ADD COLUMN {column} TEXT")
+            self._conn.execute("CREATE INDEX IF NOT EXISTS executions_logical_success ON executions(job_id,task_id,status,finished_at,execution_id)")
             if "request_fingerprint" not in cols:
                 self._conn.execute(
                     "ALTER TABLE preparations ADD COLUMN request_fingerprint TEXT NOT NULL DEFAULT ''"

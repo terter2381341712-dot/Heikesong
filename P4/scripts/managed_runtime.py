@@ -167,6 +167,7 @@ if sys.argv[4]:
             if component == "CUDA":
                 packages += ["cuda-version=12.4", "cudnn=9.10.2.21", "libcublas", "libcufft", "cuda-cudart"]
             log = self.directory / "setup.log"
+            attempt_start = log.stat().st_size if log.exists() else 0
             try:
                 with log.open("ab", buffering=0) as output:
                     output.write((f"\n=== Preparing {component}; Python {PYTHON_VERSION} ===\n").encode("utf-8"))
@@ -204,9 +205,14 @@ if sys.argv[4]:
                 if not self.ready(component, executable):
                     with log.open("ab") as output:
                         output.write(("\nRuntime import check failed:\n" + self.last_probe_error + "\n").encode("utf-8"))
-                    raise ValueError("安装后运行核验未通过：" + self.last_probe_error.splitlines()[-1])
+                    raise ValueError("安装后运行核验未通过：" + (self.last_probe_error or "模块导入或依赖核验失败").splitlines()[-1])
             except (OSError, subprocess.SubprocessError, ValueError) as exc:
-                lines = log.read_bytes()[-6000:].decode("utf-8", errors="replace").splitlines() if log.exists() else []
+                if log.exists():
+                    with log.open("rb") as source:
+                        source.seek(max(attempt_start, log.stat().st_size - 6000))
+                        lines = source.read().decode("utf-8", errors="replace").splitlines()
+                else:
+                    lines = []
                 relevant = [line.strip() for line in lines if re.search(r"ERROR:|Error:|Cannot import|exited with code", line)]
                 detail = relevant[-1] if relevant else str(exc)
                 detail = re.sub(r"(https?://)[^/\s@]+@", r"\1***@", detail)[:350]

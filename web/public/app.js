@@ -39,6 +39,7 @@ const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
 const state = {
   mode: '', view: 'home', jobId: null, history: [], connections: { P1: 'pending', P2: 'pending' }, resources: null,
   resourceError: '', resourceChecked: 0, nodeModeBusy: new Set(), catalog: [], catalogError: '', catalogChecked: false, selected: '', language: '',
+  performance: null, performanceError: '', performanceImporting: false,
   files: [], checkingFiles: false, sending: false, formError: '', formNote: null, pendingCreate: null,
   job: null, results: null, jobError: '', resultsError: '', jobChecked: 0, cancelling: new Set(), downloading: new Set(), scenario: 'success',
 };
@@ -224,6 +225,7 @@ function renderDeviceDetails() {
   details.hidden = details.inert = false;
   $('resource-instruction').hidden = true;
   updateHtml(details, resourceCard(node, {
+    performance: state.performance, performanceError: state.performanceError, performanceImporting: state.performanceImporting,
     stale: Boolean(state.resourceError),
     changing: state.nodeModeBusy.has(selected),
     mock: state.mode === 'mock',
@@ -324,6 +326,7 @@ function renderJobs() {
     content = jobPanel(state.job, state.results, names, {
       showResults, jobError: state.jobError, resultsError: state.resultsError,
       cancelling: state.cancelling.has(state.jobId), downloading: state.downloading.has(state.jobId),
+      resources: state.resources?.resources || [], performance: state.performance, performanceError: state.performanceError,
     });
   } else if (state.jobError) {
     content = empty(t('无法读取任务', 'Could not load the job'), state.jobError);
@@ -349,6 +352,25 @@ function rememberJob(job) {
     state.history = state.history.slice(0, 25);
   }
   persist('history', state.history);
+  renderBackgroundJobs();
+}
+
+function renderBackgroundJobs() {
+  const banner = $('background-jobs');
+  const active = state.history.filter(entry => !terminal.has(entry.status));
+  banner.hidden = !active.length && !state.sending;
+  const text = state.sending ? t('文件正在上传并提交，关闭此窗口后继续提交。', 'Files are uploading and submitting; closing this dialog keeps submission running.') :
+    t(`${active.length} 个任务在中心后台处理，关闭窗口不会取消。`, `${active.length} job(s) are processing at the center. Closing the dialog does not cancel them.`);
+  updateHtml(banner, `<span>${escape(text)}</span>${active.length ? `<a class="button secondary" data-workflow-node="progress" href="#jobs/${escape(active[0].id)}">${t('查看后台任务', 'View background jobs')}</a>` : ''}`);
+}
+
+async function refreshBackgroundJobs(signal) {
+  const active = state.history.filter(entry => !terminal.has(entry.status));
+  // Keep tracking accepted jobs independently of which dialog is open.
+  await Promise.allSettled(active.map(async entry => {
+    const job = await taskApi.job(entry.id, signal);
+    if (!signal.aborted && job?.job_id === entry.id) rememberJob(job);
+  }));
 }
 
 async function checkHealth(service, signal) {
@@ -390,9 +412,14 @@ async function refreshCatalog(signal) {
 
 async function refreshResources(signal) {
   try {
-    const snapshot = await resourceApi.snapshot(signal);
+    const [snapshot, metrics] = await Promise.all([
+      resourceApi.snapshot(signal),
+      state.mode === 'mock' ? Promise.resolve({ value: null }) : resourceApi.performance(signal, isJobView(state.view) ? state.jobId : null).then(value => ({ value }), error => ({ error })),
+    ]);
     if (signal.aborted) return;
     state.resources = snapshot;
+    state.performance = metrics.value || null;
+    state.performanceError = metrics.error ? errorText(metrics.error) : '';
     state.resourceChecked = Date.now();
     state.resourceError = '';
     state.connections.P1 = 'good';
@@ -453,14 +480,14 @@ function restartPoll() {
   const { view, jobId } = state;
   const tick = async () => {
     const started = performance.now();
-    const needsResources = view === 'resources' || (isJobView(view) && jobId &&
-      (!state.resources || !state.job || !terminal.has(state.job.status) || state.job.dependency_status === 'UNREACHABLE'));
+    const needsResources = view === 'resources' || (isJobView(view) && jobId);
     const p1 = needsResources ? refreshResources(signal) : checkHealth('P1', signal);
     let p2;
     if (view === 'upload') p2 = refreshCatalog(signal);
     else if (isJobView(view) && jobId) p2 = refreshJob(jobId, view === 'results', signal);
     else p2 = checkHealth('P2', signal);
-    const checked = await Promise.allSettled([p1, p2]);
+    const background = isJobView(view) ? Promise.resolve() : refreshBackgroundJobs(signal);
+    const checked = await Promise.allSettled([p1, p2, background]);
     if (signal.aborted) return;
     for (const result of checked) {
       if (result.status === 'rejected') toast(errorText(result.reason));
@@ -668,6 +695,7 @@ async function submit(event) {
   const type = currentType();
   if (state.sending || state.checkingFiles || (!state.pendingCreate && (!state.files.length || !isConfigured(type) || state.catalogError))) return;
   state.sending = true;
+  renderBackgroundJobs();
   state.formError = '';
   renderForm();
   try {
@@ -705,10 +733,14 @@ async function submit(event) {
     const job = await taskApi.create(state.pendingCreate.payload);
     if (!jobIdPattern.test(job?.job_id)) throw new Error(t('P2 未返回有效 Job ID，可用原提交重试。', 'P2 did not return a valid Job ID. Retry the original submission.'));
     rememberJob(job);
+    if (!isJobView(state.view)) {
+      state.jobId = job.job_id;
+    }
     setPending(null);
     state.files = [];
     if (state.view === 'upload' && !returningHome) openJob(job.job_id);
     else renderJobs();
+    restartPoll();
     toast(storageAvailable ? t(`已创建任务 ${job.job_id}`, `Job created: ${job.job_id}`) : t(`已创建任务 ${job.job_id}，浏览器本地存储不可用，请保存此 ID。`, `Job created: ${job.job_id}. Save this ID because browser storage is unavailable.`));
   } catch (error) {
     state.formError = errorText(error);
@@ -723,6 +755,7 @@ async function submit(event) {
     }
   } finally {
     state.sending = false;
+    renderBackgroundJobs();
     state.formNote = null;
     renderForm();
   }
@@ -825,6 +858,31 @@ async function changeMode(event) {
   } finally {
     state.nodeModeBusy.delete(id);
     renderResources();
+  }
+}
+
+async function importPerformance(event) {
+  if (!event.target.matches('[data-performance-import]') || state.performanceImporting) return;
+  const files = Array.from(event.target.files || []);
+  if (!files.length) return;
+  if (files.length > 40 || files.reduce((total, file) => total + file.size, 0) > 4 * 1024 * 1024) {
+    toast(t('最多40份JSON报告，总大小不超过4 MB。', 'Choose up to 40 JSON reports, at most 4 MB total.'));
+    return;
+  }
+  state.performanceImporting = true;
+  renderDeviceDetails();
+  try {
+    const reports = await Promise.all(files.map(async file => JSON.parse(await file.text())));
+    await resourceApi.importPerformance(reports);
+    state.performance = await resourceApi.performance();
+    state.performanceError = '';
+    toast(t('测量报告已导入，吞吐量和效率已重新计算。', 'Reports imported; throughput and efficiency recalculated.'));
+  } catch (error) {
+    state.performanceError = errorText(error);
+    toast(state.performanceError);
+  } finally {
+    state.performanceImporting = false;
+    renderDeviceDetails();
   }
 }
 
@@ -981,6 +1039,7 @@ function bind() {
   });
   $('job-detail').addEventListener('click', jobAction);
   $('resource-detail').addEventListener('click', changeMode);
+  $('resource-detail').addEventListener('change', importPerformance);
   bindDeviceTiles();
   $('open-settings').addEventListener('click', openSettings);
   $('workflow-settings').addEventListener('click', openSettings);
@@ -1048,6 +1107,7 @@ async function boot() {
   const { mock } = await readConfig();
   state.mode = mock ? 'mock' : 'live';
   state.history = stored('history', []);
+  renderBackgroundJobs();
   const pending = stored('pending', null);
   if (pending?.payload && Array.isArray(pending.names)) {
     state.pendingCreate = pending;

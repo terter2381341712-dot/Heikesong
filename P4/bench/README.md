@@ -1,5 +1,7 @@
 # 质量与性能证据
 
+工作台设备详情的 CPU/GPU 吞吐量、PDF 聚合效率公式及报告导入方法见 [设备性能指标](设备性能指标.md)。
+
 按钮入口会将运行profile副本统一为LF，记录在 `P4/var/control/profiles/manifest.json`。用按钮创建的Job做离线基线时，应使用 **P4/var/control/profiles/ocr.default.v1.lock.json**，核对其SHA与Job的profile_digest相同。不要把手工CLI的原始CRLF锁文件与按钮运行副本的摘要混为同一版本证据；仅换行统一不改变JSON字段、Python或模型要求。
 
 真实产物写入 `P4/var/<run-id>/`，提交报告前去除配置凭证。verify 生成 config.json（无令牌、代码 SHA）、inputs.jsonl、http.jsonl、job.json、results.json、results.zip、tasks.csv、executions.json/csv、telemetry.jsonl/csv、fault-events.jsonl、summary.csv、report.json。失败发生较早时后续产物缺失，保持 FAIL；telemetry.csv 保留每节点完整 raw_node_json，未知指标不填 0。事件按游标完整分页读取，保留全历史；正式分析按窗口与关联 ID 过滤。

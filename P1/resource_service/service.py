@@ -21,7 +21,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse
 from PIL import Image
 
-from . import prefetch, slots
+from . import performance, prefetch, slots
 from .auth import ROLE_DEMO, require_demo_or_task, require_join, require_task
 from .catalog import Catalog
 from .config import CONTRACT_VERSION, Config
@@ -415,6 +415,22 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
 
     # ---------------- resources ----------------
 
+    @app.get("/api/resource/v1/performance")
+    def get_performance(job_id: Optional[str] = None, role: str = Depends(auth_demo_or_task)):
+        return performance.snapshot(state().db, job_id)
+
+    @app.post("/api/resource/v1/performance")
+    def import_performance(body: dict, role: str = Depends(auth_demo_or_task)):
+        if role != ROLE_DEMO:
+            raise forbidden()
+        try:
+            report = performance.evaluate(body["reports"])
+        except (ValueError, KeyError, TypeError, IndexError, AttributeError, OverflowError) as exc:
+            raise ApiError(422, "INVALID_REQUEST", str(exc) or "测量报告字段不完整") from exc
+        with state().db.write() as conn:
+            conn.execute("INSERT INTO meta(key,value) VALUES('performance_report',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", (canonical_json(report),))
+        return report
+
     @app.get("/api/resource/v1/resources")
     def get_resources(role: str = Depends(auth_demo_or_task)):
         s = state()
@@ -778,7 +794,9 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
                     ),
                 )
                 slot_id = slots.free(s.db, body.worker_id)[0]["slot_id"] if node["max_slots"] > 1 else 0
-                conn.execute("UPDATE executions SET slot_id=? WHERE execution_id=?", (slot_id, execution_id))
+                cap = next((c for c in parse_json(node["capabilities"], []) if c.get("task_type") == body.task_type and c.get("profile_digest") == body.profile_digest), {})
+                backend = cap.get("backend")
+                conn.execute("UPDATE executions SET slot_id=?,performance_backend=? WHERE execution_id=?", (slot_id, backend if backend in performance.BACKENDS else None, execution_id))
                 s.db.insert_event(
                     now, "execution.accepted", f"执行已接受：{body.task_type} on {body.worker_id}",
                     worker_id=body.worker_id, execution_id=execution_id,
@@ -1085,6 +1103,9 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
                 (now, canonical_json(body.telemetry.model_dump()) if body.telemetry else None,
                  canonical_json(list(caps.values())), worker_id),
             )
+            if body.telemetry:
+                conn.execute("INSERT OR REPLACE INTO performance_telemetry VALUES(?,?,?)", (worker_id, now, canonical_json(body.telemetry.model_dump())))
+                conn.execute("DELETE FROM performance_telemetry WHERE sampled_at<?", (iso(plus(now_dt, -300)),))
             running = body.running_execution_ids
             if node["max_slots"] > 1 and running is None:
                 running = []
@@ -1152,9 +1173,9 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
             if row is None:
                 return empty
             conn.execute(
-                "UPDATE executions SET status='RUNNING', started_at=?, lease_expires_at=MIN(?, hard_deadline_at)"
+                "UPDATE executions SET status='RUNNING', started_at=?, performance_started_at=?, lease_expires_at=MIN(?, hard_deadline_at)"
                 " WHERE execution_id=?",
-                (now, iso(plus(now_dt, LEASE_SECONDS)), row["execution_id"]),
+                (now, performance.precise(now_dt), iso(plus(now_dt, LEASE_SECONDS)), row["execution_id"]),
             )
             s.db.insert_event(
                 now, "execution.running", f"节点 {worker_id} 领取执行 {row['execution_id']}",
@@ -1355,6 +1376,9 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
                 if updated.rowcount != 1:
                     target.unlink()
                     raise ApiError(409, "STALE_EXECUTION", "提交权已撤销")
+                cap = next((c for c in parse_json(node["capabilities"], []) if c.get("task_type") == row["task_type"] and c.get("profile_digest") == row["profile_digest"]), {})
+                backend = cap.get("backend")
+                conn.execute("UPDATE executions SET performance_backend=?,performance_finished_at=? WHERE execution_id=?", (backend if backend in performance.BACKENDS else None, performance.precise(utcnow()), execution_id))
                 s.db.insert_event(
                     now, "execution.succeeded", f"执行成功 {execution_id}",
                     worker_id=worker_id, execution_id=execution_id,
@@ -1470,8 +1494,8 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
 
     def _finish_execution(s: State, conn, row, now: str, status: str, error=None) -> None:
         conn.execute(
-            "UPDATE executions SET status=?, finished_at=?, error=? WHERE execution_id=?",
-            (status, now, canonical_json(error) if error else None, row["execution_id"]),
+            "UPDATE executions SET status=?, finished_at=?, performance_finished_at=?, error=? WHERE execution_id=?",
+            (status, now, performance.precise(utcnow()), canonical_json(error) if error else None, row["execution_id"]),
         )
         s.db.insert_event(
             now, f"execution.{status.lower()}", error["message"] if error else "执行已取消",

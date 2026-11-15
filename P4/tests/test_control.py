@@ -15,6 +15,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 import control  # noqa: E402
 
 
+def test_status_includes_private_runtime_setup_log(panel, tmp_path, monkeypatch):
+    monkeypatch.setattr(control.managed_runtime, "DIRECTORY", tmp_path)
+    (tmp_path / "setup.log").write_text("ImportError: fixture DLL load failed\n", encoding="utf-8")
+    assert "DLL load failed" in panel.status()["logs"]["env/setup"]
+
+
 def test_managed_node_imports_in_isolated_python_from_other_directory(tmp_path):
     result = subprocess.run(
         [sys.executable, "-I", str(control.ROOT / "P4/scripts/managed_node.py"), "--help"],

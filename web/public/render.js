@@ -1,4 +1,5 @@
 import { locale, t } from './i18n.js';
+import { performancePanel, jobPerformance } from './performance.js';
 const statusInfo = {
   QUEUED: ['排队中', 'Queued'], WAITING_FOR_RESOURCES: ['等待资源', 'Waiting for resources', 'warn'], DISPATCHING: ['分派对账中', 'Reconciling dispatch', 'active'],
   RUNNING: ['执行中', 'Running', 'active'], CANCELLING: ['取消确认中', 'Cancelling', 'warn'], CANCEL_REQUESTED: ['已请求取消', 'Cancellation requested', 'warn'],
@@ -136,7 +137,7 @@ function taskRow(task, result, resourceNames, showResults) {
   </li>`;
 }
 
-export function jobPanel(job, results, resourceNames, { showResults, jobError, resultsError, cancelling, downloading }) {
+export function jobPanel(job, results, resourceNames, { showResults, jobError, resultsError, cancelling, downloading, resources = [], performance, performanceError }) {
   const id = escape(job.job_id);
   const orderedInputs = [...job.tasks].sort((left, right) => left.input_index - right.input_index);
   const items = new Map((showResults ? results?.items ?? [] : []).map((result) => [result.task_id, result]));
@@ -166,6 +167,7 @@ export function jobPanel(job, results, resourceNames, { showResults, jobError, r
       ${canCancel ? `<button class="button danger" type="button" data-action="cancel-job" data-focus-key="cancel-job"${cancelling || jobError ? ' disabled' : ''}>${cancelling ? t('请求中…', 'Requesting…') : t('取消任务', 'Cancel job')}</button>` : ''}
     </div>
   </section>
+  ${!showResults ? jobPerformance(job, resources, performance, performanceError) : ''}
   <section class="panel compact" aria-labelledby="job-inputs-title">
     <div class="panel-heading"><h3 id="job-inputs-title">${showResults ? t('逐文件结果', 'Results by file') : t('逐文件进度', 'Progress by file')}</h3></div>
     ${resultNotice}
@@ -207,7 +209,7 @@ export function resourceTile(node) {
   </button>`;
 }
 
-export function resourceCard(node, { stale, changing, mock, pinned }) {
+export function resourceCard(node, { stale, changing, mock, pinned, performance, performanceError, performanceImporting }) {
   const id = escape(node.worker_id);
   const action = node.mode === 'ACTIVE' ? 'DRAINING' : 'ACTIVE';
   const label = action === 'DRAINING' ? (mock ? t('退出接单', 'Stop accepting jobs') : t('暂停接新任务', 'Pause new jobs')) : t('恢复接单', 'Resume accepting jobs');
@@ -215,6 +217,7 @@ export function resourceCard(node, { stale, changing, mock, pinned }) {
     <div class="panel-heading"><h3>${escape(node.name)}</h3>${pinned ? `<span class="device-pin">${t('已固定', 'Pinned')}</span>` : ''}</div>
     <div class="node-tags">${tag(node.connection)}${tag(node.mode)}</div>
     <dl class="node-facts">${nodeFacts(node)}</dl>
+    ${performancePanel(node, performance, performanceError, performanceImporting, mock)}
     ${message(node.cleanup_pending ? t('正在等待设备确认停止。', 'Waiting for the device to confirm that work has stopped.') : '', 'warn')}
     ${node.capabilities.length ? `<ul class="device-capabilities">${node.capabilities.map((item) => `<li><strong>${escape(typeName(item.task_type))}</strong>${tag(item.state)}</li>`).join('')}</ul>` : ''}
     <div class="node-footer">

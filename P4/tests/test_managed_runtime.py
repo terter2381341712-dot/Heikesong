@@ -154,6 +154,32 @@ def test_successful_installer_without_working_imports_is_rejected(tmp_path, monk
         manager.ensure("P2")
 
 
+def test_failure_shows_current_attempt_reason_and_redacts_url_credentials(tmp_path, monkeypatch):
+    (tmp_path / "setup.log").write_text("ERROR: stale failure\n", encoding="utf-8")
+    def fail(argv, output):
+        output.write(b"ERROR: download failed https://user:secret@example.invalid/package\n")
+        raise subprocess.CalledProcessError(1, argv)
+    manager = runtime.Manager(tmp_path, runner=fail)
+    monkeypatch.setattr(manager, "ready", lambda *args: False)
+    monkeypatch.setattr(manager, "installer", lambda _: tmp_path / "manager")
+    with pytest.raises(ValueError) as failure:
+        manager.ensure("P1")
+    assert "download failed" in str(failure.value)
+    assert "secret" not in str(failure.value) and "stale failure" not in str(failure.value)
+
+
+def test_missing_import_is_preserved_in_setup_log(tmp_path, monkeypatch):
+    manager = runtime.Manager(tmp_path, runner=lambda *args: None)
+    def not_ready(*args):
+        manager.last_probe_error = "ImportError: DLL load failed while importing onnxruntime"
+        return False
+    monkeypatch.setattr(manager, "ready", not_ready)
+    monkeypatch.setattr(manager, "installer", lambda _: tmp_path / "manager")
+    with pytest.raises(ValueError, match="DLL load failed"):
+        manager.ensure("P1")
+    assert "DLL load failed" in (tmp_path / "setup.log").read_text(encoding="utf-8")
+
+
 def test_cuda_can_select_automatic_environment(tmp_path):
     path = tmp_path / "compute.json"
     path.write_text(json.dumps({"profile_set": "heterogeneous", "node": {"backend": "cuda"}}))

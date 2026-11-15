@@ -259,6 +259,9 @@ def test_claim_run_complete_download(client_with_profile):
     replay = client.post(path, json=payload)
     assert replay.status_code == 200
     assert replay.json() == final
+    metrics = client.get("/api/resource/v1/performance", headers=DEMO).json()
+    assert metrics["devices"][node["worker_id"]]["cpu"]["completed"] == 1
+    assert "cuda" not in metrics["devices"][node["worker_id"]]
     stale = client.post(
         path, json=dict(payload, result=dict(result, text="different")),
     )
