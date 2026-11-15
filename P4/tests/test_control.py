@@ -286,7 +286,7 @@ def test_sharing_buttons_send_requests_without_claiming_confirmation(panel):
 
 def test_runtime_detects_version_without_installing(tmp_path):
     runtime = control.Runtime(tmp_path)
-    assert runtime.probe(Path(sys.executable), "P2")["compatible"] is (sys.version_info[:2] >= (3, 11))
+    assert runtime.probe(Path(sys.executable), "P2")["compatible"] is (sys.version_info[:3] == (3, 9, 6))
     assert runtime.probe(Path(sys.executable), "P1")["compatible"] is (
         sys.version_info[:3] == (3, 9, 6)
     )
@@ -438,7 +438,7 @@ def test_control_port_cannot_have_two_owners(panel, server):
         second.server_close()
 
 
-def test_p2_rejects_python_396_even_with_dependencies(tmp_path, monkeypatch):
+def test_p2_accepts_python_396_with_dependencies(tmp_path, monkeypatch):
     runtime = control.Runtime(tmp_path)
     executable = Path(sys.executable).absolute()
     runtime.selected["P1"] = str(executable)
@@ -451,6 +451,14 @@ def test_p2_rejects_python_396_even_with_dependencies(tmp_path, monkeypatch):
         ),
     )
     monkeypatch.setattr(runtime, "candidates", lambda component: [executable])
-    with pytest.raises(ValueError, match="3.11"):
-        runtime.ensure("P2", lambda msg: None)
-    assert runtime.selected == {"P1": str(executable)}
+    assert runtime.ensure("P2", lambda msg: None) == str(executable)
+    assert runtime.selected == {"P1": str(executable), "P2": str(executable)}
+
+
+@pytest.mark.parametrize("version", ["3.9.5", "3.9.7", "3.11.9"])
+def test_p2_rejects_other_python_versions(tmp_path, monkeypatch, version):
+    runtime = control.Runtime(tmp_path)
+    monkeypatch.setattr(control.subprocess, "run", lambda *a, **k: SimpleNamespace(
+        returncode=0, stdout=json.dumps({"version": version, "ready": True}).encode(),
+    ))
+    assert runtime.probe(Path(sys.executable), "P2")["compatible"] is False

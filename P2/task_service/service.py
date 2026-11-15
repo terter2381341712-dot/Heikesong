@@ -3,6 +3,7 @@ import logging
 import time
 
 from splitters.ocr import TASK_TYPE, split_images
+
 from task_service.contract import (
     EXECUTION_TERMINAL,
     JOB_TERMINAL,
@@ -451,7 +452,7 @@ class TaskService:
             return await asyncio.wait_for(
                 operation(), timeout=self.settings.scheduler_io_timeout_seconds
             )
-        except TimeoutError as exc:
+        except asyncio.TimeoutError as exc:
             raise DependencyUnavailable("P1 对账或结果下载超时，保留原执行") from exc
 
     async def _recover_work(self):

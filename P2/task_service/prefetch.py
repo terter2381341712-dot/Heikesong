@@ -39,7 +39,7 @@ class PrefetchPlanner:
         except P1Rejected as exc:
             if hint is None and exc.body.get("code") == "SESSION_CHANGED":
                 self.cleared[worker] = key
-        except (DependencyUnavailable, TimeoutError):
+        except (DependencyUnavailable, asyncio.TimeoutError):
             pass  # TTL and replay cover failure without blocking normal allocation.
 
     async def revoke_invalid(self):

@@ -82,7 +82,7 @@ def main():
             for component, path in state["python_paths"].items()
         }
         checked(
-            versions["P1"] == (3, 9, 6) and versions["P2"] >= (3, 11),
+            versions["P1"] == versions["P2"] == (3, 9, 6),
             "P1 and P2 use their supported Python versions",
         )
         report["python_versions"] = versions

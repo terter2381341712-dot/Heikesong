@@ -290,7 +290,7 @@ class Runtime:
             else:
                 result = json.loads(process.stdout)
             version = tuple(int(p) for p in result["version"].split("."))
-            result["compatible"] = version == (3, 9, 6) if component == "P1" else version >= (3, 11)
+            result["compatible"] = version == (3, 9, 6)
             return result
         except (OSError, ValueError, subprocess.SubprocessError):
             return {"compatible": False, "ready": False}
@@ -313,7 +313,7 @@ class Runtime:
                     return self.selected[component]
                 compatible.append(executable)
         if not compatible:
-            required = "Python 3.9.6（完整版本号）" if component == "P1" else "Python 3.11 或以上"
+            required = "Python 3.9.6（完整版本号）"
             hint = (
                 f"请检查 P4_{component}_PYTHON 的设置。"
                 if override

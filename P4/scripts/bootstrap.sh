@@ -29,11 +29,11 @@ if [ ! -f "$root/micromamba" ] || [ "$(hash_file "$root/micromamba")" != "$diges
   mv "$root/micromamba.download" "$root/micromamba"
 fi
 echo '正在检查本机应用专用环境…'
-if ! "$root/bootstrap/bin/python" -I -c 'import sys,ssl; assert sys.version_info[:3]==(3,11,9)' 2>/dev/null; then
+if ! "$root/bootstrap/bin/python" -I -c 'import sys,ssl; assert sys.version_info[:3]==(3,9,6)' 2>/dev/null; then
   action=create
   repair=(-y)
   if [ -d "$root/bootstrap/conda-meta" ]; then action=install; repair=(-y --force-reinstall); fi
-  "$root/micromamba" --no-rc -r "$root/cache" "$action" "${repair[@]}" -p "$root/bootstrap" --override-channels -c conda-forge python=3.11.9 pip
+  "$root/micromamba" --no-rc -r "$root/cache" "$action" "${repair[@]}" -p "$root/bootstrap" --override-channels -c conda-forge python=3.9.6 pip
 fi
 # Release the shell lock before Python takes its own cross-platform preparation lock.
 rmdir "$root/.bootstrap-lock"

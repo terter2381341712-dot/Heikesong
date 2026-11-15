@@ -34,7 +34,7 @@
       "pillow": "11.3.0"
     },
     "cuda": {
-      "python": "3.11.9",
+      "python": "3.9.6",
       "rapidocr": "3.10.0",
       "onnxruntime-gpu": "1.19.2",
       "pillow": "11.3.0"

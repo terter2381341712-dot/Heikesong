@@ -23,11 +23,11 @@ export NODE_PROFILES_DIR="$PWD/profiles/heterogeneous"
 
 ## Windows NVIDIA 环境
 
-以下 PowerShell 命令在项目 P1 目录执行。先安装并核实 **Python 3.11.9**、兼容 NVIDIA 驱动、**CUDA 12.x 和 cuDNN 9.x**；DLL 必须可被进程发现。`nvidia-smi` 显示的 CUDA 版本表示驱动能力，不等于所需 CUDA/cuDNN DLL 已安装。
+以下 PowerShell 命令在项目 P1 目录执行。先安装并核实 **Python 3.9.6**、兼容 NVIDIA 驱动、**CUDA 12.x 和 cuDNN 9.x**；DLL 必须可被进程发现。`nvidia-smi` 显示的 CUDA 版本表示驱动能力，不等于所需 CUDA/cuDNN DLL 已安装。
 
 ```powershell
-py -3.11 --version  # 必须与锁文件中的 3.11.9 一致
-py -3.11 -m venv .venv-gpu
+py -3.9 --version  # 必须与锁文件中的完整版本 3.9.6 一致
+py -3.9 -m venv .venv-gpu
 .\.venv-gpu\Scripts\python.exe -m pip install -r requirements-gpu.txt
 .\.venv-gpu\Scripts\python.exe -m node_agent.gpu_probe --device-id 0 --output-dir .\var\gpu-probe
 ```

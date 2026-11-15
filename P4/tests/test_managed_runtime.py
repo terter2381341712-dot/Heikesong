@@ -1,15 +1,15 @@
 """Automatic preparation must run on developer Macs and clean Windows alike."""
 import json
-from pathlib import Path
 import subprocess
 import sys
+from pathlib import Path
 
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
-import managed_runtime as runtime
 import compute_config
 import control
+import managed_runtime as runtime
 
 
 @pytest.mark.parametrize("component,relative", [
@@ -78,6 +78,29 @@ def test_missing_cpu_installs_exact_profile_and_checks_before_return(tmp_path, m
     assert "--force-reinstall" in commands[2]
     assert commands[3][-2:] == ["pip", "check"]
     assert result == str(manager.executable("P1"))
+
+
+@pytest.mark.parametrize("component,steps", [("P1", 4), ("P2", 3), ("CUDA", 4)])
+def test_all_python_environments_install_exactly_396(tmp_path, monkeypatch, component, steps):
+    commands = []
+    manager = runtime.Manager(tmp_path, runner=lambda argv, output: commands.append(argv))
+    monkeypatch.setattr(manager, "ready", lambda *args: len(commands) == steps)
+    monkeypatch.setattr(manager, "installer", lambda _: tmp_path / "manager")
+    manager.ensure(component, lambda _: None)
+    assert "python=3.9.6" in commands[0]
+    if component == "CUDA":
+        assert "cuda-version=12.4" in commands[0]
+        assert "onnxruntime-gpu==1.19.2" in commands[2]
+
+
+def test_bootstrap_and_cuda_profiles_agree_on_python_version():
+    for script in ("bootstrap.ps1", "bootstrap.sh"):
+        text = (runtime.ROOT / "P4/scripts" / script).read_text(encoding="utf-8")
+        assert "python=3.9.6" in text and "(3,9,6)" in text
+        assert "3.11.9" not in text
+    profile = json.loads((runtime.ROOT / "P1/profiles/heterogeneous/ocr.heterogeneous.v1.lock.json").read_bytes())
+    assert profile["dependencies"]["python"] == "3.9.6"
+    assert all(deps["python"] == "3.9.6" for deps in profile["backend_dependencies"].values())
 
 
 def test_failed_install_is_not_ready_and_can_be_retried(tmp_path, monkeypatch):

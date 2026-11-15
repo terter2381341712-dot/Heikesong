@@ -18,7 +18,7 @@
 
 ## 环境与启动
 
-Python 3.11 或以上。使用 `uv.lock` 固定 P2 HTTP 服务及测试依赖，不安装 OCR 引擎。实际自测使用 Python 3.11。
+Python **3.9.6（完整版本号）**。使用重新解析的 `uv.lock` 固定 P2 HTTP 服务及测试依赖，不安装 OCR 引擎。维护环境时使用 `uv sync --frozen --python 3.9.6`；日常由 P4 启动器自动准备专用环境。
 
 ```sh
 uv sync --frozen

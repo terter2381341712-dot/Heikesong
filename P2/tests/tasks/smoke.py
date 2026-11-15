@@ -12,7 +12,6 @@ from io import BytesIO
 from pathlib import Path
 
 import httpx
-
 from task_service.contract import ROOT, validate
 
 
@@ -57,7 +56,7 @@ def run_smoke():
 
             def launch(module):
                 process = subprocess.Popen(
-                    [sys.executable, "-m", module],
+                    [sys.executable, "-c", f"import sys,runpy; sys.path.insert(0,{str(ROOT)!r}); runpy.run_module({module!r},run_name='__main__')"],
                     cwd=ROOT,
                     env=env,
                     stdout=logs,

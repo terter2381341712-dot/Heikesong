@@ -2,7 +2,7 @@
 name = "hackathon-p2-task-service"
 version = "0.1.0"
 description = "P2 OCR job scheduling against resource contract 0.2.0"
-requires-python = ">=3.11"
+requires-python = "==3.9.6"
 dependencies = [
   "fastapi>=0.115,<1",
   "httpx==0.28.1",
@@ -20,7 +20,7 @@ asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 
 [tool.ruff]
-target-version = "py311"
+target-version = "py39"
 line-length = 100
 
 [tool.ruff.lint]

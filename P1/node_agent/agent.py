@@ -493,7 +493,8 @@ class Agent:
             runner = self._prepared[1]
             array = None
             cached = execution.get("_prefetched")
-            t0 = time.monotonic()
+            # perf_counter has sub-millisecond resolution on Python 3.9/Windows.
+            t0 = time.perf_counter()
             if cached:
                 try:
                     array = load_decoded(cached, execution["input_media_info"])
@@ -503,34 +504,34 @@ class Agent:
                     pass  # Local speculative cache never replaces validation of the input.
                 finally:
                     Path(cached["path"]).unlink(missing_ok=True)
-            timings["decode_ms"] = (time.monotonic() - t0) * 1000
+            timings["decode_ms"] = (time.perf_counter() - t0) * 1000
             if array is None:
-                t0 = time.monotonic()
+                t0 = time.perf_counter()
                 input_path = self._download_input(execution)
-                timings["download_ms"] = (time.monotonic() - t0) * 1000
-                t0 = time.monotonic()
+                timings["download_ms"] = (time.perf_counter() - t0) * 1000
+                t0 = time.perf_counter()
                 try:
                     array = decode_image(input_path, execution["input_media_info"])
                 except (OSError, ValueError) as exc:
                     raise ProfileError("INPUT_INVALID", "输入文件无法解码") from exc
-                timings["decode_ms"] += (time.monotonic() - t0) * 1000
+                timings["decode_ms"] += (time.perf_counter() - t0) * 1000
             print(f"[agent] execute pid={os.getpid()} execution_id={execution_id} "
                   f"backend={self.backend} device_id={self.device_id} started={time.time():.6f}", flush=True)
-            t0 = time.monotonic()
+            t0 = time.perf_counter()
             if engine_lock is not None:
                 with engine_lock:
                     result = runner.execute_array(array, execution.get("parameters", {}), workdir)
             else:
                 result = runner.execute_array(array, execution.get("parameters", {}), workdir)
-            timings["inference_ms"] = (time.monotonic() - t0) * 1000
+            timings["inference_ms"] = (time.perf_counter() - t0) * 1000
             print(f"[agent] inference_finished execution_id={execution_id} finished={time.time():.6f}", flush=True)
 
             result["input_artifact_id"] = execution["input_artifact_id"]
 
-            t0 = time.monotonic()
+            t0 = time.perf_counter()
             out_file = workdir / "result.json"
             out_file.write_text(json.dumps(result, ensure_ascii=False), encoding="utf-8")
-            timings["write_output_ms"] = (time.monotonic() - t0) * 1000
+            timings["write_output_ms"] = (time.perf_counter() - t0) * 1000
             timings["postprocess_ms"] = 0.0
             timings["total_worker_ms"] = sum(timings[k] for k in ("download_ms", "decode_ms", "inference_ms", "postprocess_ms", "write_output_ms"))
 

@@ -14,7 +14,7 @@
 
 ## 独立环境
 
-当前 OCR 锁文件要求 **Python 3.9.6**、RapidOCR 3.10.0、ONNX Runtime 1.19.2、Pillow 11.3.0。不能直接用 P2 的 Python 3.11 环境运行节点，也不能更改锁文件来掩盖环境不符。
+当前 OCR 锁文件要求 **Python 3.9.6**、RapidOCR 3.10.0、ONNX Runtime 1.19.2、Pillow 11.3.0。P2、启动器与 CUDA 环境的 Python 也统一为 3.9.6；CPU 与 GPU 仍使用不同依赖环境，不能混装两种 ONNX Runtime。模型、权重及 CPU profile 保持不变。
 
 以下从项目根目录执行。本机 `/usr/bin/python3` 已核实为 3.9.6；其他电脑请将该路径换为实际的 Python 3.9.6：
 

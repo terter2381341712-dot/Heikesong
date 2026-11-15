@@ -10,16 +10,17 @@ import csv
 import hashlib
 import json
 import os
-from pathlib import Path
 import platform
 import re
 import subprocess
 import sys
 import urllib.request
 import uuid
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 DIRECTORY = ROOT / "P4/var/runtime"
+PYTHON_VERSION = "3.9.6"
 
 
 def process_environment(executable, source=None):
@@ -117,7 +118,7 @@ class Manager:
         if component == "web":
             argv = [str(executable), "-e", "if(+process.versions.node.split('.')[0]!==22)process.exit(1)"]
         else:
-            version = "3.9.6" if component == "P1" else "3.11.9"
+            version = PYTHON_VERSION
             # Import the runtime, not just its metadata: missing DLLs must fail here.
             code = """import importlib,importlib.metadata as m,json,platform,sys
 from pip._vendor.packaging.requirements import Requirement
@@ -157,7 +158,7 @@ if sys.argv[4]:
             progress(f"正在自动准备 {component} 环境，首次下载可能需要几分钟…")
             action = "install" if (prefix / "conda-meta/history").exists() else "create"
             repair = ["--force-reinstall"] if action == "install" else []
-            packages = ["nodejs=22"] if component == "web" else ["python=" + ("3.9.6" if component == "P1" else "3.11.9"), "pip"]
+            packages = ["nodejs=22"] if component == "web" else ["python=" + PYTHON_VERSION, "pip"]
             # Conda puts CUDA runtime DLLs in this private environment's Library/bin.
             if component == "CUDA":
                 packages += ["cuda-version=12.4", "cudnn=9.10.2.21", "libcublas", "libcufft", "cuda-cudart"]

@@ -2,6 +2,8 @@
 
 # P4 · 联合启动、验收和演示
 
+当前启动器、P1、P2、可选 CUDA 的 Python 均固定为 **3.9.6**。下方旧复验记录使用过 3.11，保留为历史；当前依赖以 P2/pyproject.toml、uv.lock 与各组件 profile 为准。工作台仍使用 Node.js 22。
+
 日常操作走 [一键连接](一键连接.md)。中心控制台启动 P1、P2 和 Edge Fabric 工作台，可同时启动本机计算。另一台电脑只运行 P1 节点即可。下文是命令行分角色与正式验收的流程。
 
 [任务卡](../D题参赛执行包/tasks/P4-验收压测与演示.md)和[验收矩阵](../D题参赛执行包/03-验收与压测.md)定义交付范围。[qa/](qa/) 保留 lyj 分支的阶段证据与问题记录。涉及旧分支运行环境、旧网卡和历史状态时，以当前启动说明、各组件 README 及本轮复验结果为准。
@@ -28,10 +30,10 @@
 
 | 电脑角色 | 命令角色 | 必需环境 | 配置文件 |
 |---|---|---|---|
-| A：中心 P1、P2、本机计算 | center --with-node | P1 Python 3.9.6、P2 Python ≥3.11 | center.json |
+| A：中心 P1、P2、本机计算 | center --with-node | Python 3.9.6 | center.json |
 | B：只提供计算 | node | P1 Python 3.9.6 | node.json，仅 JOIN |
-| C：只运行 P2（可选） | task | Python ≥3.11 | task.json，DEMO/TASK |
-| 验收电脑 | verify.py | Python ≥3.11 | client.json，DEMO/TASK |
+| C：只运行 P2（可选） | task | Python 3.9.6 | task.json，DEMO/TASK |
+| 验收电脑 | verify.py | Python 3.9.6 | client.json，DEMO/TASK |
 
 若 P2 放电脑 C，A 改为 `--role resource`（另外启动本机 node），C 使用 `--role task`。所有配置中的 resource_url 仍指向 A。只保留一个连接此中心的 P2，避免多个独立调度器竞争；P2 的健康检查只证明它存活，不证明 P1 可达。
 
@@ -50,10 +52,10 @@ py -3.9 -m venv P1/.venv
 P1/.venv/Scripts/python.exe -m pip install -r P1/requirements.txt
 
 # 中心或独立 P2 电脑安装；推荐沿用仓库 uv.lock
-uv sync --project P2 --frozen --python 3.11
+uv sync --project P2 --frozen --python 3.9.6
 
 # 验收电脑安装；启动工具 cluster.py 本身只依赖标准库
-py -3.11 -m venv P4/.venv
+py -3.9 -m venv P4/.venv
 P4/.venv/Scripts/python.exe -m pip install -r P4/requirements.txt
 ```
 

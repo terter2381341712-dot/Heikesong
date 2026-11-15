@@ -1,4 +1,4 @@
-# Windows CUDA 环境：Python 3.11.9，CUDA 12.x + cuDNN 9.x
+# Windows CUDA 环境：Python 3.9.6，CUDA 12.x + cuDNN 9.x
 fastapi>=0.110,<1
 uvicorn>=0.29,<1
 pydantic>=2.6,<3
