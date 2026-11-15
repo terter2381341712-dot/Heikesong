@@ -14,7 +14,7 @@ P2 直接加载此 OpenAPI 的 JSON Schema 校验请求、P1 响应、OCR 结果
 
 ## 统一计划 1.0 的语义补充
 
-依据 [统一计划](../../P1-P2统一修改与联调计划.md) 第 3、5 节，本轮由 P2 负责人汇总共享文档与样例，P1 核对资源侧语义，P4 参与时统一发布。公共路径、字段、状态、HTTP 码和 schema 均未变更，以上 OpenAPI 与原样例哈希保持不变。
+依据 [统一计划](../../归档/P1-P2统一修改与联调计划.md) 第 3、5 节，本轮由 P2 负责人汇总共享文档与样例，P1 核对资源侧语义，P4 参与时统一发布。公共路径、字段、状态、HTTP 码和 schema 均未变更，以上 OpenAPI 与原样例哈希保持不变。
 
 - 补充来源：项目根目录 `qa/p1-p2/capabilities.json`，与计划第 3.4 节一致的六种完整 Capability 样例。
 - P2 副本：`tests/tasks/fixtures/p1-p2-capabilities.json`；逐字节一致，SHA-256 为 `146c12e35cb865db8a45425fe60f32c3c066fd1474fe1295accd58daa719fa1d`。

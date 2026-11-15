@@ -4,7 +4,7 @@
 
 ## 实现
 
-- [完整分阶段计划](../../P1-P2异构资源改造计划.md)；[CPU/Windows GPU 启动说明与实机验收清单](../../P1/docs/GPU与常驻模型启动.md)。
+- [完整分阶段计划](../../归档/P1-P2异构资源改造计划.md)；[CPU/Windows GPU 启动说明与实机验收清单](../../P1/docs/GPU与常驻模型启动.md)。
 - 新增可选 `ocr.heterogeneous.v1`，CPU/CUDA 共用同一个冻结模型配置，分别锁依赖。保留原 CPU profile 和默认启动方式；旧 Job 不静默换 profile。
 - GPU 节点明确选择 CUDA/device-id，检查全部三组模型实际首选 provider 和设备；禁止整会话失败后静默回退 CPU。中心按允许后端、provider、模型 SHA 和校准判断 READY/接单。
 - 准备和连续任务共用常驻计算进程；只有取消、共享关闭、会话失效、心跳失联、硬截止、退出或崩溃时销毁。节点日志记录模型加载/PID/后端/设备/加载时间。
