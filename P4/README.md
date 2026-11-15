@@ -2,7 +2,7 @@
 
 # P4 · 联合启动、验收和演示
 
-当前启动器、P1、P2、可选 CUDA 的 Python 均固定为 **3.9.6**。下方旧复验记录使用过 3.11，保留为历史；当前依赖以 P2/pyproject.toml、uv.lock 与各组件 profile 为准。工作台仍使用 Node.js 22。
+当前启动器、P1、P2、可选 CUDA 的 Python 均固定为 **3.12.15**。下方旧复验记录使用过 3.9.6/3.11，保留为历史；当前依赖以 P2/pyproject.toml、uv.lock、P1/requirements.lock.txt 与各组件 profile 为准。工作台仍使用 Node.js 22。
 
 日常操作走 [一键连接](一键连接.md)。中心控制台启动 P1、P2 和 Edge Fabric 工作台，可同时启动本机计算。另一台电脑只运行 P1 节点即可。下文是命令行分角色与正式验收的流程。
 
@@ -10,7 +10,7 @@
 
 ## 主线集成复验
 
-- Windows 单机以 P1 Python 3.9.6、P2 Python 3.11.9 启动。契约静态校验通过，P1 55 项、P2 101 项、P4 64 项 Python 测试通过。P4 跳过 1 项需要 POSIX 环境的测试，控制台 JavaScript 测试 3 项通过。
+- Windows 单机以 P1 Python 3.9.6、P2 Python 3.11.9 启动（历史记录，当前统一为 3.12.15）。契约静态校验通过，P1 55 项、P2 101 项、P4 64 项 Python 测试通过。P4 跳过 1 项需要 POSIX 环境的测试，控制台 JavaScript 测试 3 项通过。
 - 控制台的两图测试通过真实 OCR 和 ZIP 校验。浏览器工作台完成令牌鉴权、上传 PNG、查看任务进度、预览 OCR、下载与输入字节一致的原图及结果 ZIP，并核对了真实节点和英文界面。
 - 在一台 Windows 电脑上用两个独立节点目录验证了配对和共享开关。自动发现进行了 UDP 回归测试。两台物理设备贡献同一 Job、跨系统实机和正式压测仍按验收矩阵登记。
 
@@ -30,10 +30,10 @@
 
 | 电脑角色 | 命令角色 | 必需环境 | 配置文件 |
 |---|---|---|---|
-| A：中心 P1、P2、本机计算 | center --with-node | Python 3.9.6 | center.json |
-| B：只提供计算 | node | P1 Python 3.9.6 | node.json，仅 JOIN |
-| C：只运行 P2（可选） | task | Python 3.9.6 | task.json，DEMO/TASK |
-| 验收电脑 | verify.py | Python 3.9.6 | client.json，DEMO/TASK |
+| A：中心 P1、P2、本机计算 | center --with-node | Python 3.12.15 | center.json |
+| B：只提供计算 | node | P1 Python 3.12.15 | node.json，仅 JOIN |
+| C：只运行 P2（可选） | task | Python 3.12.15 | task.json，DEMO/TASK |
+| 验收电脑 | verify.py | Python 3.12.15 | client.json，DEMO/TASK |
 
 若 P2 放电脑 C，A 改为 `--role resource`（另外启动本机 node），C 使用 `--role task`。所有配置中的 resource_url 仍指向 A。只保留一个连接此中心的 P2，避免多个独立调度器竞争；P2 的健康检查只证明它存活，不证明 P1 可达。
 
@@ -43,16 +43,16 @@
 
 ### 开发维护用手工环境
 
-当前真实 OCR 锁定 Python **3.9.6**、RapidOCR **3.10.0**、ONNX Runtime **1.19.2**、Pillow **11.3.0**；Python 3.9 的其他补丁版本也会被拒绝。先安装这些解释器，不能改锁文件绕过核验。Windows PowerShell 示例：
+当前真实 OCR 锁定 Python **3.12.15**、RapidOCR **3.10.0**、ONNX Runtime **1.19.2**、Pillow **11.3.0**；Python 3.12 的其他补丁版本也会被拒绝。先安装这些解释器，不能改锁文件绕过核验。Windows PowerShell 示例：
 
 ```powershell
-# py 启动器未登记解释器时，用真实 Python 3.9.6 路径替换 py -3.9
-py -3.9 -c "import platform; assert platform.python_version() == '3.9.6'"
+# py 启动器未登记解释器时，用真实 Python 3.12.15 路径替换 py -3.12
+py -3.12 -c "import platform; assert platform.python_version() == '3.12.15'"
 py -3.9 -m venv P1/.venv
-P1/.venv/Scripts/python.exe -m pip install -r P1/requirements.txt
+P1/.venv/Scripts/python.exe -m pip install -r P1/requirements.lock.txt
 
 # 中心或独立 P2 电脑安装；推荐沿用仓库 uv.lock
-uv sync --project P2 --frozen --python 3.9.6
+uv sync --project P2 --frozen --python 3.12.15
 
 # 验收电脑安装；启动工具 cluster.py 本身只依赖标准库
 py -3.9 -m venv P4/.venv
@@ -61,7 +61,7 @@ P4/.venv/Scripts/python.exe -m pip install -r P4/requirements.txt
 
 无 uv 时先在自己的工具环境安装 uv，再按 P2 README 使用 uv.lock 创建环境。B 只需完整项目代码和 P1 环境；不必安装 P2 或 P4 依赖，直接使用 P1 解释器运行 cluster.py。
 
-macOS/Linux 使用相同参数，将 `Scripts/python.exe` 换成 `bin/python`，创建 P1 环境时使用实际 Python 3.9.6 路径。模型锁来自当前仓库的原始字节，不要在另一台电脑上转换换行。
+macOS/Linux 使用相同参数，将 `Scripts/python.exe` 换成 `bin/python`，创建 P1 环境时使用实际 Python 3.12.15 路径。模型锁来自当前仓库的原始字节，不要在另一台电脑上转换换行。
 
 ## 2. 网络准备
 

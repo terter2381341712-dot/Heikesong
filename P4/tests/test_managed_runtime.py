@@ -13,9 +13,9 @@ import managed_runtime as runtime
 
 
 @pytest.mark.parametrize("component,relative", [
-    ("P1", "P1/requirements.txt"),
-    ("CUDA", "P1/requirements-gpu.txt"),
-    ("P2", "P2/pyproject.toml"),
+    ("P1", "P1/requirements.lock.txt"),
+    ("CUDA", "P1/requirements-gpu.lock.txt"),
+    ("P2", "P2/requirements.lock.txt"),
 ])
 def test_dependency_lists_are_utf8_even_with_windows_gbk_default(tmp_path, monkeypatch, component, relative):
     expected = runtime.requirements(component)
@@ -71,7 +71,7 @@ def test_missing_cpu_installs_exact_profile_and_checks_before_return(tmp_path, m
     monkeypatch.setattr(manager, "ready", lambda *args: len(commands) == 4)
     monkeypatch.setattr(manager, "installer", lambda _: tmp_path / "manager")
     result = manager.ensure("P1")
-    assert "python=3.9.6" in commands[0]
+    assert "python=3.12.15" in commands[0]
     assert "--no-rc" in commands[0] and "--override-channels" in commands[0]
     assert commands[1][-3:] == ["uninstall", "-y", "onnxruntime-gpu"]
     assert "onnxruntime==1.19.2" in commands[2]
@@ -87,7 +87,7 @@ def test_all_python_environments_install_exactly_396(tmp_path, monkeypatch, comp
     monkeypatch.setattr(manager, "ready", lambda *args: len(commands) == steps)
     monkeypatch.setattr(manager, "installer", lambda _: tmp_path / "manager")
     manager.ensure(component, lambda _: None)
-    assert "python=3.9.6" in commands[0]
+    assert "python=3.12.15" in commands[0]
     if component == "CUDA":
         assert "cuda-version=12.4" in commands[0]
         assert "onnxruntime-gpu==1.19.2" in commands[2]
@@ -96,11 +96,11 @@ def test_all_python_environments_install_exactly_396(tmp_path, monkeypatch, comp
 def test_bootstrap_and_cuda_profiles_agree_on_python_version():
     for script in ("bootstrap.ps1", "bootstrap.sh"):
         text = (runtime.ROOT / "P4/scripts" / script).read_text(encoding="utf-8")
-        assert "python=3.9.6" in text and "(3,9,6)" in text
+        assert "python=3.12.15" in text and "(3,12,15)" in text
         assert "3.11.9" not in text
     profile = json.loads((runtime.ROOT / "P1/profiles/heterogeneous/ocr.heterogeneous.v1.lock.json").read_bytes())
-    assert profile["dependencies"]["python"] == "3.9.6"
-    assert all(deps["python"] == "3.9.6" for deps in profile["backend_dependencies"].values())
+    assert profile["dependencies"]["python"] == "3.12.15"
+    assert all(deps["python"] == "3.12.15" for deps in profile["backend_dependencies"].values())
 
 
 def test_failed_install_is_not_ready_and_can_be_retried(tmp_path, monkeypatch):

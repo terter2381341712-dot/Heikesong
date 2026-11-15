@@ -14,14 +14,14 @@
 
 ## 独立环境
 
-当前 OCR 锁文件要求 **Python 3.9.6**、RapidOCR 3.10.0、ONNX Runtime 1.19.2、Pillow 11.3.0。P2、启动器与 CUDA 环境的 Python 也统一为 3.9.6；CPU 与 GPU 仍使用不同依赖环境，不能混装两种 ONNX Runtime。模型、权重及 CPU profile 保持不变。
+当前 OCR 锁文件要求 **Python 3.12.15**、RapidOCR 3.10.0、ONNX Runtime 1.19.2、Pillow 11.3.0。P2、启动器与 CUDA 环境的 Python 也统一为 3.12.15；CPU 与 GPU 仍使用不同依赖环境，不能混装两种 ONNX Runtime。模型、权重及 CPU profile 保持不变。
 
-以下从项目根目录执行。本机 `/usr/bin/python3` 已核实为 3.9.6；其他电脑请将该路径换为实际的 Python 3.9.6：
+以下从项目根目录执行。本机请使用实际的 Python 3.12.15 解释器路径（不再是 `/usr/bin/python3`，它通常是旧版本）：
 
 ```sh
 /usr/bin/python3 --version
 uv venv --python /usr/bin/python3 P1/.venv
-uv pip install --python P1/.venv/bin/python -r P1/requirements.txt
+uv pip install --python P1/.venv/bin/python -r P1/requirements.lock.txt
 ```
 
 P2 按其 README 在 `P2/` 内执行 `uv sync --frozen`。

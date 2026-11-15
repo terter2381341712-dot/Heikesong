@@ -1,6 +1,7 @@
 # ocr.default.v1 自测记录（发布依据）
 
-- 日期：2026-11-14（北京时间），设备：MacBook Pro M4 16GB，macOS，Python 3.9.6
+- 原始自测日期：2026-11-14（北京时间），设备：MacBook Pro M4 16GB，macOS，Python 3.9.6
+- 2026-11-15 版本统一：解释器改为 Python 3.12.15，重新核验组合 SHA256 仍为 `3358ac6b…0edc5`，模型权重字节未变。下表耗时来自 3.9.6 记录，仅作历史参考。
 - 执行器：`runners/rapidocr_runner.py`，backend=cpu，runtime_provider=CPUExecutionProvider
 - 权重：rapidocr==3.10.0 内置 PP-OCRv6 det/cls/rec，组合 SHA256
   `3358ac6b2a0919cf5c72159265440ba62fb496b504d1fc6fb92a4ffc4fc0edc5`

@@ -286,16 +286,16 @@ def test_sharing_buttons_send_requests_without_claiming_confirmation(panel):
 
 def test_runtime_detects_version_without_installing(tmp_path):
     runtime = control.Runtime(tmp_path)
-    assert runtime.probe(Path(sys.executable), "P2")["compatible"] is (sys.version_info[:3] == (3, 9, 6))
+    assert runtime.probe(Path(sys.executable), "P2")["compatible"] is (sys.version_info[:3] == (3, 12, 15))
     assert runtime.probe(Path(sys.executable), "P1")["compatible"] is (
-        sys.version_info[:3] == (3, 9, 6)
+        sys.version_info[:3] == (3, 12, 15)
     )
 
 
 def test_missing_runtime_does_not_silently_change_profile(tmp_path, monkeypatch):
     runtime = control.Runtime(tmp_path)
     monkeypatch.setenv("P4_P1_PYTHON", str(tmp_path / "missing-python"))
-    with pytest.raises(ValueError, match="3.9.6"):
+    with pytest.raises(ValueError, match="3.12.15"):
         runtime.ensure("P1", lambda msg: None)
 
 
@@ -414,7 +414,7 @@ def test_profiles_match_across_windows_and_unix_line_endings(tmp_path, monkeypat
     source = tmp_path / "P1/profiles"
     source.mkdir(parents=True)
     path = source / "ocr.default.v1.lock.json"
-    windows_bytes = b'{\r\n  "dependencies": {"python": "3.9.6"}\r\n}\r\n'
+    windows_bytes = b'{\r\n  "dependencies": {"python": "3.12.15"}\r\n}\r\n'
     path.write_bytes(windows_bytes)
     monkeypatch.setattr(control, "ROOT", tmp_path)
     windows_fingerprint = control.fingerprint()
@@ -447,7 +447,7 @@ def test_p2_accepts_python_396_with_dependencies(tmp_path, monkeypatch):
         control.subprocess,
         "run",
         lambda *args, **kw: SimpleNamespace(
-            returncode=0, stdout=b'{"version":"3.9.6","ready":true}'
+            returncode=0, stdout=b'{"version":"3.12.15","ready":true}'
         ),
     )
     monkeypatch.setattr(runtime, "candidates", lambda component: [executable])
@@ -455,7 +455,7 @@ def test_p2_accepts_python_396_with_dependencies(tmp_path, monkeypatch):
     assert runtime.selected == {"P1": str(executable), "P2": str(executable)}
 
 
-@pytest.mark.parametrize("version", ["3.9.5", "3.9.7", "3.11.9"])
+@pytest.mark.parametrize("version", ["3.12.14", "3.12.16", "3.11.9"])
 def test_p2_rejects_other_python_versions(tmp_path, monkeypatch, version):
     runtime = control.Runtime(tmp_path)
     monkeypatch.setattr(control.subprocess, "run", lambda *a, **k: SimpleNamespace(

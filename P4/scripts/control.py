@@ -4,7 +4,6 @@ Only the pairing endpoint is exposed to LAN clients. Product services keep their
 """
 
 import argparse
-import ast
 import base64
 import binascii
 import hashlib
@@ -226,10 +225,8 @@ class Runtime:
             Path(sys.executable),
         ]
         if component == "P1":
-            values += [ROOT / "P4/var/mac-p1" / suffix, ROOT / "P4/var/python39/python.exe"]
+            values += [ROOT / "P4/var/mac-p1" / suffix]
         for name in (
-            "python3.9",
-            "python3.11",
             "python3.12",
             "python3.13",
             "python3.14",
@@ -290,7 +287,9 @@ class Runtime:
             else:
                 result = json.loads(process.stdout)
             version = tuple(int(p) for p in result["version"].split("."))
-            result["compatible"] = version == (3, 9, 6)
+            result["compatible"] = version == tuple(
+                int(p) for p in managed_runtime.PYTHON_VERSION.split(".")
+            )
             return result
         except (OSError, ValueError, subprocess.SubprocessError):
             return {"compatible": False, "ready": False}
@@ -313,7 +312,7 @@ class Runtime:
                     return self.selected[component]
                 compatible.append(executable)
         if not compatible:
-            required = "Python 3.9.6（完整版本号）"
+            required = "Python 3.12.15（完整版本号）"
             hint = (
                 f"请检查 P4_{component}_PYTHON 的设置。"
                 if override
@@ -337,13 +336,11 @@ class Runtime:
                 "--cache-dir",
                 str(self.directory / "pip-cache"),
             ]
-            if component == "P1":
-                command += ["-r", str(ROOT / "P1/requirements.txt")]
-            else:
-                text = (ROOT / "P2/pyproject.toml").read_text(encoding="utf-8")
-                command += ast.literal_eval(
-                    re.search(r"dependencies\s*=\s*(\[[\s\S]*?\])", text).group(1)
-                )
+            # Install the committed lock export so a repaired environment matches
+            # the versions the managed runtime would have produced.
+            lock = (ROOT / "P1/requirements.lock.txt" if component == "P1"
+                    else ROOT / "P2/requirements.lock.txt")
+            command += ["-r", str(lock)]
             self.setup_command(command, output)
         result = self.probe(executable, component)
         if not (result["compatible"] and result["ready"]):

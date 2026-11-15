@@ -6,7 +6,7 @@
   "model_sha256": "3358ac6b2a0919cf5c72159265440ba62fb496b504d1fc6fb92a4ffc4fc0edc5",
   "weights_license_verified": true,
   "dependencies": {
-    "python": "3.9.6",
+    "python": "3.12.15",
     "rapidocr": "3.10.0",
     "onnxruntime": "1.19.2",
     "pillow": "11.3.0",
@@ -28,13 +28,13 @@
   "frozen_at": "2026-11-14T10:00:00Z",
   "backend_dependencies": {
     "cpu": {
-      "python": "3.9.6",
+      "python": "3.12.15",
       "rapidocr": "3.10.0",
       "onnxruntime": "1.19.2",
       "pillow": "11.3.0"
     },
     "cuda": {
-      "python": "3.9.6",
+      "python": "3.12.15",
       "rapidocr": "3.10.0",
       "onnxruntime-gpu": "1.19.2",
       "pillow": "11.3.0"

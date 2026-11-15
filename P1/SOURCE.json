@@ -64,16 +64,17 @@
     "scripts/verify_p1.py": "b39025b780237f9dcb5043252b38b77062e25bae3e20ea23115fbfd5b58fa146",
     "contracts/openapi.yaml": "2efab40f7dfb4d55603dec577b73c1e7279ce8672977ede4a254cb74f63ed7c2",
     "resource_service/__main__.py": "0125e381b345aafb2f3f112183ea7acdbe752e121900435124d36438b214c775",
-    "tests/resource/test_runner.py": "7828dde4c14e7d46945a5569544d9458a2bf4baf986bdf677865269bf766b00d"
+    "tests/resource/test_runner.py": "7828dde4c14e7d46945a5569544d9458a2bf4baf986bdf677865269bf766b00d",
+    "profiles/ocr.default.v1.lock.json": "825cc9b408e91955d36bb93cdf89c37ecdf9919ace07caf72a45fae00c3c7c92"
   },
-  "local_change_note": "共享开关、取消与迁移、CUDA/CPU 模型常驻、CPU 多槽与线程预算、第四阶段有界输入预取和 CPU 解码/推理重叠；公开契约 0.4.0。files 保留引入提交原始校验值，当前变更见 local_modifications/local_additions。Windows GPU 实机待验。 合入冻结 main 的 Windows 启动/模型顺序与共享保护；统一 0.4.0；预取改为显式启用；GPU 路取消等待真实完成或整进程回收。",
+  "local_change_note": "共享开关、取消与迁移、CUDA/CPU 模型常驻、CPU 多槽与线程预算、第四阶段有界输入预取和 CPU 解码/推理重叠；公开契约 0.4.0。files 保留引入提交原始校验值，当前变更见 local_modifications/local_additions。Windows GPU 实机待验。 合入冻结 main 的 Windows 启动/模型顺序与共享保护；统一 0.4.0；预取改为显式启用；GPU 路取消等待真实完成或整进程回收。 2026-11-15：profile 的 python 从 3.9.6 统一到 3.12.15，锁文件字节与摘要随之更新。",
   "local_additions": {
     "node_agent/compute.py": "2a84e8d67c11b82c2842abf573c0e551db1b33eeeb57282befba70bb61372e43",
     "tests/resource/test_sharing.py": "991f2cb10f96235dad47bdc0c9768de9eaf77cf82b781fbb594a7ce51c4ce84f",
     "node_agent/gpu_probe.py": "35c9eb64fd00ecf0cc604a9905f0a5b6e0ea474bf82daefe157d545564c81466",
     "tests/resource/test_gpu_resident.py": "db6b000a0ce1daeadc4df2d91e68c6a667f1d18564af31dd741c9a03d4a62743",
     "requirements-gpu.txt": "5b9043a9d19356d473568cc4571a1f43deb0b471342dff3b25ceece4eccb8c32",
-    "profiles/heterogeneous/ocr.heterogeneous.v1.lock.json": "51925ad08491e8c29bb28baab127f7cefdc7d1fd96d4bb192a73e646493fc9ae",
+    "profiles/heterogeneous/ocr.heterogeneous.v1.lock.json": "c1026da8fca4888b3d2cec8f5cd3d4f09cecc4c0ec3bd1bd652a4c83850d3cea",
     "profiles/heterogeneous/task_types.json": "2acb15dd7a547ac20e069587580f3755350607a5d8dbb69f520b67d1006b6099",
     "docs/GPU与常驻模型启动.md": "42c77c73f912cb1ef9c0d01fbba7707e5efdaf4b2cee3bab2a9a3ae509440b1c",
     "README.md": "0afd4b21ee44934c2ba586713d6d242dd562961e40ba53a767465ff49e38330a",

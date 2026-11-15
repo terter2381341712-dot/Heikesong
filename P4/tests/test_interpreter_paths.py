@@ -63,7 +63,7 @@ def test_p2_installs_and_checks_in_the_selected_venv(linked_python, monkeypatch)
     runtime.ensure("P2", lambda msg: None)
     assert commands[0] == [str(linked_python.base), "-m", "venv", str(expected.parent.parent)]
     assert commands[1][:3] == [str(expected), "-m", "pip"]
-    assert "jsonschema>=4.23,<5" in commands[1]
+    assert str(control.ROOT / "P2/requirements.lock.txt") in commands[1]
     assert runtime.selected == {"P1": str(linked_python.entry), "P2": str(expected)}
 
 

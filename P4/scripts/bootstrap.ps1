@@ -24,7 +24,7 @@ try {
     $env:PATH = "$prefix;$prefix\Library\bin;$prefix\Scripts;" + $env:PATH
     $ready = $false
     if (Test-Path $python) {
-        & $python -I -c "import os,sys; h=os.add_dll_directory(os.path.join(sys.prefix,'Library','bin')); import ssl; assert sys.version_info[:3]==(3,9,6)"
+        & $python -I -c "import os,sys; h=os.add_dll_directory(os.path.join(sys.prefix,'Library','bin')); import ssl; assert sys.version_info[:3]==(3,12,15)"
         $ready = $LASTEXITCODE -eq 0
     }
     if (-not $ready) {
@@ -32,7 +32,7 @@ try {
         $action = 'create'
         $repair = @()
         if (Test-Path (Join-Path $prefix 'conda-meta')) { $action = 'install'; $repair = @('--force-reinstall') }
-        & $manager --no-rc -r (Join-Path $root 'cache') $action @repair -y -p $prefix --override-channels -c conda-forge python=3.9.6 pip
+        & $manager --no-rc -r (Join-Path $root 'cache') $action @repair -y -p $prefix --override-channels -c conda-forge python=3.12.15 pip
         if ($LASTEXITCODE -ne 0) { throw 'Runtime download or preparation failed. Check the messages above and retry.' }
     }
     $site = Join-Path $prefix 'Lib/site-packages'

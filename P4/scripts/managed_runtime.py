@@ -4,7 +4,6 @@ Only P4/var/runtime is managed. System interpreters and existing project venvs a
 never used as a readiness shortcut or modified. No credentials belong here.
 """
 import argparse
-import ast
 import contextlib
 import csv
 import hashlib
@@ -20,7 +19,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 DIRECTORY = ROOT / "P4/var/runtime"
-PYTHON_VERSION = "3.9.6"
+PYTHON_VERSION = "3.12.15"
 
 
 def process_environment(executable, source=None):
@@ -68,12 +67,27 @@ def preparation_lock(directory):
 
 
 def requirements(component):
-    if component in {"P1", "CUDA"}:
-        name = "requirements-gpu.txt" if component == "CUDA" else "requirements.txt"
-        return [line.strip() for line in (ROOT / "P1" / name).read_text(encoding="utf-8").splitlines()
-                if line.strip() and not line.lstrip().startswith("#")]
-    text = (ROOT / "P2/pyproject.toml").read_text(encoding="utf-8")
-    return ast.literal_eval(re.search(r"dependencies\s*=\s*(\[[\s\S]*?\])", text).group(1))
+    """Return the pinned dependency set for a component.
+
+    Every component installs from a committed lock export so both platforms
+    resolve to identical transitive versions instead of re-resolving ranges.
+    """
+    name = {
+        "P1": "requirements.lock.txt",
+        "CUDA": "requirements-gpu.lock.txt",
+    }.get(component)
+    if name:
+        path = ROOT / "P1" / name
+    else:
+        path = ROOT / "P2/requirements.lock.txt"
+    pins = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        # Hash-pinned exports end each requirement with a line-continuation
+        # backslash and list --hash= lines below it; keep only the pins.
+        text = line.strip().rstrip("\\").strip()
+        if text and not text.startswith(("#", "--")):
+            pins.append(text)
+    return pins
 
 
 class Manager:

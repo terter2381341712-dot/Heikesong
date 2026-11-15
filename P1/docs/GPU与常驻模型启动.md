@@ -8,7 +8,7 @@
 
 原 `profiles/ocr.default.v1.lock.json` 没有变更，旧 CPU 演示可继续运行。要在同一 Job 混用 Mac CPU 与 Windows CUDA，中心和全部节点都选择随仓库发布的 `profiles/heterogeneous`，并从 P2 的 `/api/task/v1/task-types` 读取新的 profile_id/digest。不要复制旧 Job 的 digest，不要在运行中的 Job 上替换目录。
 
-在 Mac 的 P1 目录中，沿用 README 的 Python 3.9.6 CPU 环境与令牌配置：
+在 Mac 的 P1 目录中，沿用 README 的 Python 3.12.15 CPU 环境与令牌配置：
 
 ```sh
 export RESOURCE_PROFILES_DIR="$PWD/profiles/heterogeneous"
@@ -23,12 +23,12 @@ export NODE_PROFILES_DIR="$PWD/profiles/heterogeneous"
 
 ## Windows NVIDIA 环境
 
-以下 PowerShell 命令在项目 P1 目录执行。先安装并核实 **Python 3.9.6**、兼容 NVIDIA 驱动、**CUDA 12.x 和 cuDNN 9.x**；DLL 必须可被进程发现。`nvidia-smi` 显示的 CUDA 版本表示驱动能力，不等于所需 CUDA/cuDNN DLL 已安装。
+以下 PowerShell 命令在项目 P1 目录执行。先安装并核实 **Python 3.12.15**、兼容 NVIDIA 驱动、**CUDA 12.x 和 cuDNN 9.x**；DLL 必须可被进程发现。`nvidia-smi` 显示的 CUDA 版本表示驱动能力，不等于所需 CUDA/cuDNN DLL 已安装。
 
 ```powershell
-py -3.9 --version  # 必须与锁文件中的完整版本 3.9.6 一致
+py -3.9 --version  # 必须与锁文件中的完整版本 3.12.15 一致
 py -3.9 -m venv .venv-gpu
-.\.venv-gpu\Scripts\python.exe -m pip install -r requirements-gpu.txt
+.\.venv-gpu\Scripts\python.exe -m pip install -r requirements-gpu.lock.txt
 .\.venv-gpu\Scripts\python.exe -m node_agent.gpu_probe --device-id 0 --output-dir .\var\gpu-probe
 ```
 
