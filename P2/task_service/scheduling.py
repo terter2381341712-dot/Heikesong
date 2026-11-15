@@ -1,4 +1,4 @@
-"""Work-conserving CPU/CUDA ranking from validated, node-specific observations.
+"""Work-conserving CPU/GPU ranking from validated, node-specific observations.
 
 No busy-node queue, GPU speed multiplier or CPU-utilization threshold is used.
 The estimates are heuristics; admission and cancellation still belong to P1.
@@ -9,7 +9,7 @@ import math
 
 from task_service.contract import canonical
 
-PROVIDERS = {"cpu": "CPUExecutionProvider", "cuda": "CUDAExecutionProvider"}
+PROVIDERS = {"cpu": "CPUExecutionProvider", "cuda": "CUDAExecutionProvider", "directml": "DmlExecutionProvider", "coreml": "CoreMLExecutionProvider"}
 
 
 def capability(node, job):

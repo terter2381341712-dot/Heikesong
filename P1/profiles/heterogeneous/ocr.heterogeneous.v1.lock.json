@@ -22,7 +22,9 @@
   ],
   "allowed_backends": [
     "cpu",
-    "cuda"
+    "cuda",
+    "directml",
+    "coreml"
   ],
   "output_schema": "OCRResult",
   "frozen_at": "2026-11-14T10:00:00Z",
@@ -37,6 +39,18 @@
       "python": "3.9.6",
       "rapidocr": "3.10.0",
       "onnxruntime-gpu": "1.19.2",
+      "pillow": "11.3.0"
+    },
+    "directml": {
+      "python": "3.9.6",
+      "rapidocr": "3.10.0",
+      "onnxruntime-directml": "1.19.2",
+      "pillow": "11.3.0"
+    },
+    "coreml": {
+      "python": "3.9.6",
+      "rapidocr": "3.10.0",
+      "onnxruntime": "1.19.2",
       "pillow": "11.3.0"
     }
   }

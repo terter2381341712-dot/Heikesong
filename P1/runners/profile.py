@@ -7,6 +7,7 @@ import platform
 from importlib.metadata import PackageNotFoundError, version
 
 import psutil
+from resource_service.backends import PROVIDERS, RUNTIME_PACKAGES
 
 
 class ProfileError(ValueError):
@@ -24,22 +25,22 @@ def load_locked_runner(raw: bytes, task_type: str, profile_id: str, digest: str,
         or profile["profile_id"] != profile_id
     ):
         raise ProfileError("PROFILE_MISMATCH", "节点锁文件与任务指定的 profile 不一致")
-    if task_type != "ocr.image.v1" or backend not in {"cpu", "cuda"} or backend not in profile["allowed_backends"]:
+    if task_type != "ocr.image.v1" or backend not in PROVIDERS or backend not in profile["allowed_backends"]:
         raise ProfileError("MODEL_LOAD_FAILED", "本节点缺少该 profile 的执行后端")
     if threads < 0 or device_id < 0:
         raise ProfileError("MODEL_LOAD_FAILED", "线程数和设备编号不能为负数")
     dependencies = profile.get("backend_dependencies", {}).get(backend, profile["dependencies"])
     if platform.python_version() != dependencies["python"]:
         raise ProfileError("MODEL_LOAD_FAILED", "Python 版本与 profile 锁文件不一致")
-    runtime_package = "onnxruntime-gpu" if backend == "cuda" else "onnxruntime"
+    runtime_package = RUNTIME_PACKAGES[backend]
     # These distributions install the same import namespace; mixing them is ambiguous.
-    opposite = "onnxruntime" if backend == "cuda" else "onnxruntime-gpu"
-    try:
-        version(opposite)
-    except PackageNotFoundError:
-        pass
-    else:
-        raise ProfileError("MODEL_LOAD_FAILED", f"请使用独立环境，仅安装 {runtime_package}")
+    for opposite in set(RUNTIME_PACKAGES.values()) - {runtime_package}:
+        try:
+            version(opposite)
+        except PackageNotFoundError:
+            pass
+        else:
+            raise ProfileError("MODEL_LOAD_FAILED", f"请使用独立环境，仅安装 {runtime_package}")
     for package in ("rapidocr", runtime_package, "pillow"):
         try:
             actual = version(package)

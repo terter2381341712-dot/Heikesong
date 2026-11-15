@@ -81,7 +81,7 @@ class Catalog:
                     or not re.fullmatch(r"[a-f0-9]{64}", model_sha)
                     or profile["weights_license_verified"] is not True
                     or not profile["allowed_backends"]
-                    or not set(profile["allowed_backends"]) <= {"cpu", "cuda"}
+                    or not set(profile["allowed_backends"]) <= {"cpu", "cuda", "directml", "coreml"}
                 ):
                     raise ValueError("profile 锁文件字段与目录不一致")
             except (OSError, ValueError, KeyError, TypeError):
@@ -112,4 +112,4 @@ class Catalog:
 
     def backend_allowed(self, profile_id: str, backend: str, provider: str) -> bool:
         return (backend in self._backends.get(profile_id, [])
-                and provider == {"cpu": "CPUExecutionProvider", "cuda": "CUDAExecutionProvider"}.get(backend))
+                and provider == {"cpu": "CPUExecutionProvider", "cuda": "CUDAExecutionProvider", "directml": "DmlExecutionProvider", "coreml": "CoreMLExecutionProvider"}.get(backend))

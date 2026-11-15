@@ -116,6 +116,7 @@ def test_upload_endpoint_requires_session_and_accepts_larger_image_payload(
 def panel(tmp_path, monkeypatch):
     monkeypatch.setattr(control, "lan_addresses", lambda: ["192.168.1.10"])
     p = control.Panel(tmp_path / "panel")
+    p.compute["auto_devices"] = False
     p.config = {
         "resource_url": "http://127.0.0.1:1",
         "task_url": "http://127.0.0.1:2",
@@ -219,6 +220,7 @@ def test_http_panel_locality_session_and_origin(panel, server):
 
 def test_real_http_pair_and_automatic_node_configuration(panel, server, tmp_path, monkeypatch):
     node = control.Panel(tmp_path / "mac-like-node")
+    node.compute["auto_devices"] = False
     monkeypatch.setattr(node.runtime, "ensure", lambda *args: sys.executable)
     commands = []
 

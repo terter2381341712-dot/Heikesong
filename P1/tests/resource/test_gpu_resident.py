@@ -202,7 +202,7 @@ def test_cuda_dependencies_use_gpu_distribution(monkeypatch):
     monkeypatch.setattr(profile.platform, "python_version", lambda: expected["python"])
 
     def version(package):
-        if package == "onnxruntime":
+        if package not in expected:
             raise PackageNotFoundError(package)
         return expected[package]
 

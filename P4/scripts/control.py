@@ -355,6 +355,7 @@ class Runtime:
 class Panel:
     def __init__(self, directory, port=8003, web_port=5173, compute_path=None):
         self.compute = compute_config.load(compute_path)
+        self.node_plan = None
         self.directory = directory.resolve()
         self.directory.mkdir(parents=True, exist_ok=True)
         identity_file = self.directory / "identity.json"
@@ -432,7 +433,10 @@ class Panel:
                 "--control-file",
                 str(self.directory / "node-control.json"),
             ]
-            argv += compute_config.node_arguments(self.compute)
+            argv += compute_config.node_arguments(getattr(self, "node_compute", self.compute))
+            if self.node_plan:
+                save(self.directory / "node-plan.json", self.node_plan)
+                argv += ["--plan-file", str(self.directory / "node-plan.json")]
         env = cluster.environment(
             self.config, role, self.directory / "data", self.address, 8001, 8002, self.name
         )
@@ -642,12 +646,28 @@ class Panel:
     def ensure_node(self):
         """The CUDA node must not replace the resource service's CPU environment."""
         node = self.compute["node"]
+        self.node_compute = self.compute
+        self.node_plan = None
+        if self.compute["auto_devices"] and not node["python"]:
+            import auto_compute
+            import copy
+            executable = self.runtime.ensure("P1", self.progress)
+            if not executable:
+                return
+            self.runtime.selected["node"] = executable
+            self.node_plan = auto_compute.build(self.compute, executable, self.identity,
+                self.progress, managed_runtime.Manager(runner=self.runtime.setup_command))
+            self.node_compute = copy.deepcopy(self.compute)
+            if node["backend"] != "cpu":
+                self.node_compute["node"] = copy.deepcopy(compute_config.DEFAULTS["node"])
+            return
         if node["python"]:
             executable = compute_config.node_interpreter(self.compute, node["python"])
             compute_config.validate_node_runtime(self.compute, executable)
             self.runtime.selected["node"] = str(executable)
-        elif node["backend"] == "cuda":
-            executable = managed_runtime.Manager(runner=self.runtime.setup_command).ensure("CUDA", self.progress)
+        elif node["backend"] in {"cuda", "directml"}:
+            component = "CUDA" if node["backend"] == "cuda" else "DML"
+            executable = managed_runtime.Manager(runner=self.runtime.setup_command).ensure(component, self.progress)
             compute_config.validate_node_runtime(self.compute, executable)
             self.runtime.selected["node"] = executable
         else:
@@ -874,6 +894,7 @@ class Panel:
                     "connection": "ONLINE",
                     "mode": node["mode"],
                     "worker_id": node["worker_id"],
+                      **({"worker_ids": node["worker_ids"], "devices": node.get("devices", [])} if "worker_ids" in node else {}),
                 }
             return {"connection": "STALE", "mode": None, "worker_id": node["worker_id"]}
         except (OSError, ValueError, KeyError):

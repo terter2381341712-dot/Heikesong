@@ -68,10 +68,14 @@ def preparation_lock(directory):
 
 
 def requirements(component):
-    if component in {"P1", "CUDA"}:
+    if component in {"P1", "CUDA", "DML", "COREML"}:
         name = "requirements-gpu.txt" if component == "CUDA" else "requirements.txt"
-        return [line.strip() for line in (ROOT / "P1" / name).read_text(encoding="utf-8").splitlines()
+        result = [line.strip() for line in (ROOT / "P1" / name).read_text(encoding="utf-8").splitlines()
                 if line.strip() and not line.lstrip().startswith("#")]
+        if component in {"DML", "COREML"}:
+            package = "onnxruntime-directml==1.19.2" if component == "DML" else "onnxruntime==1.19.2"
+            result = [package if line.startswith("onnxruntime==") else line for line in result]
+        return result
     text = (ROOT / "P2/pyproject.toml").read_text(encoding="utf-8")
     return ast.literal_eval(re.search(r"dependencies\s*=\s*(\[[\s\S]*?\])", text).group(1))
 
@@ -135,7 +139,7 @@ if sys.argv[4]:
 """
             modules = ["ssl", "fastapi", "uvicorn", "httpx"]
             modules += ["rapidocr", "onnxruntime", "PIL", "psutil", "multipart"] if component != "P2" else ["jsonschema", "yaml"]
-            opposite = "onnxruntime" if component == "CUDA" else "onnxruntime-gpu" if component == "P1" else ""
+            opposite = "onnxruntime" if component in {"CUDA", "DML"} else "onnxruntime-gpu" if component in {"P1", "COREML"} else ""
             argv = [str(executable), "-I", "-c", code, version, json.dumps(requirements(component)), json.dumps(modules), opposite]
         try:
             result = subprocess.run(argv, capture_output=True, timeout=45, env=process_environment(executable))
@@ -146,10 +150,14 @@ if sys.argv[4]:
             return False
 
     def ensure(self, component, progress=print):
-        if component not in {"P1", "P2", "CUDA", "web"}:
+        if component not in {"P1", "P2", "CUDA", "DML", "COREML", "web"}:
             raise ValueError("未知运行环境")
         if component == "CUDA" and platform.system() == "Darwin":
             raise ValueError("本机不支持 NVIDIA CUDA，请选择 CPU 计算配置。")
+        if component == "DML" and platform.system() != "Windows":
+            raise ValueError("DirectML 需要 Windows。")
+        if component == "COREML" and platform.system() != "Darwin":
+            raise ValueError("CoreML 需要 macOS。")
         with preparation_lock(self.directory):
             executable = self.executable(component)
             progress(f"检查应用专用 {component} 环境…")
@@ -187,8 +195,8 @@ if sys.argv[4]:
                             (site / "_edge_private_runtime.pth").write_text(
                                 "import os,sys; os._edge_dll_handles = [os.add_dll_directory(os.path.join(sys.prefix,'Library','bin'))]\n",
                                 encoding="utf-8")
-                        if component in {"P1", "CUDA"}:
-                            opposite = "onnxruntime" if component == "CUDA" else "onnxruntime-gpu"
+                        if component in {"P1", "CUDA", "DML", "COREML"}:
+                            opposite = "onnxruntime" if component in {"CUDA", "DML"} else "onnxruntime-gpu"
                             self.command([executable, "-I", "-m", "pip", "--isolated", "uninstall", "-y", opposite], output)
                         if portable:
                             # Embedded Python ignores pip's temporary PYTHONPATH build

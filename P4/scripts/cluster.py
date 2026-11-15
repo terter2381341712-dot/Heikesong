@@ -224,7 +224,7 @@ def run(args):
         if explicit or args.plan:
             executable = interpreter_for(role, args.p1_python, args.p2_python)
         else:
-            component = "P2" if role == "task" else "CUDA" if role == "node" and compute["node"]["backend"] == "cuda" else "P1"
+            component = "P2" if role == "task" else {"cuda": "CUDA", "directml": "DML"}.get(compute["node"]["backend"], "P1") if role == "node" else "P1"
             executable = Path(managed_runtime.Manager().ensure(component))
         if role == "node":
             executable = compute_config.node_interpreter(compute, executable)

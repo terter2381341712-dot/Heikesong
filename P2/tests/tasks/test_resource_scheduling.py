@@ -349,6 +349,18 @@ async def test_periodic_prepare_discovers_cold_accelerator_without_delaying_read
     assert rig.mock.preparation_posts[0]["worker_id"] == cold["worker_id"]
 
 
+@pytest.mark.parametrize("backend", ["cuda", "directml", "coreml"])
+async def test_first_small_job_prepares_known_gpu_immediately_while_cpu_runs(rig, backend):
+    cold = rig.mock.nodes[1]
+    cold["capabilities"] = [copy.deepcopy(CAPABILITIES["not_prepared_null"])]
+    cold["hardware"].setdefault("manual_labels", {})["execution_backend"] = backend
+    job = await rig.create(["mock_image_1"])
+    await rig.tick()
+    assert decision(rig, job)["worker_id"] == rig.mock.nodes[0]["worker_id"]
+    assert len(rig.mock.preparation_posts) == 1
+    assert rig.mock.preparation_posts[0]["worker_id"] == cold["worker_id"]
+
+
 async def test_sample_and_success_commit_atomically_on_interrupted_commit(rig, monkeypatch):
     rig.mock.worker_timings = {n["worker_id"]: timing() for n in rig.mock.nodes}
     job = await rig.create(["mock_image_1"])

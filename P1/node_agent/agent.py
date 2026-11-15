@@ -57,8 +57,10 @@ class Agent:
                  cpu_budget: Optional[int] = None, slot_id: Optional[int] = None,
                  prefetch: Optional[int] = None,
                  gpu_lane_vram_bytes: Optional[int] = None) -> None:
-        if backend not in {"cpu", "cuda"} or device_id < 0 or threads < 0:
+        if backend not in {"cpu", "cuda", "directml", "coreml"} or device_id < 0 or threads < 0:
             raise ValueError("无效的 backend/device_id/threads")
+        if backend in {"directml", "coreml"} and slots != 1:
+            raise ValueError("DirectML/CoreML 每张卡使用一个执行槽")
         if gpu_lane_vram_bytes is not None and gpu_lane_vram_bytes < 0:
             raise ValueError("每路显存字节不能为负")
         cores = os.cpu_count() or 1
@@ -144,13 +146,15 @@ class Agent:
         backoff = 1.0
         while not self._stop:
             try:
+                hardware = detect_hardware(self.device_id)
+                hardware.setdefault("manual_labels", {})["execution_backend"] = self.backend
                 resp = self._client.post(
                     f"{self.server}/api/resource/internal/v1/nodes/register",
                     headers={"Authorization": f"Bearer {self.join_token}"},
                     json={
                         "worker_id": self._load_worker_id(),
                         "name": self.name,
-                        "hardware": detect_hardware(self.device_id),
+                        "hardware": hardware,
                         "prefetch_capacity": self.prefetch_capacity,
                         "max_slots": self.slots,
                         "threads_per_slot": self.threads,
@@ -465,6 +469,8 @@ class Agent:
                 if " ".join(result["text"].upper().split()) == label:
                     matches += 1
         passed = matches == len(samples)
+        if passed and self.backend in {"directml", "coreml"}:
+            runner.verify_acceleration()
         return {
             "sample_count": len(samples),
             "non_empty": non_empty,
@@ -604,7 +610,7 @@ def main() -> None:
     parser.add_argument("--server", default=os.environ.get("RESOURCE_BASE_URL", "http://127.0.0.1:8001"))
     parser.add_argument("--name", default=socket.gethostname()[:80])
     parser.add_argument("--interactive", action="store_true", help="默认不注册；输入 on/off 开关共享")
-    parser.add_argument("--backend", choices=["cpu", "cuda"], default="cpu",
+    parser.add_argument("--backend", choices=["cpu", "cuda", "directml", "coreml"], default="cpu",
                         help="显式选择执行后端；CUDA 不可用时失败，不静默降级")
     parser.add_argument("--device-id", type=int, default=0, help="CUDA 设备编号")
     parser.add_argument("--threads", type=int, default=0, help="CPU 推理线程预算；0 使用运行时默认")

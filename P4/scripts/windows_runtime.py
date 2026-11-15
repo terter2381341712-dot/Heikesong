@@ -82,7 +82,7 @@ def rename_runtime(source, destination):
 
 
 def install(directory, component):
-    if component not in {"bootstrap", "P1", "P2", "web"}:
+    if component not in {"bootstrap", "P1", "P2", "DML", "web"}:
         raise ValueError("Unknown portable runtime")
     directory = Path(directory).resolve()
     directory.mkdir(parents=True, exist_ok=True)
@@ -127,7 +127,7 @@ def install(directory, component):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--directory", type=Path, required=True)
-    parser.add_argument("--component", choices=["P1", "P2", "web"], required=True)
+    parser.add_argument("--component", choices=["P1", "P2", "DML", "web"], required=True)
     parser.add_argument("--python-version", choices=[PYTHON_VERSION], default=PYTHON_VERSION)
     args = parser.parse_args()
     install(args.directory, args.component)

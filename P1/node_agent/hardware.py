@@ -66,6 +66,11 @@ def detect_hardware(device_id: int = 0) -> dict:
     import psutil
 
     gpu_name, gpu_vram = _gpu(device_id)
+    backend = os.environ.get("P4_EXECUTION_BACKEND")
+    if backend in {"directml", "coreml"}:
+        gpu_name = os.environ.get("P4_ADAPTER_NAME") or None
+        raw_memory = os.environ.get("P4_ADAPTER_MEMORY", "")
+        gpu_vram = int(raw_memory) if raw_memory.isdigit() and int(raw_memory) > 0 else None
     memory = psutil.virtual_memory()
     return {
         "os": f"{platform.system()} {platform.release()}",
@@ -77,6 +82,6 @@ def detect_hardware(device_id: int = 0) -> dict:
         "gpu_name": gpu_name,
         "gpu_vram_bytes": gpu_vram,
         "gpu_info_source": "detected" if gpu_name else "unavailable",
-        "manual_labels": {},
+        "manual_labels": {"physical_device_id": os.environ["P4_PHYSICAL_DEVICE_ID"], "execution_backend": backend or "cpu"} if os.environ.get("P4_PHYSICAL_DEVICE_ID") else {},
         "detection_errors": [],
     }

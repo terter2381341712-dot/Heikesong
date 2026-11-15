@@ -1673,6 +1673,8 @@ components:
             enum:
             - cpu
             - cuda
+            - directml
+            - coreml
           - type: 'null'
         runtime_provider:
           anyOf:
@@ -1739,6 +1741,7 @@ components:
           type: string
           enum:
           - nvidia-smi
+          - windows-pdh
           - unavailable
       required:
       - sampled_at
@@ -2796,6 +2799,8 @@ components:
           enum:
           - cpu
           - cuda
+          - directml
+          - coreml
         started_at:
           type: string
           format: date-time
@@ -2934,6 +2939,18 @@ components:
               additionalProperties:
                 type: string
                 minLength: 1
+            directml:
+              type: object
+              minProperties: 1
+              additionalProperties:
+                type: string
+                minLength: 1
+            coreml:
+              type: object
+              minProperties: 1
+              additionalProperties:
+                type: string
+                minLength: 1
         preprocessing:
           type: string
           minLength: 1
@@ -2960,6 +2977,8 @@ components:
             enum:
             - cpu
             - cuda
+            - directml
+            - coreml
           minItems: 1
           uniqueItems: true
         output_schema:

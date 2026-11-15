@@ -6,10 +6,13 @@
 from __future__ import annotations
 
 import hashlib
+import json
+import os
 from pathlib import Path
 from typing import Any, Optional
 
 import numpy as np
+from resource_service.backends import PROVIDERS, GPU_BACKENDS
 
 MODEL_NAMES = {
     "Det": "PP-OCRv6_det_small.onnx",
@@ -59,20 +62,22 @@ class RapidOCRRunner:
     task_type = "ocr.image.v1"
 
     def __init__(self, threads: int = 0, backend: str = "cpu", device_id: int = 0) -> None:
-        if backend not in {"cpu", "cuda"} or device_id < 0:
+        if backend not in PROVIDERS or device_id < 0:
             raise ValueError("无效的 OCR 后端或 GPU 编号")
         self._engine: Optional[Any] = None
         self._threads = threads
         self.backend = backend
         self.device_id = device_id
+        self._acceleration_checked = False
 
     def ensure_engine(self) -> Any:
         if self._engine is None:
             from rapidocr import RapidOCR
             import onnxruntime as ort
 
-            if self.backend == "cuda" and "CUDAExecutionProvider" not in ort.get_available_providers():
-                raise ValueError("CUDAExecutionProvider 不可用；不允许静默降级 CPU")
+            expected = PROVIDERS[self.backend]
+            if expected not in ort.get_available_providers():
+                raise ValueError(f"{expected} 不可用；不允许静默降级 CPU")
 
             paths = {path.name: path for path in model_files()}
             params = {
@@ -80,6 +85,34 @@ class RapidOCRRunner:
             }
             params["EngineConfig.onnxruntime.use_cuda"] = self.backend == "cuda"
             params["EngineConfig.onnxruntime.cuda_ep_cfg.device_id"] = self.device_id
+            params["EngineConfig.onnxruntime.use_dml"] = False
+            params["EngineConfig.onnxruntime.use_coreml"] = False
+            accelerator_sessions = {}
+            if self.backend in {"directml", "coreml"}:
+                # RapidOCR accepts explicit per-stage sessions. DirectML requires
+                # sequential execution and disabled memory patterns.
+                for stage, name in MODEL_NAMES.items():
+                    options = ort.SessionOptions()
+                    directory = Path(os.environ.get("NODE_AGENT_DATA_DIR", ".")) / "provider-evidence"
+                    directory.mkdir(parents=True, exist_ok=True)
+                    options.enable_profiling = True
+                    options.profile_file_prefix = str(directory / stage)
+                    if self._threads:
+                        options.intra_op_num_threads = self._threads
+                        options.inter_op_num_threads = 1
+                    if self.backend == "directml":
+                        options.enable_mem_pattern = False
+                        options.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
+                        provider_options = {"device_id": self.device_id}
+                    else:
+                        # ORT 1.19.2 is the last Mac wheel supporting Python 3.9.
+                        # CoreML's device choice is system-managed (GPU/ANE/CPU);
+                        # do not pass newer options that this version ignores.
+                        provider_options = {"flags": "COREML_FLAG_CREATE_MLPROGRAM"}
+                    session = ort.InferenceSession(str(paths[name]), sess_options=options,
+                        providers=[(expected, provider_options), "CPUExecutionProvider"])
+                    session.disable_fallback()
+                    accelerator_sessions[stage] = session
             if self._threads:
                 params["EngineConfig.onnxruntime.intra_op_num_threads"] = self._threads
                 params["EngineConfig.onnxruntime.inter_op_num_threads"] = 1
@@ -87,27 +120,46 @@ class RapidOCRRunner:
             self._engine._load_det_model()
             self._engine._load_cls_model()
             self._engine._load_rec_model()
+            for stage, session in accelerator_sessions.items():
+                target = {"Det": self._engine.text_det, "Cls": self._engine.text_cls,
+                          "Rec": self._engine.text_rec}[stage]
+                target.session.session = session
             self._check_providers()
         return self._engine
 
     def _check_providers(self) -> str:
         engine = self._engine
-        expected = "CUDAExecutionProvider" if self.backend == "cuda" else "CPUExecutionProvider"
+        expected = PROVIDERS[self.backend]
         sessions = [stage.session.session for stage in (engine.text_det, engine.text_cls, engine.text_rec)]
         providers = [
             session.get_providers() for session in sessions
         ]
         if any(not active or active[0] != expected for active in providers):
             raise ValueError(f"三组 OCR 模型必须以 {expected} 为首选实际 provider：{providers}")
-        if self.backend == "cuda":
+        if self.backend in GPU_BACKENDS:
             for session in sessions:
                 # Keep CPU graph partition fallback, but forbid retrying an entire failed
                 # CUDA session on CPU while still advertising this node as CUDA-ready.
                 session.disable_fallback()
                 actual = session.get_provider_options().get(expected, {}).get("device_id")
-                if actual is None or int(actual) != self.device_id:
+                if self.backend == "cuda" and (actual is None or int(actual) != self.device_id):
                     raise ValueError("CUDA 会话实际设备编号与请求不一致")
         return expected
+
+    def verify_acceleration(self):
+        """Reject a nominal GPU route whose calibration only executed CPU nodes."""
+        if self.backend not in {"directml", "coreml"} or self._acceleration_checked:
+            return
+        expected = PROVIDERS[self.backend]
+        counts = {}
+        for label, stage in (("det", self._engine.text_det), ("cls", self._engine.text_cls), ("rec", self._engine.text_rec)):
+            path = Path(stage.session.session.end_profiling())
+            events = json.loads(path.read_text(encoding="utf-8"))
+            counts[label] = sum(e.get("cat") == "Node" and e.get("args", {}).get("provider") == expected for e in events)
+        if not sum(counts.values()):
+            raise ValueError(f"{expected} 自测未观察到加速后端算子执行，不能作为 GPU 接单：{counts}")
+        print(f"[GPU] provider={expected} calibration_operator_counts={counts}; unsupported operators may execute on CPU", flush=True)
+        self._acceleration_checked = True
 
     def runtime_provider(self) -> str:
         self.ensure_engine()

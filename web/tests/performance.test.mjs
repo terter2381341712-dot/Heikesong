@@ -5,7 +5,7 @@ import { performancePanel, jobPerformance } from '../public/performance.js';
 test('CPU and GPU stay visible and missing measurements are not invented', () => {
   const html = performancePanel({worker_id: 'device'}, null, '');
   assert.match(html, /CPU/);
-  assert.match(html, /GPU · CUDA/);
+  assert.match(html, /<h5>GPU<\/h5>/);
   assert.match(html, /— 张\/秒/);
   assert.doesNotMatch(html, /0\.00%/);
   assert.match(html, /ΣPᵢ/);
@@ -28,9 +28,15 @@ test('job progress shows per-device CPU/GPU activity for the selected job only',
   const job = {job_id: 'job', tasks: [{dispatches: [{worker_id: 'device'}]}]};
   const nodes = [{worker_id: 'device', name: '<device>', connection: 'ONLINE', mode: 'ACTIVE', telemetry: {cpu_percent: 30}}];
   const snapshot = {realtime: {job_id: 'job', devices: {device: {cpu: {processing_images_per_second: 2, completed: 4, active_executions: 1}}}}};
+  snapshot.window_start = '2026-11-15T04:00:00Z';
+  snapshot.window_end = '2026-11-15T04:05:00Z';
+  snapshot.utilization = {device: {cpu_percent: {mean: 20, samples: 2}, gpu_percent: {mean: null, samples: 0}}};
   const html = jobPerformance(job, nodes, snapshot);
-  assert.ok(html.includes('2.000 张/秒') && html.includes('30.0%'));
-  assert.ok(html.includes('GPU · CUDA') && html.includes('&lt;device&gt;'));
+  assert.ok(html.includes('2.000 张/秒') && html.includes('20.0% · 2 次采样'));
+  assert.ok(!html.includes('30.0%'));
+  assert.ok(html.includes('未采样') && html.includes('近5分钟'));
+  assert.ok(html.includes('12:00:00') && html.includes('12:05:00'));
+  assert.ok(html.includes('<th>GPU</th>') && html.includes('&lt;device&gt;'));
   snapshot.realtime.job_id = 'another-job';
   assert.ok(!jobPerformance(job, nodes, snapshot).includes('2.000 张/秒'));
 });
@@ -39,4 +45,12 @@ test('runtime errors are escaped and mock data cannot be imported', () => {
   const html = performancePanel({worker_id: 'device'}, null, '<script>unsafe</script>', false, true);
   assert.ok(html.includes('&lt;script&gt;unsafe&lt;/script&gt;'));
   assert.ok(!html.includes('data-performance-import'));
+});
+
+test('integrated graphics throughput appears under the unified GPU column', () => {
+  const node = {worker_id: 'intel', name: 'Intel GPU', connection: 'ONLINE', mode: 'ACTIVE', capabilities: [{backend: 'directml'}]};
+  const snapshot = {realtime: {job_id: 'job', devices: {intel: {directml: {processing_images_per_second: 3.5}}}}};
+  const html = jobPerformance({job_id: 'job', tasks: []}, [node], snapshot);
+  assert.ok(html.includes('<th>GPU</th>') && html.includes('3.500 张/秒') && html.includes('DirectML'));
+  assert.ok(!html.includes('GPU · CUDA'));
 });

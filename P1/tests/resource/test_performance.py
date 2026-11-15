@@ -74,6 +74,15 @@ def test_same_device_cpu_gpu_are_not_counted_twice_in_one_pool():
         performance.evaluate([report("pool", [("same", "cpu"), ("same", "cuda")], 5)])
 
 
+def test_two_logical_workers_on_same_physical_computer_are_not_two_devices():
+    data = report("pool", [("cpu-worker", "cpu"), ("gpu-worker", "directml")], 5)
+    for row in data["rounds"]:
+        for node in row["resources"]:
+            node["hardware"]["manual_labels"] = {"physical_device_id": "one-computer"}
+    with pytest.raises(ValueError, match="物理"):
+        performance.evaluate([data])
+
+
 def test_import_requires_user_permission_and_persists(client):
     path = "/api/resource/v1/performance"
     assert client.get(path).status_code == 401

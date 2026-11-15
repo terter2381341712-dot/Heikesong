@@ -12,10 +12,11 @@ ROOT = Path(__file__).resolve().parents[2]
 CONTRACT_VERSION = "0.4.0"
 DEFAULT_PATH = ROOT / "P4/var/compute.json"
 DEFAULTS = {
+    "auto_devices": True,
     "profile_set": "default",
     "node": {"backend": "cpu", "slots": 1, "threads": 0, "cpu_budget": None,
              "device_id": 0, "prefetch": 0, "gpu_lane_vram_bytes": None, "python": None},
-    "scheduler": {"policy": "round_robin"},
+    "scheduler": {"policy": "resource_aware"},
 }
 
 
@@ -40,8 +41,10 @@ def load(path=None):
     n = result["node"]
     if result["profile_set"] not in ("default", "heterogeneous"):
         raise ValueError("profile_set 必须为 default 或 heterogeneous")
-    if n["backend"] not in ("cpu", "cuda"):
-        raise ValueError("node.backend 必须为 cpu 或 cuda")
+    if type(result["auto_devices"]) is not bool:
+        raise ValueError("auto_devices must be a boolean")
+    if n["backend"] not in ("cpu", "cuda", "directml", "coreml"):
+        raise ValueError("node.backend 必须为 cpu/cuda/directml/coreml")
     if result["scheduler"]["policy"] not in ("round_robin", "resource_aware"):
         raise ValueError("scheduler.policy 必须为 round_robin 或 resource_aware")
     for key, minimum, maximum in (("slots", 1, 64), ("threads", 0, None),
@@ -69,6 +72,8 @@ def load(path=None):
             raise ValueError("CUDA 节点须选择 heterogeneous profile")
         if n["slots"] > 1 and not n["gpu_lane_vram_bytes"]:
             raise ValueError("GPU 多路必须配置实测 gpu_lane_vram_bytes")
+    if n["backend"] in {"directml", "coreml"} and n["slots"] != 1:
+        raise ValueError("DirectML/CoreML 每张卡使用一个执行槽")
     if n["python"] is not None:
         if not isinstance(n["python"], str) or not n["python"].strip():
             raise ValueError("node.python 必须为解释器路径")
@@ -100,8 +105,8 @@ def validate_node_runtime(config, executable):
     backend = config["node"]["backend"]
     profile = json.loads(next(profiles(config).glob("*.lock.json")).read_bytes())
     deps = profile.get("backend_dependencies", {}).get(backend, profile["dependencies"])
-    expected = {k: v for k, v in deps.items() if k in {"rapidocr", "onnxruntime", "onnxruntime-gpu", "pillow"}}
-    opposite = "onnxruntime" if backend == "cuda" else "onnxruntime-gpu"
+    expected = {k: v for k, v in deps.items() if k in {"rapidocr", "onnxruntime", "onnxruntime-gpu", "onnxruntime-directml", "pillow"}}
+    opposite = "onnxruntime" if backend in {"cuda", "directml"} else "onnxruntime-gpu"
     code = """import importlib.metadata as m, json, platform, sys
 expected=json.loads(sys.argv[1]); opposite=sys.argv[2]
 installed={k:m.version(k) for k in expected}

@@ -18,7 +18,7 @@ def write(tmp_path, body):
 def test_defaults_preserve_cpu_single_slot_and_disable_prefetch(tmp_path):
     c = config.load(tmp_path / "absent.json")
     assert c["node"]["slots"] == 1 and c["node"]["backend"] == "cpu"
-    assert c["node"]["prefetch"] == 0 and c["scheduler"]["policy"] == "round_robin"
+    assert c["node"]["prefetch"] == 0 and c["scheduler"]["policy"] == "resource_aware"
 
 
 @pytest.mark.parametrize("body", [
@@ -59,7 +59,7 @@ def test_multislot_parameters_reach_managed_node(tmp_path, monkeypatch):
     assert role == "node" and argv[argv.index("--slots") + 1] == "2"
     assert argv[argv.index("--cpu-budget") + 1] == "4"
     assert argv[argv.index("--prefetch") + 1] == "0"
-    assert env["TASK_SCHEDULER_POLICY"] == "round_robin"
+    assert env["TASK_SCHEDULER_POLICY"] == "resource_aware"
     assert env["JOIN_TOKEN"] == "test-only" and "DEMO_TOKEN" not in env
 
 

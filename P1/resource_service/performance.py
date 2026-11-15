@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from .db import parse_json
 from .timeutil import iso, utcnow
 
-BACKENDS = ("cpu", "cuda")
+BACKENDS = ("cpu", "cuda", "directml", "coreml")
 
 
 def precise(value):
@@ -74,6 +74,10 @@ def evaluate(reports):
             if started.tzinfo is None or finished.tzinfo is None or abs((finished - started).total_seconds() - duration) > 0.01:
                 raise ValueError("测量窗口与报告时长不一致，请用新版吞吐工具生成报告")
             current = dict(configuration(n, row["profile_digest"]) for n in row["resources"])
+            physical = [c["hardware"].get("manual_labels", {}).get("physical_device_id") or worker
+                        for (worker, _), c in current.items()]
+            if len(set(physical)) != len(physical):
+                raise ValueError("同一设备（物理电脑）的CPU/GPU逻辑资源不能冒充多台设备基线；请按物理设备汇总测量")
             if len(current) != len(row["resources"]) or len({k[0] for k in current}) != len(current):
                 raise ValueError("同一轮不能把同一设备的CPU和GPU重复计为两台设备")
             if not current or set(row["workers"]) != {k[0] for k in current}:
@@ -89,7 +93,7 @@ def evaluate(reports):
                   "profile_digest": next(iter(configs.values()))["profile_digest"], "rounds": len(rounds)}
         group = report["group"]
         if group in ("cpu", "gpu"):
-            if len(configs) != 1 or next(iter(configs))[1] != ("cpu" if group == "cpu" else "cuda"):
+            if len(configs) != 1 or (next(iter(configs))[1] == "cpu") != (group == "cpu"):
                 raise ValueError("单机报告须恰好包含对应CPU或GPU的一台设备")
             key = next(iter(configs))
             if key in baselines:

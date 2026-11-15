@@ -592,27 +592,22 @@ class TaskService:
                                     for w, deadline in self.store.get(job_id)["cooldowns"].items()
                                 }
                             )
-                            # Periodically prepare one cold node too: a steady stream of small
-                            # Jobs must not leave a newly joined GPU forever unmeasured.
+                            # Start all newly joined accelerator preparations at once.
+                            # Ready CPU work is already dispatched; even a small first
+                            # batch must not leave every GPU waiting for eight dispatches.
                             if (
                                 cold
                                 and self.settings.scheduler_policy == "resource_aware"
-                                and self.store.scheduling_sequence()
-                                % self.settings.exploration_interval
-                                == 0
                             ):
-                                target = min(
-                                    cold,
-                                    key=lambda n: (
-                                        not bool(n["hardware"].get("gpu_name")),
-                                        n["worker_id"],
-                                    ),
-                                )
-                                try:
-                                    busy[target["worker_id"]] = await self._prepare(target, job)
-                                except (DependencyUnavailable, P1Rejected):
-                                    uncertain.add(target["worker_id"])
-                                    busy[target["worker_id"]] = "模型准备接纳结果待对账"
+                                targets = [n for n in cold if n["hardware"].get("manual_labels", {}).get("execution_backend") in {"cuda", "directml", "coreml"}]
+                                if not targets and self.store.scheduling_sequence() % self.settings.exploration_interval == 0:
+                                    targets = [min(cold, key=lambda n: (not bool(n["hardware"].get("gpu_name")), n["worker_id"]))]
+                                for target in targets:
+                                    try:
+                                        busy[target["worker_id"]] = await self._prepare(target, job)
+                                    except (DependencyUnavailable, P1Rejected):
+                                        uncertain.add(target["worker_id"])
+                                        busy[target["worker_id"]] = "模型准备接纳结果待对账"
                         else:
                             # Ready slots run immediately; cold nodes are prepared when demand exceeds them.
                             for node in cold:

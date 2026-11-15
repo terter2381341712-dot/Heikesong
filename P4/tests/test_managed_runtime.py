@@ -188,7 +188,7 @@ def test_cuda_can_select_automatic_environment(tmp_path):
 
 def test_auto_cuda_does_not_replace_resource_interpreter(tmp_path, monkeypatch):
     path = tmp_path / "compute.json"
-    path.write_text(json.dumps({"profile_set": "heterogeneous", "node": {"backend": "cuda"}}))
+    path.write_text(json.dumps({"auto_devices": False, "profile_set": "heterogeneous", "node": {"backend": "cuda"}}))
     panel = control.Panel(tmp_path / "panel", compute_path=path)
     panel.runtime.selected["P1"] = "/private/cpu/python"
     calls = []

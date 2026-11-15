@@ -144,7 +144,7 @@ def measure(args):
             providers = {c.get("backend") for n in nodes if n["worker_id"] in row["workers"]
                          for c in n["capabilities"] if c.get("profile_digest") == row["profile_digest"] and c.get("verified")}
             row["observed_backends"] = sorted(p for p in providers if p)
-            if args.group in {"cpu", "gpu"} and providers != {"cpu" if args.group == "cpu" else "cuda"}:
+            if args.group in {"cpu", "gpu"} and (providers != {"cpu"} if args.group == "cpu" else (not providers or not providers <= {"cuda", "directml", "coreml"})):
                 raise ValueError("实际计算后端与测试组不符")
             # Record actual snapshots, not just the client's declared compute file.
             row["resources"] = [{k:n.get(k) for k in ("worker_id", "hardware", "max_slots", "threads_per_slot", "cpu_thread_budget", "prefetch_capacity", "capabilities")} for n in nodes if n["worker_id"] in row["workers"]]

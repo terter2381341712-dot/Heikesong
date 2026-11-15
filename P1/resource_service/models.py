@@ -53,7 +53,7 @@ class TelemetryModel(_Strict):
     ram_used_bytes: Optional[int] = Field(default=None, ge=0)
     gpu_percent: Optional[float] = Field(default=None, ge=0, le=100)
     gpu_memory_used_bytes: Optional[int] = Field(default=None, ge=0)
-    gpu_metric_source: Literal["nvidia-smi", "unavailable"] = "unavailable"
+    gpu_metric_source: Literal["nvidia-smi", "windows-pdh", "unavailable"] = "unavailable"
 
 
 class CalibrationModel(_Strict):
@@ -69,7 +69,7 @@ class CapabilityModel(_Strict):
     profile_digest: Optional[str] = Field(default=None, pattern=HEX64_PAT)
     state: Literal["UNAVAILABLE", "NOT_PREPARED", "PREPARING", "READY", "ERROR"]
     model_cached: bool
-    backend: Optional[Literal["cpu", "cuda"]] = None
+    backend: Optional[Literal["cpu", "cuda", "directml", "coreml"]] = None
     runtime_provider: Optional[str] = None
     model_sha256: Optional[str] = Field(default=None, pattern=HEX64_PAT)
     verified: bool
@@ -86,13 +86,15 @@ class RegisterRequest(_Strict):
     max_slots: int = Field(default=1, ge=1, le=64)
     threads_per_slot: int = Field(default=0, ge=0)
     cpu_thread_budget: int = Field(default=0, ge=0)
-    backend: Optional[Literal["cpu", "cuda"]] = None
+    backend: Optional[Literal["cpu", "cuda", "directml", "coreml"]] = None
     # GPU 逻辑多路：每路（每 session）实测显存字节，服务端显存预算准入用。
     # 仅 backend=="cuda" 且 max_slots>1 时必填；CPU 路径忽略该字段。
     gpu_lane_vram_bytes: Optional[int] = Field(default=None, ge=0)
 
     @model_validator(mode="after")
     def validate_budget(self):
+        if self.backend in {"directml", "coreml"} and self.max_slots > 1:
+            raise ValueError("DirectML/CoreML 每个设备只允许一个执行槽")
         if self.prefetch_capacity and (self.max_slots != 1 or self.threads_per_slot < 1):
             raise ValueError("预取需要单槽及显式 CPU 线程预算")
         if self.backend == "cuda":
@@ -135,7 +137,7 @@ class SlotReadyRequest(ClaimRequest):
     task_type: Literal["ocr.image.v1"]
     profile_id: str = Field(pattern=PROFILE_PAT)
     profile_digest: str = Field(pattern=HEX64_PAT)
-    backend: Literal["cpu", "cuda"]
+    backend: Literal["cpu", "cuda", "directml", "coreml"]
     runtime_provider: str
     model_sha256: str = Field(pattern=HEX64_PAT)
     calibration: CalibrationModel
@@ -146,7 +148,7 @@ class PreparationStatusRequest(_Strict):
     node_secret: str = _secret_field()
     status: Literal["DOWNLOADING", "LOADING", "VERIFYING", "READY", "FAILED"]
     progress: Optional[float] = Field(default=None, ge=0, le=1)
-    backend: Optional[Literal["cpu", "cuda"]] = None
+    backend: Optional[Literal["cpu", "cuda", "directml", "coreml"]] = None
     runtime_provider: Optional[str] = None
     model_sha256: Optional[str] = Field(default=None, pattern=HEX64_PAT)
     model_cached: Optional[bool] = None

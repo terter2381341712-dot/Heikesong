@@ -1,7 +1,8 @@
-"""资源采样：CPU/内存用 psutil；GPU 只信 nvidia-smi。未知 null，不用 0 顶替。"""
+"""资源采样：CPU/内存用 psutil；CUDA 用 NVSMI，DirectML 用 PDH。未知为 null。"""
 from __future__ import annotations
 
 import subprocess
+import os
 from datetime import datetime, timezone
 from typing import Any, Optional
 
@@ -40,6 +41,17 @@ def sample(device_id: int = 0) -> dict:
         ram = psutil.virtual_memory().used
     gpu_util, gpu_mem = _gpu_sample(device_id)
     source = "nvidia-smi" if gpu_util is not None else "unavailable"
+    if os.environ.get("P4_EXECUTION_BACKEND") == "directml":
+        gpu_util, gpu_mem, source = None, None, "unavailable"
+        try:
+            from .windows_gpu import utilization
+            gpu_util = utilization(os.environ.get("P4_ADAPTER_LUID", ""))
+            if gpu_util is not None:
+                source = "windows-pdh"
+        except (OSError, ValueError, AttributeError):
+            pass
+    elif os.environ.get("P4_EXECUTION_BACKEND") in {"cpu", "coreml"}:
+        gpu_util, gpu_mem, source = None, None, "unavailable"
     return {
         "sampled_at": now,
         "cpu_percent": cpu,
