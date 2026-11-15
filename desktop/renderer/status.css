@@ -1,0 +1,159 @@
+:root {
+  --ink: #192d27;
+  --muted: #4d655b;
+  --line: #dce7df;
+  --paper: #fff;
+  --green: #166548;
+  --soft: #eaf5ec;
+  --error: #9b3527;
+  --error-bg: #fef3ef;
+  font-family: -apple-system, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  color: var(--ink);
+  background: #f7f5f2;
+  font-synthesis: none;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 32px;
+  background:
+    radial-gradient(1200px 600px at 15% -10%, #e8f3ea 0%, transparent 60%),
+    radial-gradient(900px 500px at 110% 110%, #f4ece4 0%, transparent 55%),
+    #f7f5f2;
+}
+
+.card {
+  width: min(720px, 100%);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 28px 30px 24px;
+  box-shadow: 0 10px 40px #15392b12;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 650;
+  letter-spacing: .2px;
+}
+
+.muted { color: var(--muted); font-size: 13px; margin: 2px 0 0; }
+
+.bar {
+  height: 3px;
+  border-radius: 999px;
+  background: var(--soft);
+  overflow: hidden;
+  margin-bottom: 18px;
+}
+
+.bar > span {
+  display: block;
+  height: 100%;
+  width: 34%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #279772, #166548);
+  animation: slide 1.4s cubic-bezier(.4, 0, .2, 1) infinite;
+}
+
+@keyframes slide {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(320%); }
+}
+
+.bar.done > span { animation: none; width: 100%; }
+.bar.error > span { animation: none; width: 100%; background: var(--error); }
+
+.state {
+  margin: 0 0 16px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+.state.error { color: var(--error); }
+
+details {
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+
+summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--muted);
+  list-style: none;
+}
+
+summary::-webkit-details-marker { display: none; }
+summary::before { content: "▸ "; }
+details[open] summary::before { content: "▾ "; }
+
+/* Closed <details> still lays out its children in some Chromium builds. */
+details:not([open]) > pre { display: none; }
+
+pre {
+  margin: 12px 0 0;
+  max-height: 300px;
+  overflow: auto;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #0f1115;
+  color: #c8d3cd;
+  font-family: ui-monospace, "SF Mono", Consolas, monospace;
+  font-size: 11.5px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+button {
+  font: inherit;
+  font-size: 13px;
+  white-space: nowrap;
+  padding: 9px 16px;
+  border-radius: 9px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+button:hover { border-color: #b9d3c6; }
+
+button.primary {
+  background: var(--green);
+  border-color: var(--green);
+  color: #fff;
+  font-weight: 550;
+}
+
+button.primary:hover { background: #0f4f37; }
+
+button:focus-visible {
+  outline: 3px solid #279772;
+  outline-offset: 2px;
+}

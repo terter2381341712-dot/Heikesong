@@ -1300,6 +1300,14 @@ def main():
             server.server_close()
             return 1
     threading.Thread(target=discovery_server, args=(panel,), daemon=True).start()
+
+    def terminate(_signum, _frame):
+        # Desktop shells and service managers send SIGTERM; treat it like Ctrl+C
+        # so P1/P2 and the workbench are stopped instead of orphaned.
+        raise KeyboardInterrupt
+
+    if hasattr(signal, "SIGTERM"):
+        signal.signal(signal.SIGTERM, terminate)
     if not args.no_browser:
         webbrowser.open(open_url)
     try:

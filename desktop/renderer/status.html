@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self'; img-src 'self' data:">
+<title>Edge Fabric</title>
+<link rel="stylesheet" href="status.css">
+</head>
+<body>
+<main id="stage">
+  <section class="card" id="panel">
+    <div class="brand">
+      <img src="logo.svg" alt="" width="34" height="34">
+      <div>
+        <h1>Edge Fabric</h1>
+        <p class="muted" id="tagline">正在准备本机运行环境</p>
+      </div>
+    </div>
+
+    <div class="bar" id="bar"><span></span></div>
+
+    <p class="state" id="state">首次启动需要下载并安装专用环境，可能需要几分钟。之后启动会直接复用。</p>
+
+    <details id="details">
+      <summary>查看详细日志</summary>
+      <pre id="log" aria-live="polite"></pre>
+    </details>
+
+    <div class="actions" id="actions" hidden>
+      <button type="button" id="retry" class="primary">重试</button>
+      <button type="button" id="copylog">复制日志</button>
+      <button type="button" id="openlog">打开日志文件</button>
+    </div>
+  </section>
+</main>
+<script src="status.js"></script>
+</body>
+</html>

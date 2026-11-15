@@ -9,3 +9,10 @@ var/
 # Temporary compatibility symlinks for demo processes started before the P2 move.
 /.venv
 /var
+
+# Desktop shell dependencies and packaged output.
+node_modules/
+desktop/dist/
+
+# Editor and preview scratch files.
+.claude/

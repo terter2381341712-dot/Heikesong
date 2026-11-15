@@ -1,0 +1,48 @@
+{
+  "name": "edge-fabric-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Edge Fabric desktop shell: prepares the runtime, starts the center and opens the workbench.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --dir",
+    "dist:mac": "electron-builder --mac",
+    "dist:win": "electron-builder --win"
+  },
+  "devDependencies": {
+    "electron": "45.3.2",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "top.2moro.edgefabric",
+    "productName": "Edge Fabric",
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer/**"
+    ],
+    "extraResources": [
+      {
+        "from": "../",
+        "to": "app",
+        "filter": [
+          "P1/**",
+          "P2/**",
+          "P4/**",
+          "web/**",
+          "!**/__pycache__/**",
+          "!**/.pytest_cache/**",
+          "!**/var/**"
+        ]
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": ["dmg"]
+    },
+    "win": {
+      "target": ["nsis"]
+    }
+  }
+}
