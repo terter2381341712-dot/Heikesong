@@ -1,6 +1,12 @@
 $ErrorActionPreference = 'Stop'
 Set-Location (Join-Path $PSScriptRoot '../..')
-$root = Join-Path (Get-Location) 'P4/var/runtime'
+# Keep prepared environments outside the checkout so they survive branch
+# switches, new worktrees and moving the project directory.
+if ($env:P4_RUNTIME_DIR) {
+    $root = $env:P4_RUNTIME_DIR
+} else {
+    $root = Join-Path $env:LOCALAPPDATA 'EdgeFabric/runtime'
+}
 $lock = $null
 $exitCode = 1
 try {

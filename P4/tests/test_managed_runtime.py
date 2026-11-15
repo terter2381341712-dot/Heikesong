@@ -185,3 +185,25 @@ def test_bootstrap_prepares_every_component_even_on_developer_machine(monkeypatc
     monkeypatch.setattr(runtime.Manager, "ensure", lambda self, component, progress: calls.append(component))
     assert runtime.main(["--prepare-only"]) == 0
     assert calls == ["web", "P1", "P2"]
+
+
+def test_runtime_lives_outside_the_checkout(monkeypatch):
+    """Prepared environments must survive branch switches and new worktrees."""
+    monkeypatch.delenv("P4_RUNTIME_DIR", raising=False)
+    monkeypatch.setattr(runtime.platform, "system", lambda: "Darwin")
+    mac = runtime.default_directory()
+    assert runtime.ROOT not in mac.parents and "P4/var" not in str(mac)
+    assert str(mac).endswith("EdgeFabric/runtime")
+    monkeypatch.setattr(runtime.platform, "system", lambda: "Linux")
+    assert str(runtime.default_directory()).endswith("EdgeFabric/runtime")
+    monkeypatch.setenv("P4_RUNTIME_DIR", "/tmp/explicit-runtime")
+    assert runtime.default_directory() == Path("/tmp/explicit-runtime")
+
+
+def test_bootstrap_lock_reclaims_stale_pid(tmp_path):
+    """A launcher killed mid-preparation must not block the next start."""
+    script = (runtime.ROOT / "P4/scripts/bootstrap.sh").read_text(encoding="utf-8")
+    assert "kill -0" in script, "stale lock recovery relies on a liveness check"
+    assert "rm -rf \"$lock\"" in script
+    # The old directory-only lock required the user to delete it by hand.
+    assert "若上次意外退出，请关闭启动器后删除" not in script

@@ -1,7 +1,8 @@
 """Device-local runtimes: identical preparation on developer and end-user machines.
 
-Only P4/var/runtime is managed. System interpreters and existing project venvs are
-never used as a readiness shortcut or modified. No credentials belong here.
+Only the per-user application data directory (see default_directory) is managed.
+System interpreters and existing project venvs are never used as a readiness
+shortcut or modified. No credentials belong here.
 """
 import argparse
 import contextlib
@@ -18,8 +19,27 @@ import uuid
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-DIRECTORY = ROOT / "P4/var/runtime"
 PYTHON_VERSION = "3.12.15"
+
+
+def default_directory():
+    """Prepared environments live outside the checkout.
+
+    Keeping them in P4/var/runtime made every new worktree, branch switch or
+    moved project directory re-download the whole runtime. P4_RUNTIME_DIR
+    overrides the location for deployments and tests.
+    """
+    override = os.environ.get("P4_RUNTIME_DIR")
+    if override:
+        return Path(override)
+    if platform.system() == "Darwin":
+        return Path.home() / "Library/Application Support/EdgeFabric/runtime"
+    if os.name == "nt":
+        return Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData/Local")) / "EdgeFabric/runtime"
+    return Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local/share")) / "EdgeFabric/runtime"
+
+
+DIRECTORY = default_directory()
 
 
 def process_environment(executable, source=None):
