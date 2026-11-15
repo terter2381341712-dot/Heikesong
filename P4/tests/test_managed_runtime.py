@@ -1,5 +1,6 @@
 """Automatic preparation must run on developer Macs and clean Windows alike."""
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -68,26 +69,38 @@ def test_ready_private_environment_rechecked_without_download(tmp_path, monkeypa
 def test_missing_cpu_installs_exact_profile_and_checks_before_return(tmp_path, monkeypatch):
     commands = []
     manager = runtime.Manager(tmp_path, runner=lambda argv, out: commands.append(argv))
-    monkeypatch.setattr(manager, "ready", lambda *args: len(commands) == 4)
+    monkeypatch.setattr(manager, "ready", lambda *args: len(commands) == (5 if os.name == "nt" else 4))
     monkeypatch.setattr(manager, "installer", lambda _: tmp_path / "manager")
     result = manager.ensure("P1")
-    assert "python=3.9.6" in commands[0]
-    assert "--no-rc" in commands[0] and "--override-channels" in commands[0]
+    if os.name == "nt":
+        assert commands[0][-2:] == ["--python-version", "3.9.6"]
+        assert "--component" in commands[0] and "P1" in commands[0]
+    else:
+        assert "python=3.9.6" in commands[0]
+        assert "--no-rc" in commands[0] and "--override-channels" in commands[0]
     assert commands[1][-3:] == ["uninstall", "-y", "onnxruntime-gpu"]
-    assert "onnxruntime==1.19.2" in commands[2]
-    assert "--force-reinstall" in commands[2]
-    assert commands[3][-2:] == ["pip", "check"]
+    assert "onnxruntime==1.19.2" in commands[-2]
+    assert "--force-reinstall" in commands[-2]
+    assert commands[-1][-2:] == ["pip", "check"]
+    if os.name == "nt":
+        assert "setuptools==80.9.0" in commands[-3]
+        assert "--no-build-isolation" in commands[-2]
     assert result == str(manager.executable("P1"))
 
 
 @pytest.mark.parametrize("component,steps", [("P1", 4), ("P2", 3), ("CUDA", 4)])
 def test_all_python_environments_install_exactly_396(tmp_path, monkeypatch, component, steps):
+    if os.name == "nt" and component != "CUDA":
+        steps += 1
     commands = []
     manager = runtime.Manager(tmp_path, runner=lambda argv, output: commands.append(argv))
     monkeypatch.setattr(manager, "ready", lambda *args: len(commands) == steps)
     monkeypatch.setattr(manager, "installer", lambda _: tmp_path / "manager")
     manager.ensure(component, lambda _: None)
-    assert "python=3.9.6" in commands[0]
+    if os.name == "nt" and component != "CUDA":
+        assert commands[0][-2:] == ["--python-version", "3.9.6"]
+    else:
+        assert "python=3.9.6" in commands[0]
     if component == "CUDA":
         assert "cuda-version=12.4" in commands[0]
         assert "onnxruntime-gpu==1.19.2" in commands[2]
@@ -96,7 +109,7 @@ def test_all_python_environments_install_exactly_396(tmp_path, monkeypatch, comp
 def test_bootstrap_and_cuda_profiles_agree_on_python_version():
     for script in ("bootstrap.ps1", "bootstrap.sh"):
         text = (runtime.ROOT / "P4/scripts" / script).read_text(encoding="utf-8")
-        assert "python=3.9.6" in text and "(3,9,6)" in text
+        assert "3.9.6" in text and "(3,9,6)" in text
         assert "3.11.9" not in text
     profile = json.loads((runtime.ROOT / "P1/profiles/heterogeneous/ocr.heterogeneous.v1.lock.json").read_bytes())
     assert profile["dependencies"]["python"] == "3.9.6"
@@ -123,11 +136,14 @@ def test_broken_managed_python_is_reinstalled_not_just_version_checked(tmp_path,
     history = tmp_path / "P2/conda-meta/history"
     history.parent.mkdir(parents=True)
     history.touch()
-    monkeypatch.setattr(manager, "ready", lambda *args: len(commands) == 3)
+    monkeypatch.setattr(manager, "ready", lambda *args: len(commands) == (4 if os.name == "nt" else 3))
     monkeypatch.setattr(manager, "installer", lambda _: tmp_path / "manager")
     manager.ensure("P2")
-    assert "install" in commands[0] and "--force-reinstall" in commands[0]
-    assert "--force-reinstall" in commands[1]
+    if os.name == "nt":
+        assert commands[0][-2:] == ["--python-version", "3.9.6"]
+    else:
+        assert "install" in commands[0] and "--force-reinstall" in commands[0]
+    assert "--force-reinstall" in commands[-2]
 
 
 def test_successful_installer_without_working_imports_is_rejected(tmp_path, monkeypatch):

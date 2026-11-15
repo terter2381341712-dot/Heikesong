@@ -153,7 +153,8 @@ if sys.argv[4]:
             if self.ready(component, executable):
                 progress(f"{component} 环境检查通过。")
                 return str(executable)
-            installer = self.installer(progress)
+            portable = os.name == "nt" and component != "CUDA"
+            installer = None if portable else self.installer(progress)
             prefix = executable.parent if os.name == "nt" else executable.parent.parent
             progress(f"正在自动准备 {component} 环境，首次下载可能需要几分钟…")
             action = "install" if (prefix / "conda-meta/history").exists() else "create"
@@ -165,8 +166,13 @@ if sys.argv[4]:
             log = self.directory / "setup.log"
             try:
                 with log.open("ab", buffering=0) as output:
-                    self.command([installer, "--no-rc", "-r", self.directory / "cache", action,
-                                  *repair, "-y", "-p", prefix, "--override-channels", "-c", "conda-forge", *packages], output)
+                    if portable:
+                        self.command([sys.executable, "-I", ROOT / "P4/scripts/windows_runtime.py",
+                                      "--directory", self.directory, "--component", component,
+                                      "--python-version", PYTHON_VERSION], output)
+                    else:
+                        self.command([installer, "--no-rc", "-r", self.directory / "cache", action,
+                                      *repair, "-y", "-p", prefix, "--override-channels", "-c", "conda-forge", *packages], output)
                     if component != "web":
                         if os.name == "nt":
                             # Python 3.8+ extension DLL lookup does not reliably use PATH.
@@ -179,7 +185,14 @@ if sys.argv[4]:
                         if component in {"P1", "CUDA"}:
                             opposite = "onnxruntime" if component == "CUDA" else "onnxruntime-gpu"
                             self.command([executable, "-I", "-m", "pip", "--isolated", "uninstall", "-y", opposite], output)
+                        if portable:
+                            # Embedded Python ignores pip's temporary PYTHONPATH build
+                            # environment. Seed build tools in this private prefix instead.
+                            self.command([executable, "-I", "-m", "pip", "--isolated", "install",
+                                          "--only-binary=:all:", "--cache-dir", self.directory / "pip-cache",
+                                          "setuptools==80.9.0", "wheel==0.45.1"], output)
                         self.command([executable, "-I", "-m", "pip", "--isolated", "install", "--force-reinstall", "--disable-pip-version-check",
+                                      *(["--no-build-isolation"] if portable else []),
                                       "--cache-dir", self.directory / "pip-cache", *requirements(component)], output)
                         self.command([executable, "-I", "-m", "pip", "check"], output)
                 if not self.ready(component, executable):

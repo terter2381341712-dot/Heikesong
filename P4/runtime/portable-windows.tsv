@@ -1,0 +1,4 @@
+component	url	sha256
+python	https://www.python.org/ftp/python/3.9.6/python-3.9.6-embed-amd64.zip	94f796d3c222e6bbd11b11dc8cec2249ef6a9408f06f82ee7877c793d45e22ea
+pip	https://files.pythonhosted.org/packages/44/3c/d717024885424591d5376220b5e836c2d5293ce2011523c9de23ff7bf068/pip-25.3-py3-none-any.whl	9655943313a94722b7774661c21049070f6bbb0a1516bf02f7c8d5d9201514cd
+web	https://nodejs.org/dist/v22.14.0/node-v22.14.0-win-x64.zip	55b639295920b219bb2acbcfa00f90393a2789095b7323f79475c9f34795f217

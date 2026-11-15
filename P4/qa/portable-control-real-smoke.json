@@ -1,0 +1,96 @@
+{
+  "status": "PASS",
+  "mode": "REAL_SINGLE_MACHINE_BUTTON_HTTP",
+  "checks": [
+    {
+      "name": "initial idle",
+      "status": "PASS"
+    },
+    {
+      "name": "automatic environment detection and center + workbench + local node",
+      "status": "PASS"
+    },
+    {
+      "name": "P1 and P2 use their supported Python versions",
+      "status": "PASS"
+    },
+    {
+      "name": "workbench is running in LIVE mode",
+      "status": "PASS"
+    },
+    {
+      "name": "workbench proxies resource",
+      "status": "PASS"
+    },
+    {
+      "name": "workbench proxies task",
+      "status": "PASS"
+    },
+    {
+      "name": "workbench accepts the local demo credential",
+      "status": "PASS"
+    },
+    {
+      "name": "self center excluded from join list",
+      "status": "PASS"
+    },
+    {
+      "name": "sharing off confirmed by P1",
+      "status": "PASS"
+    },
+    {
+      "name": "sharing on confirmed by P1",
+      "status": "PASS"
+    },
+    {
+      "name": "button submits real OCR and verifies result / ZIP",
+      "status": "PASS"
+    },
+    {
+      "name": "controller publishes the verifier state",
+      "status": "PASS"
+    },
+    {
+      "name": "workbench reads test job",
+      "status": "PASS"
+    },
+    {
+      "name": "workbench reads test job/results",
+      "status": "PASS"
+    },
+    {
+      "name": "button result ZIP download",
+      "status": "PASS"
+    },
+    {
+      "name": "workbench stays open after stopping services",
+      "status": "PASS"
+    },
+    {
+      "name": "workbench reports the stopped backend",
+      "status": "PASS"
+    }
+  ],
+  "physical_multinode": "NOT_RUN",
+  "macos_live": "NOT_RUN",
+  "python_versions": {
+    "P1": [
+      3,
+      9,
+      6
+    ],
+    "P2": [
+      3,
+      9,
+      6
+    ],
+    "node": [
+      3,
+      9,
+      6
+    ]
+  },
+  "test_job_id": "9433c948-b0e8-43e9-9286-2715a23e29a2",
+  "test_message": "测试 2026-11-15 10:58:59（北京时间）：真实OCR/结果/ZIP验证通过；贡献节点数 1。证据：E:\\电子书\\物理\\gpt代码\\heikesong_normal\\Heikesong\\P4\\var\\portable-control-smoke\\test-20261115-105859-7813b18e",
+  "cleanup": "PASS"
+}
