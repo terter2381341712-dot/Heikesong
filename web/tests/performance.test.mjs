@@ -54,3 +54,22 @@ test('integrated graphics throughput appears under the unified GPU column', () =
   assert.ok(html.includes('<th>GPU</th>') && html.includes('3.500 张/秒') && html.includes('DirectML'));
   assert.ok(!html.includes('GPU · CUDA'));
 });
+
+test('one physical computer has one row with CPU and all GPU workers in their columns', () => {
+  const nodes = ['cpu', 'gpu-cuda-0', 'gpu-directml-1'].map((key, index) => ({
+    worker_id: key, name: `my-computer-${key}`, connection: 'ONLINE', mode: 'ACTIVE',
+    hardware: {manual_labels: {physical_device_id: 'one-pc', execution_backend: ['cpu', 'cuda', 'directml'][index]}},
+  }));
+  const snapshot = {realtime: {job_id: 'job', devices: {
+    cpu: {cpu: {processing_images_per_second: 1}},
+    'gpu-cuda-0': {cuda: {processing_images_per_second: 2}},
+    'gpu-directml-1': {directml: {processing_images_per_second: 3}},
+  }}, utilization: {cpu: {cpu_percent: {mean: 20, samples: 10}}, 'gpu-cuda-0': {cpu_percent: {mean: 90, samples: 10}}}};
+  const html = jobPerformance({job_id: 'job', tasks: []}, nodes, snapshot);
+  assert.equal((html.match(/<th scope="row">/g) || []).length, 1);
+  assert.ok(html.includes('my-computer<br>') && !html.includes('my-computer-gpu'));
+  for (const value of ['1.000 张/秒', '2.000 张/秒', '3.000 张/秒', '20.0%']) assert.ok(html.includes(value));
+  assert.ok(!html.includes('90.0%'));
+  nodes[2].hardware.manual_labels.physical_device_id = 'another-pc';
+  assert.equal((jobPerformance({job_id: 'job', tasks: []}, nodes, snapshot).match(/<th scope="row">/g) || []).length, 2);
+});

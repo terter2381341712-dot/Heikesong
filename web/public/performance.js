@@ -52,10 +52,16 @@ export function jobPerformance(job, nodes, snapshot, error = '') {
   const measurements = realtime?.job_id === job.job_id ? realtime.devices : {};
   const workerIds = new Set(job.tasks.flatMap(task => task.dispatches.map(dispatch => dispatch.worker_id)));
   const visible = nodes.filter(node => node.connection === 'ONLINE' || workerIds.has(node.worker_id));
-  const rows = visible.map(node => {
+  const groups = new Map();
+  for (const node of visible) {
+    const physicalId = node.hardware?.manual_labels?.physical_device_id;
+    const key = physicalId ? `physical:${physicalId}` : `worker:${node.worker_id}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(node);
+  }
+  const cellContent = (node, backend, percentField) => {
     const measured = measurements?.[node.worker_id] || {};
     const formal = snapshot?.formal?.devices?.[node.worker_id] || {};
-    const cells = [['cpu', 'cpu_percent'], [gpuBackend(node, snapshot), 'gpu_percent']].map(([backend, percentField]) => {
       const record = measured[backend];
       const capability = (node.capabilities || []).find(c => c.task_type === 'ocr.image.v1');
       const knownGpu = backend !== 'cpu' && (record || capability?.backend === backend || node.hardware?.manual_labels?.execution_backend === backend);
@@ -65,9 +71,27 @@ export function jobPerformance(job, nodes, snapshot, error = '') {
       const average = utilization?.mean == null ? t('未采样', 'Not sampled') : `${number(utilization.mean, 1)}% · ${utilization.samples} ${t('次采样', 'samples')}`;
       const pool = formal[backend]?.pools?.at(-1);
       const efficiency = pool ? `${number(pool.aggregation_efficiency_percent, 2)}%${pool.review_required ? ' ⚠' : ''}` : '—';
-      return `<td><strong>${number(record?.processing_images_per_second)} ${t('张/秒', 'images/s')}</strong>${route}<br>${t('整机平均利用率', 'Mean device utilization')} ${average}<br>${t('执行中', 'Running')} ${record?.active_executions ?? 0} · ${t('成功', 'Succeeded')} ${record?.completed ?? 0}<br>${t('单张耗时', 'Worker time')} ${number(record?.average_worker_seconds)} s<br>${t('基准池η', 'Benchmark pool η')} ${efficiency}${pool ? `<br>Ppool ${number(pool.images_per_second)} ${t('张/秒', 'images/s')}` : ''}</td>`;
-    }).join('');
-    return `<tr><th scope="row">${safe(node.name)}<br><small>${safe(node.connection)} · ${safe(node.mode)}</small></th>${cells}</tr>`;
+      return `<strong>${number(record?.processing_images_per_second)} ${t('张/秒', 'images/s')}</strong>${route}<br>${t('整机平均利用率', 'Mean device utilization')} ${average}<br>${t('执行中', 'Running')} ${record?.active_executions ?? 0} · ${t('成功', 'Succeeded')} ${record?.completed ?? 0}<br>${t('单张耗时', 'Worker time')} ${number(record?.average_worker_seconds)} s<br>${t('基准池η', 'Benchmark pool η')} ${efficiency}${pool ? `<br>Ppool ${number(pool.images_per_second)} ${t('张/秒', 'images/s')}` : ''}`;
+  };
+  const isGpuWorker = node => gpuBackends.includes(node.hardware?.manual_labels?.execution_backend) ||
+    (node.capabilities || []).some(c => gpuBackends.includes(c.backend)) ||
+    Object.keys(measurements?.[node.worker_id] || {}).some(b => gpuBackends.includes(b));
+  const rows = [...groups.values()].map(workers => {
+    // CPU usage is whole-device telemetry: use its CPU worker once, never add
+    // repeated CPU samples reported by GPU workers on the same computer.
+    const cpu = workers.find(n => !isGpuWorker(n) && n.connection === 'ONLINE') ||
+      workers.find(n => !isGpuWorker(n)) || workers[0];
+    const name = cpu.hardware?.manual_labels?.physical_device_id
+      ? cpu.name.replace(/-(?:cpu|gpu-(?:cuda|directml|coreml)-\d+)$/, '') : cpu.name;
+    const gpus = workers.filter(isGpuWorker);
+    const gpuCells = gpus.length ? gpus.map((node, index) => {
+      const id = node.name.match(/-gpu-[^-]+-(\d+)$/)?.[1] ?? index;
+      return `<div class="performance-gpu-device"><strong>${safe(node.hardware?.gpu_name || `GPU ${id}`)}</strong><br>${cellContent(node, gpuBackend(node, snapshot), 'gpu_percent')}</div>`;
+    }).join('<hr>') : `<span>—</span><br>${t('未采样', 'Not sampled')}`;
+    const online = workers.some(n => n.connection === 'ONLINE');
+    const mode = workers.every(n => n.mode === 'ACTIVE') ? 'ACTIVE' :
+      workers.every(n => n.mode === 'PAUSED') ? 'PAUSED' : t('部分暂停', 'Partially paused');
+    return `<tr><th scope="row">${safe(name)}<br><small>${online ? 'ONLINE' : 'OFFLINE'} · ${safe(mode)}</small></th><td>${cellContent(cpu, 'cpu', 'cpu_percent')}</td><td>${gpuCells}</td></tr>`;
   }).join('');
   return `<section class="panel compact job-performance"><h3>${t('各设备 CPU / GPU 运行情况', 'CPU / GPU activity by device')}</h3>
     <p class="field-hint">${t('约每2秒刷新。速度 = 本批次在该设备/后端去重成功数 ÷ 首次执行至最后结束（仍执行则至现在）的墙钟秒数，包含中途等待及失败耗时，不包含首次执行前的排队。单张耗时来自节点计时。关闭窗口后，已受理任务仍由中心后台处理。', 'Refreshes about every 2s. Job speed = deduplicated successes on this device/backend / wall time from first execution to last finish (or now while running), including gaps and failures but excluding the initial queue. Per-image time comes from worker timing. Accepted jobs continue at the center after this window closes.')}</p>
