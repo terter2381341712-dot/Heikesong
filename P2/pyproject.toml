@@ -1,0 +1,28 @@
+[project]
+name = "hackathon-p2-task-service"
+version = "0.1.0"
+description = "P2 OCR job scheduling against resource contract 0.2.0"
+requires-python = "==3.9.6"
+dependencies = [
+  "fastapi>=0.115,<1",
+  "httpx==0.28.1",
+  "jsonschema>=4.23,<5",
+  "PyYAML>=6.0.2,<7",
+  "uvicorn>=0.34,<1",
+]
+
+[dependency-groups]
+dev = ["pytest>=8.3,<10", "pytest-asyncio>=0.25,<2", "ruff>=0.11,<1"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests/tasks"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
+[tool.ruff]
+target-version = "py39"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+ignore = ["E501"]

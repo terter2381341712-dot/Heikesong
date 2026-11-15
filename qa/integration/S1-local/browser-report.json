@@ -1,0 +1,27 @@
+{
+  "status": "PARTIAL",
+  "browser": "Microsoft Edge (native UI automation)",
+  "physical_machines": 1,
+  "job_id": "2430ae6f-5f6e-47b2-9c93-e02928a8d7e8",
+  "browser_steps_observed": [
+    "start center and CPU node",
+    "apply workbench token",
+    "select PNG and JPG via file dialog",
+    "submit job and show progress"
+  ],
+  "browser_steps_NOT_RUN": [
+    "final OCR preview",
+    "original and ZIP browser download",
+    "language and disconnect recovery"
+  ],
+  "reason": "Computer use reported noWindowsAvailable; no browser-completion claim",
+  "http_supplement": {
+    "status": "PASS",
+    "unique_successful_inputs": 2,
+    "original_sha256": [
+      "7c64c727c2dce797a43448a57c7839c627b13406c218989e42c6d9e48edc6269",
+      "8e946153a8f27e8a1f67ac3d94e3d1430f63b47a8c9e2cde63bd4498b31d002b"
+    ],
+    "results_zip_consistent": true
+  }
+}

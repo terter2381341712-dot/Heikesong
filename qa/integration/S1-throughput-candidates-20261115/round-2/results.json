@@ -1,0 +1,878 @@
+{
+  "job_id": "f02527ce-9310-4263-a5ef-bd85342c2784",
+  "task_type": "ocr.image.v1",
+  "status": "SUCCEEDED",
+  "items": [
+    {
+      "input_index": 0,
+      "task_id": "dd943628-5e8d-481b-8300-685aee053c3a",
+      "input_artifact_id": "ae9ef940ca50c4da6a41fc3789df342e7",
+      "original_name": "sample-00.png",
+      "status": "SUCCEEDED",
+      "result": {
+        "blocks": [
+          {
+            "bbox": [
+              30.0,
+              70.0,
+              267.0,
+              108.0
+            ],
+            "confidence": 0.98429,
+            "text": "CAMPUS OCR 000"
+          },
+          {
+            "bbox": [
+              32.0,
+              109.0,
+              324.0,
+              147.0
+            ],
+            "confidence": 0.99718,
+            "text": "TASK 1000 APPROVED"
+          }
+        ],
+        "image_height": 300,
+        "image_width": 900,
+        "input_artifact_id": "ae9ef940ca50c4da6a41fc3789df342e7",
+        "schema_version": "1.0",
+        "task_type": "ocr.image.v1",
+        "text": "CAMPUS OCR 000\nTASK 1000 APPROVED"
+      },
+      "error": null
+    },
+    {
+      "input_index": 1,
+      "task_id": "37d6ca7f-63e6-4eee-8225-2be62ff11578",
+      "input_artifact_id": "a8108b2b851d0427e92dbc1ed65244223",
+      "original_name": "sample-01.jpg",
+      "status": "SUCCEEDED",
+      "result": {
+        "blocks": [
+          {
+            "bbox": [
+              32.0,
+              62.0,
+              340.0,
+              102.0
+            ],
+            "confidence": 0.97792,
+            "text": "CAMPUS OCR 001"
+          },
+          {
+            "bbox": [
+              31.0,
+              110.0,
+              414.0,
+              147.0
+            ],
+            "confidence": 0.98168,
+            "text": "TASK 1001 APPROVED"
+          }
+        ],
+        "image_height": 300,
+        "image_width": 900,
+        "input_artifact_id": "a8108b2b851d0427e92dbc1ed65244223",
+        "schema_version": "1.0",
+        "task_type": "ocr.image.v1",
+        "text": "CAMPUS OCR 001\nTASK 1001 APPROVED"
+      },
+      "error": null
+    },
+    {
+      "input_index": 2,
+      "task_id": "719a8400-6caf-4b7c-8aad-c45fc0d92dd6",
+      "input_artifact_id": "a09d460f60b2c47b0a1c9068af81f1c2f",
+      "original_name": "sample-02.png",
+      "status": "SUCCEEDED",
+      "result": {
+        "blocks": [
+          {
+            "bbox": [
+              32.0,
+              64.0,
+              406.0,
+              109.0
+            ],
+            "confidence": 0.99915,
+            "text": "CAMPUS OCR 002"
+          },
+          {
+            "bbox": [
+              30.0,
+              120.0,
+              493.0,
+              165.0
+            ],
+            "confidence": 0.98387,
+            "text": "TASK 1002 APPROVED"
+          }
+        ],
+        "image_height": 300,
+        "image_width": 900,
+        "input_artifact_id": "a09d460f60b2c47b0a1c9068af81f1c2f",
+        "schema_version": "1.0",
+        "task_type": "ocr.image.v1",
+        "text": "CAMPUS OCR 002\nTASK 1002 APPROVED"
+      },
+      "error": null
+    },
+    {
+      "input_index": 3,
+      "task_id": "955e6e5f-7c24-47a8-ad8a-f7ebb5526fcb",
+      "input_artifact_id": "ac9b4c3467bce452f93bad6e35bd6b46e",
+      "original_name": "sample-03.jpg",
+      "status": "SUCCEEDED",
+      "result": {
+        "blocks": [
+          {
+            "bbox": [
+              29.0,
+              62.0,
+              470.0,
+              120.0
+            ],
+            "confidence": 0.97231,
+            "text": "CAMPUS OCR 003"
+          },
+          {
+            "bbox": [
+              30.0,
+              127.0,
+              573.0,
+              182.0
+            ],
+            "confidence": 0.99988,
+            "text": "TASK 1003 APPROVED"
+          }
+        ],
+        "image_height": 300,
+        "image_width": 900,
+        "input_artifact_id": "ac9b4c3467bce452f93bad6e35bd6b46e",
+        "schema_version": "1.0",
+        "task_type": "ocr.image.v1",
+        "text": "CAMPUS OCR 003\nTASK 1003 APPROVED"
+      },
+      "error": null
+    },
+    {
+      "input_index": 4,
+      "task_id": "9076a95d-eaa7-4cce-80aa-ae34b93cf9f3",
+      "input_artifact_id": "a146ea69a596849249dfb7e3ba5a9ec62",
+      "original_name": "sample-04.png",
+      "status": "SUCCEEDED",
+      "result": {
+        "blocks": [
+          {
+            "bbox": [
+              33.0,
+              64.0,
+              268.0,
+              93.0
+            ],
+            "confidence": 0.9982,
+            "text": "CAMPUS OCR 004"
+          },
+          {
+            "bbox": [
+              33.0,
+              105.0,
+              324.0,
+              132.0
+            ],
+            "confidence": 0.987,
+            "text": "TASK 1004 APPROVED"
+          }
+        ],
+        "image_height": 300,
+        "image_width": 900,
+        "input_artifact_id": "a146ea69a596849249dfb7e3ba5a9ec62",
+        "schema_version": "1.0",
+        "task_type": "ocr.image.v1",
+        "text": "CAMPUS OCR 004\nTASK 1004 APPROVED"
+      },
+      "error": null
+    },
+    {
+      "input_index": 5,
+      "task_id": "92378e3e-4b3d-442a-bdaf-0bcae8689781",
+      "input_artifact_id": "a4290e8ad61724a0b872add3127488b43",
+      "original_name": "sample-05.jpg",
+      "status": "SUCCEEDED",
+      "result": {
+        "blocks": [
+          {
+            "bbox": [
+              29.0,
+              66.0,
+              340.0,
+              116.0
+            ],
+            "confidence": 0.97774,
+            "text": "CAMPUS OCR 005"
+          },
+          {
+            "bbox": [
+              29.0,
+              111.0,
+              414.0,
+              163.0
+            ],
+            "confidence": 0.99149,
+            "text": "TASK 1005 APPROVED"
+          }
+        ],
+        "image_height": 300,
+        "image_width": 900,
+        "input_artifact_id": "a4290e8ad61724a0b872add3127488b43",
+        "schema_version": "1.0",
+        "task_type": "ocr.image.v1",
+        "text": "CAMPUS OCR 005\nTASK 1005 APPROVED"
+      },
+      "error": null
+    },
+    {
+      "input_index": 6,
+      "task_id": "671a038e-10be-4d9e-9581-c3bf08fa20e9",
+      "input_artifact_id": "a02c4e2077d9a4b2c946e6ce420cbe0e2",
+      "original_name": "sample-06.png",
+      "status": "SUCCEEDED",
+      "result": {
+        "blocks": [
+          {
+            "bbox": [
+              31.0,
+              64.0,
+              406.0,
+              111.0
+            ],
+            "confidence": 0.99185,
+            "text": "CAMPUS OCR 006"
+          },
+          {
+            "bbox": [
+              30.0,
+              120.0,
+              493.0,
+              165.0
+            ],
+            "confidence": 0.98687,
+            "text": "TASK 1006 APPROVED"
+          }
+        ],
+        "image_height": 300,
+        "image_width": 900,
+        "input_artifact_id": "a02c4e2077d9a4b2c946e6ce420cbe0e2",
+        "schema_version": "1.0",
+        "task_type": "ocr.image.v1",
+        "text": "CAMPUS OCR 006\nTASK 1006 APPROVED"
+      },
+      "error": null
+    },
+    {
+      "input_index": 7,
+      "task_id": "ff6a5ac9-9064-4abc-a5e8-67b7f334e5b3",
+      "input_artifact_id": "a99fa3f6dd4b1462b834372dea52b211e",
+      "original_name": "sample-07.jpg",
+      "status": "SUCCEEDED",
+      "result": {
+        "blocks": [
+          {
+            "bbox": [
+              30.0,
+              63.0,
+              470.0,
+              119.0
+            ],
+            "confidence": 0.9983,
+            "text": "CAMPUS OCR 007"
+          },
+          {
+            "bbox": [
+              31.0,
+              128.0,
+              573.0,
+              182.0
+            ],
+            "confidence": 0.99925,
+            "text": "TASK 1007 APPROVED"
+          }
+        ],
+        "image_height": 300,
+        "image_width": 900,
+        "input_artifact_id": "a99fa3f6dd4b1462b834372dea52b211e",
+        "schema_version": "1.0",
+        "task_type": "ocr.image.v1",
+        "text": "CAMPUS OCR 007\nTASK 1007 APPROVED"
+      },
+      "error": null
+    },
+    {
+      "input_index": 8,
+      "task_id": "7b8272db-e4d8-4f0d-bdd4-32626586f9eb",
+      "input_artifact_id": "a8250802a9062440a82d5b6031879b76b",
+      "original_name": "sample-08.png",
+      "status": "SUCCEEDED",
+      "result": {
+        "blocks": [
+          {
+            "bbox": [
+              33.0,
+              64.0,
+              268.0,
+              93.0
+            ],
+            "confidence": 0.998,
+            "text": "CAMPUS OCR 008"
+          },
+          {
+            "bbox": [
+              33.0,
+              105.0,
+              324.0,
+              132.0
+            ],
+            "confidence": 0.98624,
+            "text": "TASK 1008 APPROVED"
+          }
+        ],
+        "image_height": 300,
+        "image_width": 900,
+        "input_artifact_id": "a8250802a9062440a82d5b6031879b76b",
+        "schema_version": "1.0",
+        "task_type": "ocr.image.v1",
+        "text": "CAMPUS OCR 008\nTASK 1008 APPROVED"
+      },
+      "error": null
+    },
+    {
+      "input_index": 9,
+      "task_id": "ae98fded-a78e-448a-abe5-8699e1098b85",
+      "input_artifact_id": "a88a7d1241b3e486bbbf9fa71a0732de4",
+      "original_name": "sample-09.jpg",
+      "status": "SUCCEEDED",
+      "result": {
+        "blocks": [
+          {
+            "bbox": [
+              33.0,
+              62.0,
+              340.0,
+              101.0
+            ],
+            "confidence": 0.99883,
+            "text": "CAMPUS OCR 009"
+          },
+          {
+            "bbox": [
+              31.0,
+              110.0,
+              414.0,
+              147.0
+            ],
+            "confidence": 0.97492,
+            "text": "TASK 1009 APPROVED"
+          }
+        ],
+        "image_height": 300,
+        "image_width": 900,
+        "input_artifact_id": "a88a7d1241b3e486bbbf9fa71a0732de4",
+        "schema_version": "1.0",
+        "task_type": "ocr.image.v1",
+        "text": "CAMPUS OCR 009\nTASK 1009 APPROVED"
+      },
+      "error": null
+    },
+    {
+      "input_index": 10,
+      "task_id": "e367ba5a-2669-43db-b9eb-b0d834eeeb1f",
+      "input_artifact_id": "ae76b47bae1a3475985151e5704ca6668",
+      "original_name": "sample-10.png",
+      "status": "SUCCEEDED",
+      "result": {
+        "blocks": [
+          {
+            "bbox": [
+              28.0,
+              65.0,
+              406.0,
+              125.0
+            ],
+            "confidence": 0.9991,
+            "text": "CAMPUS OCR 010"
+          },
+          {
+            "bbox": [
+              28.0,
+              118.0,
+              494.0,
+              180.0
+            ],
+            "confidence": 0.99945,
+            "text": "TASK 1010 APPROVED"
+          }
+        ],
+        "image_height": 300,
+        "image_width": 900,
+        "input_artifact_id": "ae76b47bae1a3475985151e5704ca6668",
+        "schema_version": "1.0",
+        "task_type": "ocr.image.v1",
+        "text": "CAMPUS OCR 010\nTASK 1010 APPROVED"
+      },
+      "error": null
+    },
+    {
+      "input_index": 11,
+      "task_id": "84818601-2f30-4c03-a040-b5c792c5e8c2",
+      "input_artifact_id": "ab2501d37c14d4b4480f24022f9acbd3a",
+      "original_name": "sample-11.jpg",
+      "status": "SUCCEEDED",
+      "result": {
+        "blocks": [
+          {
+            "bbox": [
+              30.0,
+              64.0,
+              466.0,
+              119.0
+            ],
+            "confidence": 0.99906,
+            "text": "CAMPUS OCR 011"
+          },
+          {
+            "bbox": [
+              31.0,
+              128.0,
+              573.0,
+              182.0
+            ],
+            "confidence": 0.99716,
+            "text": "TASK 1011 APPROVED"
+          }
+        ],
+        "image_height": 300,
+        "image_width": 900,
+        "input_artifact_id": "ab2501d37c14d4b4480f24022f9acbd3a",
+        "schema_version": "1.0",
+        "task_type": "ocr.image.v1",
+        "text": "CAMPUS OCR 011\nTASK 1011 APPROVED"
+      },
+      "error": null
+    },
+    {
+      "input_index": 12,
+      "task_id": "e3e0d833-d840-440b-a5f4-7d663607e51a",
+      "input_artifact_id": "ad1ec700ef506411bb413a8cbf10ae55b",
+      "original_name": "sample-12.png",
+      "status": "SUCCEEDED",
+      "result": {
+        "blocks": [
+          {
+            "bbox": [
+              33.0,
+              64.0,
+              269.0,
+              93.0
+            ],
+            "confidence": 0.96693,
+            "text": "CAMPUS OCR 012"
+          },
+          {
+            "bbox": [
+              33.0,
+              104.0,
+              324.0,
+              132.0
+            ],
+            "confidence": 0.98513,
+            "text": "TASK 1012 APPROVED"
+          }
+        ],
+        "image_height": 300,
+        "image_width": 900,
+        "input_artifact_id": "ad1ec700ef506411bb413a8cbf10ae55b",
+        "schema_version": "1.0",
+        "task_type": "ocr.image.v1",
+        "text": "CAMPUS OCR 012\nTASK 1012 APPROVED"
+      },
+      "error": null
+    },
+    {
+      "input_index": 13,
+      "task_id": "a02fa412-5298-46f9-9b01-f184e581e6eb",
+      "input_artifact_id": "a0abb323c72ba4d15a053685c5fd43748",
+      "original_name": "sample-13.jpg",
+      "status": "SUCCEEDED",
+      "result": {
+        "blocks": [
+          {
+            "bbox": [
+              33.0,
+              63.0,
+              341.0,
+              101.0
+            ],
+            "confidence": 0.99554,
+            "text": "CAMPUS OCR 013"
+          },
+          {
+            "bbox": [
+              32.0,
+              112.0,
+              414.0,
+              147.0
+            ],
+            "confidence": 0.9904,
+            "text": "TASK 1013 APPROVED"
+          }
+        ],
+        "image_height": 300,
+        "image_width": 900,
+        "input_artifact_id": "a0abb323c72ba4d15a053685c5fd43748",
+        "schema_version": "1.0",
+        "task_type": "ocr.image.v1",
+        "text": "CAMPUS OCR 013\nTASK 1013 APPROVED"
+      },
+      "error": null
+    },
+    {
+      "input_index": 14,
+      "task_id": "c5706a1d-313e-4705-a0f1-9c4c7c564ad6",
+      "input_artifact_id": "a49b83ef3459445609bc29560194a7d37",
+      "original_name": "sample-14.png",
+      "status": "SUCCEEDED",
+      "result": {
+        "blocks": [
+          {
+            "bbox": [
+              32.0,
+              65.0,
+              406.0,
+              110.0
+            ],
+            "confidence": 0.99877,
+            "text": "CAMPUS OCR 014"
+          },
+          {
+            "bbox": [
+              31.0,
+              121.0,
+              492.0,
+              164.0
+            ],
+            "confidence": 0.99962,
+            "text": "TASK 1014 APPROVED"
+          }
+        ],
+        "image_height": 300,
+        "image_width": 900,
+        "input_artifact_id": "a49b83ef3459445609bc29560194a7d37",
+        "schema_version": "1.0",
+        "task_type": "ocr.image.v1",
+        "text": "CAMPUS OCR 014\nTASK 1014 APPROVED"
+      },
+      "error": null
+    },
+    {
+      "input_index": 15,
+      "task_id": "2ac03027-d735-466a-9b81-71586582fbbb",
+      "input_artifact_id": "a21a3c52e7f134f0c83da751a4a7c23f4",
+      "original_name": "sample-15.jpg",
+      "status": "SUCCEEDED",
+      "result": {
+        "blocks": [
+          {
+            "bbox": [
+              26.0,
+              62.0,
+              469.0,
+              134.0
+            ],
+            "confidence": 0.96475,
+            "text": "CAMPUS OCR 015"
+          },
+          {
+            "bbox": [
+              30.0,
+              123.0,
+              574.0,
+              197.0
+            ],
+            "confidence": 0.99935,
+            "text": "TASK 1015 APPROVED"
+          }
+        ],
+        "image_height": 300,
+        "image_width": 900,
+        "input_artifact_id": "a21a3c52e7f134f0c83da751a4a7c23f4",
+        "schema_version": "1.0",
+        "task_type": "ocr.image.v1",
+        "text": "CAMPUS OCR 015\nTASK 1015 APPROVED"
+      },
+      "error": null
+    },
+    {
+      "input_index": 16,
+      "task_id": "d4b5fd83-6d56-4de9-829d-15e37621a8b3",
+      "input_artifact_id": "ad62bb8ad582443f89e859e9017354201",
+      "original_name": "sample-16.png",
+      "status": "SUCCEEDED",
+      "result": {
+        "blocks": [
+          {
+            "bbox": [
+              33.0,
+              64.0,
+              268.0,
+              93.0
+            ],
+            "confidence": 0.9736,
+            "text": "CAMPUS OCR 016"
+          },
+          {
+            "bbox": [
+              33.0,
+              104.0,
+              324.0,
+              132.0
+            ],
+            "confidence": 0.9859,
+            "text": "TASK 1016 APPROVED"
+          }
+        ],
+        "image_height": 300,
+        "image_width": 900,
+        "input_artifact_id": "ad62bb8ad582443f89e859e9017354201",
+        "schema_version": "1.0",
+        "task_type": "ocr.image.v1",
+        "text": "CAMPUS OCR 016\nTASK 1016 APPROVED"
+      },
+      "error": null
+    },
+    {
+      "input_index": 17,
+      "task_id": "4d969580-1e95-4de4-bd90-0c3741481699",
+      "input_artifact_id": "a31243b13b0f74d368d27672596011a02",
+      "original_name": "sample-17.jpg",
+      "status": "SUCCEEDED",
+      "result": {
+        "blocks": [
+          {
+            "bbox": [
+              33.0,
+              64.0,
+              341.0,
+              100.0
+            ],
+            "confidence": 0.99304,
+            "text": "CAMPUS OCR 017"
+          },
+          {
+            "bbox": [
+              31.0,
+              110.0,
+              414.0,
+              148.0
+            ],
+            "confidence": 0.99676,
+            "text": "TASK 1017 APPROVED"
+          }
+        ],
+        "image_height": 300,
+        "image_width": 900,
+        "input_artifact_id": "a31243b13b0f74d368d27672596011a02",
+        "schema_version": "1.0",
+        "task_type": "ocr.image.v1",
+        "text": "CAMPUS OCR 017\nTASK 1017 APPROVED"
+      },
+      "error": null
+    },
+    {
+      "input_index": 18,
+      "task_id": "ae46cf35-b64c-4f3d-8132-bd980c7b66a6",
+      "input_artifact_id": "a2bfc3f1c76124431885cde9882d7d97b",
+      "original_name": "sample-18.png",
+      "status": "SUCCEEDED",
+      "result": {
+        "blocks": [
+          {
+            "bbox": [
+              31.0,
+              64.0,
+              406.0,
+              111.0
+            ],
+            "confidence": 0.98568,
+            "text": "CAMPUS OCR 018"
+          },
+          {
+            "bbox": [
+              31.0,
+              121.0,
+              492.0,
+              164.0
+            ],
+            "confidence": 0.99959,
+            "text": "TASK 1018 APPROVED"
+          }
+        ],
+        "image_height": 300,
+        "image_width": 900,
+        "input_artifact_id": "a2bfc3f1c76124431885cde9882d7d97b",
+        "schema_version": "1.0",
+        "task_type": "ocr.image.v1",
+        "text": "CAMPUS OCR 018\nTASK 1018 APPROVED"
+      },
+      "error": null
+    },
+    {
+      "input_index": 19,
+      "task_id": "9c92b5ad-142d-478a-8162-d8c16745d614",
+      "input_artifact_id": "a69cf906207c644568a25a9727db9ae9b",
+      "original_name": "sample-19.jpg",
+      "status": "SUCCEEDED",
+      "result": {
+        "blocks": [
+          {
+            "bbox": [
+              30.0,
+              64.0,
+              470.0,
+              119.0
+            ],
+            "confidence": 0.99895,
+            "text": "CAMPUS OCR 019"
+          },
+          {
+            "bbox": [
+              31.0,
+              128.0,
+              573.0,
+              182.0
+            ],
+            "confidence": 0.96814,
+            "text": "TASK 1019 APPROVED"
+          }
+        ],
+        "image_height": 300,
+        "image_width": 900,
+        "input_artifact_id": "a69cf906207c644568a25a9727db9ae9b",
+        "schema_version": "1.0",
+        "task_type": "ocr.image.v1",
+        "text": "CAMPUS OCR 019\nTASK 1019 APPROVED"
+      },
+      "error": null
+    },
+    {
+      "input_index": 20,
+      "task_id": "382feec0-b1f5-4d5c-a727-67b243a6383d",
+      "input_artifact_id": "aed5a06fa2ead4d259626e211d3e1d25c",
+      "original_name": "sample-20.png",
+      "status": "SUCCEEDED",
+      "result": {
+        "blocks": [
+          {
+            "bbox": [
+              30.0,
+              70.0,
+              267.0,
+              108.0
+            ],
+            "confidence": 0.98643,
+            "text": "CAMPUS OCR 020"
+          },
+          {
+            "bbox": [
+              32.0,
+              109.0,
+              324.0,
+              147.0
+            ],
+            "confidence": 0.99894,
+            "text": "TASK 1020 APPROVED"
+          }
+        ],
+        "image_height": 300,
+        "image_width": 900,
+        "input_artifact_id": "aed5a06fa2ead4d259626e211d3e1d25c",
+        "schema_version": "1.0",
+        "task_type": "ocr.image.v1",
+        "text": "CAMPUS OCR 020\nTASK 1020 APPROVED"
+      },
+      "error": null
+    },
+    {
+      "input_index": 21,
+      "task_id": "2a664f28-8840-4dbd-8d76-84a9787a5636",
+      "input_artifact_id": "ae58992a5f1e0475b8a6396c68d166fe9",
+      "original_name": "sample-21.jpg",
+      "status": "SUCCEEDED",
+      "result": {
+        "blocks": [
+          {
+            "bbox": [
+              33.0,
+              63.0,
+              340.0,
+              101.0
+            ],
+            "confidence": 0.99878,
+            "text": "CAMPUS OCR 021"
+          },
+          {
+            "bbox": [
+              31.0,
+              110.0,
+              414.0,
+              147.0
+            ],
+            "confidence": 0.97856,
+            "text": "TASK 1021 APPROVED"
+          }
+        ],
+        "image_height": 300,
+        "image_width": 900,
+        "input_artifact_id": "ae58992a5f1e0475b8a6396c68d166fe9",
+        "schema_version": "1.0",
+        "task_type": "ocr.image.v1",
+        "text": "CAMPUS OCR 021\nTASK 1021 APPROVED"
+      },
+      "error": null
+    },
+    {
+      "input_index": 22,
+      "task_id": "7ed1aa61-fb2e-4b3b-b553-9467657f0a26",
+      "input_artifact_id": "a6ec087e951724a10a5ac95413b55e365",
+      "original_name": "sample-22.png",
+      "status": "SUCCEEDED",
+      "result": {
+        "blocks": [],
+        "image_height": 300,
+        "image_width": 900,
+        "input_artifact_id": "a6ec087e951724a10a5ac95413b55e365",
+        "schema_version": "1.0",
+        "task_type": "ocr.image.v1",
+        "text": ""
+      },
+      "error": null
+    },
+    {
+      "input_index": 23,
+      "task_id": "d7d0658e-1b98-4b6f-a9ad-a063e91bcb47",
+      "input_artifact_id": "aa4ebf9f7515d401da176b0f580b56c97",
+      "original_name": "sample-23.jpg",
+      "status": "SUCCEEDED",
+      "result": {
+        "blocks": [],
+        "image_height": 300,
+        "image_width": 900,
+        "input_artifact_id": "aa4ebf9f7515d401da176b0f580b56c97",
+        "schema_version": "1.0",
+        "task_type": "ocr.image.v1",
+        "text": ""
+      },
+      "error": null
+    }
+  ],
+  "combined_text": "CAMPUS OCR 000\nTASK 1000 APPROVED\n\nCAMPUS OCR 001\nTASK 1001 APPROVED\n\nCAMPUS OCR 002\nTASK 1002 APPROVED\n\nCAMPUS OCR 003\nTASK 1003 APPROVED\n\nCAMPUS OCR 004\nTASK 1004 APPROVED\n\nCAMPUS OCR 005\nTASK 1005 APPROVED\n\nCAMPUS OCR 006\nTASK 1006 APPROVED\n\nCAMPUS OCR 007\nTASK 1007 APPROVED\n\nCAMPUS OCR 008\nTASK 1008 APPROVED\n\nCAMPUS OCR 009\nTASK 1009 APPROVED\n\nCAMPUS OCR 010\nTASK 1010 APPROVED\n\nCAMPUS OCR 011\nTASK 1011 APPROVED\n\nCAMPUS OCR 012\nTASK 1012 APPROVED\n\nCAMPUS OCR 013\nTASK 1013 APPROVED\n\nCAMPUS OCR 014\nTASK 1014 APPROVED\n\nCAMPUS OCR 015\nTASK 1015 APPROVED\n\nCAMPUS OCR 016\nTASK 1016 APPROVED\n\nCAMPUS OCR 017\nTASK 1017 APPROVED\n\nCAMPUS OCR 018\nTASK 1018 APPROVED\n\nCAMPUS OCR 019\nTASK 1019 APPROVED\n\nCAMPUS OCR 020\nTASK 1020 APPROVED\n\nCAMPUS OCR 021\nTASK 1021 APPROVED\n\n\n\n"
+}

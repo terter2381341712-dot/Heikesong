@@ -1,5 +1,5 @@
 {
-  "contract_version": "0.2.0",
+  "contract_version": "0.4.0",
   "status": "DESIGN_ONLY",
   "note": "接口和范围约定，不表示模型可用；所有运行配置尚未验证。",
   "task_types": [

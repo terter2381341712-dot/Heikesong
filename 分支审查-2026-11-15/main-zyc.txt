@@ -1,0 +1,134 @@
+04979355548ef37ba67637a0f46c8c0d407076ee
+D题参赛执行包/05-接口契约与联调手册.md
+D题参赛执行包/contracts/examples.json
+D题参赛执行包/contracts/openapi.yaml
+D题参赛执行包/contracts/runtime-manifest.example.json
+D题参赛执行包/contracts/task-types.json
+P1/README.md
+P1/SOURCE.json
+P1/contracts/openapi.yaml
+P1/node_agent/agent.py
+P1/node_agent/benchmark.py
+P1/node_agent/compute.py
+P1/node_agent/hardware.py
+P1/node_agent/telemetry.py
+P1/profiles/task_types.json
+P1/resource_service/__main__.py
+P1/resource_service/catalog.py
+P1/resource_service/config.py
+P1/resource_service/db.py
+P1/resource_service/models.py
+P1/resource_service/service.py
+P1/runners/profile.py
+P1/runners/rapidocr_runner.py
+P1/scripts/verify_p1.py
+P1/tests/resource/test_health.py
+P1/tests/resource/test_runner.py
+P1/tests/resource/test_sharing.py
+P2/.env.example
+P2/README.md
+P2/aggregators/ocr.py
+P2/contracts/openapi.yaml
+P2/task_service/__main__.py
+P2/task_service/app.py
+P2/task_service/config.py
+P2/task_service/contract.py
+P2/task_service/p1.py
+P2/task_service/service.py
+P2/task_service/store.py
+P2/tests/tasks/fixtures/contract-examples.json
+P2/tests/tasks/mock_p1.py
+P2/tests/tasks/smoke.py
+P2/tests/tasks/test_service.py
+README.md
+qa/p1-p2/README.md
+qa/p1-p2/run_local.py
+
+Auto-merging D题参赛执行包/05-接口契约与联调手册.md
+CONFLICT (add/add): Merge conflict in D题参赛执行包/05-接口契约与联调手册.md
+Auto-merging D题参赛执行包/contracts/examples.json
+CONFLICT (add/add): Merge conflict in D题参赛执行包/contracts/examples.json
+Auto-merging D题参赛执行包/contracts/openapi.yaml
+CONFLICT (add/add): Merge conflict in D题参赛执行包/contracts/openapi.yaml
+Auto-merging D题参赛执行包/contracts/runtime-manifest.example.json
+CONFLICT (add/add): Merge conflict in D题参赛执行包/contracts/runtime-manifest.example.json
+Auto-merging D题参赛执行包/contracts/task-types.json
+CONFLICT (add/add): Merge conflict in D题参赛执行包/contracts/task-types.json
+Auto-merging P1/README.md
+CONFLICT (add/add): Merge conflict in P1/README.md
+Auto-merging P1/SOURCE.json
+CONFLICT (add/add): Merge conflict in P1/SOURCE.json
+Auto-merging P1/contracts/openapi.yaml
+CONFLICT (add/add): Merge conflict in P1/contracts/openapi.yaml
+Auto-merging P1/node_agent/agent.py
+CONFLICT (add/add): Merge conflict in P1/node_agent/agent.py
+Auto-merging P1/node_agent/benchmark.py
+CONFLICT (add/add): Merge conflict in P1/node_agent/benchmark.py
+Auto-merging P1/node_agent/compute.py
+CONFLICT (add/add): Merge conflict in P1/node_agent/compute.py
+Auto-merging P1/node_agent/hardware.py
+CONFLICT (add/add): Merge conflict in P1/node_agent/hardware.py
+Auto-merging P1/node_agent/telemetry.py
+CONFLICT (add/add): Merge conflict in P1/node_agent/telemetry.py
+Auto-merging P1/profiles/task_types.json
+CONFLICT (add/add): Merge conflict in P1/profiles/task_types.json
+Auto-merging P1/resource_service/__main__.py
+CONFLICT (add/add): Merge conflict in P1/resource_service/__main__.py
+Auto-merging P1/resource_service/catalog.py
+CONFLICT (add/add): Merge conflict in P1/resource_service/catalog.py
+Auto-merging P1/resource_service/config.py
+CONFLICT (add/add): Merge conflict in P1/resource_service/config.py
+Auto-merging P1/resource_service/db.py
+CONFLICT (add/add): Merge conflict in P1/resource_service/db.py
+Auto-merging P1/resource_service/models.py
+CONFLICT (add/add): Merge conflict in P1/resource_service/models.py
+Auto-merging P1/resource_service/service.py
+CONFLICT (add/add): Merge conflict in P1/resource_service/service.py
+Auto-merging P1/runners/profile.py
+CONFLICT (add/add): Merge conflict in P1/runners/profile.py
+Auto-merging P1/runners/rapidocr_runner.py
+CONFLICT (add/add): Merge conflict in P1/runners/rapidocr_runner.py
+Auto-merging P1/scripts/verify_p1.py
+CONFLICT (add/add): Merge conflict in P1/scripts/verify_p1.py
+Auto-merging P1/tests/resource/test_health.py
+CONFLICT (add/add): Merge conflict in P1/tests/resource/test_health.py
+Auto-merging P1/tests/resource/test_runner.py
+CONFLICT (add/add): Merge conflict in P1/tests/resource/test_runner.py
+Auto-merging P1/tests/resource/test_sharing.py
+CONFLICT (add/add): Merge conflict in P1/tests/resource/test_sharing.py
+Auto-merging P2/.env.example
+CONFLICT (add/add): Merge conflict in P2/.env.example
+Auto-merging P2/README.md
+CONFLICT (add/add): Merge conflict in P2/README.md
+Auto-merging P2/aggregators/ocr.py
+CONFLICT (add/add): Merge conflict in P2/aggregators/ocr.py
+Auto-merging P2/contracts/openapi.yaml
+CONFLICT (add/add): Merge conflict in P2/contracts/openapi.yaml
+Auto-merging P2/task_service/__main__.py
+CONFLICT (add/add): Merge conflict in P2/task_service/__main__.py
+Auto-merging P2/task_service/app.py
+CONFLICT (add/add): Merge conflict in P2/task_service/app.py
+Auto-merging P2/task_service/config.py
+CONFLICT (add/add): Merge conflict in P2/task_service/config.py
+Auto-merging P2/task_service/contract.py
+CONFLICT (add/add): Merge conflict in P2/task_service/contract.py
+Auto-merging P2/task_service/p1.py
+CONFLICT (add/add): Merge conflict in P2/task_service/p1.py
+Auto-merging P2/task_service/service.py
+CONFLICT (add/add): Merge conflict in P2/task_service/service.py
+Auto-merging P2/task_service/store.py
+CONFLICT (add/add): Merge conflict in P2/task_service/store.py
+Auto-merging P2/tests/tasks/fixtures/contract-examples.json
+CONFLICT (add/add): Merge conflict in P2/tests/tasks/fixtures/contract-examples.json
+Auto-merging P2/tests/tasks/mock_p1.py
+CONFLICT (add/add): Merge conflict in P2/tests/tasks/mock_p1.py
+Auto-merging P2/tests/tasks/smoke.py
+CONFLICT (add/add): Merge conflict in P2/tests/tasks/smoke.py
+Auto-merging P2/tests/tasks/test_service.py
+CONFLICT (add/add): Merge conflict in P2/tests/tasks/test_service.py
+Auto-merging README.md
+CONFLICT (content): Merge conflict in README.md
+Auto-merging qa/p1-p2/README.md
+CONFLICT (add/add): Merge conflict in qa/p1-p2/README.md
+Auto-merging qa/p1-p2/run_local.py
+CONFLICT (add/add): Merge conflict in qa/p1-p2/run_local.py

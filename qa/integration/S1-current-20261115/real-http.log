@@ -1,0 +1,10 @@
+P1 http://127.0.0.1:50873 | P2 http://127.0.0.1:50874
+日志、独立数据与本机令牌文件：/Users/zhouyuechen/Documents/heikesong/P4/var/integration/S1-current-20261115
+PASS L01: real services, roles, contract and frozen profile
+PASS L02 local: upload, metadata and original byte download
+PASS L03: NOT_PREPARED/null -> automatic preparation -> real OCR -> results/ZIP
+PASS Resident model: preparation and two real OCR tasks share one loaded process
+PASS L04/L11/L12 subset: pause, waiting cancellation, ACTIVE then actual OCR
+PASS L15/L16 subset: P2 restart, same Job replay, P1 offline results/ZIP
+PASS L14 subset: P1 restart retains inputs, new session automatically prepares and executes
+PASS: /Users/zhouyuechen/Documents/heikesong/P4/var/integration/S1-current-20261115/report.json

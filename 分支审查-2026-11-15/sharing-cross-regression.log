@@ -1,0 +1,59 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+______________ test_shutdown_retains_success_and_revokes_running _______________
+
+client_with_profile = (<starlette.testclient.TestClient object at 0x1038a6bb0>, 'e8a77de2e16049949a863f1a95dad26c4ce409c51ec4e3fcba15b6ae9d7197bf')
+
+    def test_shutdown_retains_success_and_revokes_running(client_with_profile):
+        c, digest, node, artifact = setup_ready(client_with_profile)
+        prefix = f"/api/resource/internal/v1/nodes/{node['worker_id']}"
+        auth = {k: node[k] for k in ("session_id", "node_secret")}
+        result = dict(
+            schema_version="1.0",
+            task_type="ocr.image.v1",
+            input_artifact_id=artifact["artifact_id"],
+            image_width=64,
+            image_height=32,
+            text="saved",
+            blocks=[],
+        )
+        ids = []
+        for i in range(2):
+            req = make_execution_request(node, artifact["artifact_id"], digest)
+            assert c.post("/api/resource/v1/executions", headers=TASK, json=req).status_code == 201
+            c.post(prefix + "/claim", json=auth)
+            ids.append(req["execution_id"])
+            if i == 0:
+                saved = c.post(
+                    prefix + f"/executions/{ids[0]}/complete",
+                    json={**auth, "outcome": "SUCCEEDED", "result": result},
+                ).json()
+        for _ in range(2):
+            assert c.post(prefix + "/sharing", json={**auth, "enabled": False}).status_code == 200
+        assert c.post(prefix + "/sharing", json={**auth, "enabled": True}).status_code == 409
+        assert c.post(prefix + "/confirm_idle", json=auth).status_code == 409
+        assert (
+            c.post(
+                prefix + f"/executions/{ids[1]}/complete",
+                json={**auth, "outcome": "SUCCEEDED", "result": result},
+            ).status_code
+            == 409
+        )
+        assert c.post(prefix + "/claim", json=auth).json()["stop_ack_required"] == [ids[1]]
+        cancelled = c.post(prefix + f"/executions/{ids[1]}/cancel_ack", json=auth).json()
+        assert cancelled["status"] == "CANCELLED"
+        assert cancelled["error"]["code"] == "NODE_UNAVAILABLE"
+        assert cancelled["error"]["details"]["execution_id"] == ids[1]
+        assert c.get("/api/resource/v1/executions/" + ids[0], headers=TASK).json() == saved
+        assert c.post(prefix + "/confirm_idle", json=auth).status_code == 200
+        mode_path = f"/api/resource/v1/resources/{node['worker_id']}/mode"
+        for mode in ("ACTIVE", "DRAINING"):
+            response = c.post(mode_path, headers=DEMO, json={"mode": mode})
+>           assert response.status_code == 409
+E           assert 200 == 409
+E            +  where 200 = <Response [200 OK]>.status_code
+
+/var/folders/cq/221nrrs97lgchcfpmw9hs5500000gn/T/heikesong-branch-audit-poeddbdn/zyc/P1/tests/resource/test_main_sharing_compat.py:101: AssertionError
+=========================== short test summary info ============================
+FAILED ../../../../../../../../../var/folders/cq/221nrrs97lgchcfpmw9hs5500000gn/T/heikesong-branch-audit-poeddbdn/zyc/P1/tests/resource/test_main_sharing_compat.py::test_shutdown_retains_success_and_revokes_running
+1 failed in 0.15s

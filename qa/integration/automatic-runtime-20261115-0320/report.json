@@ -1,0 +1,65 @@
+{
+  "scope": "automatic device-local environment preparation; not a formal S0-S7 gate pass",
+  "at": "2026-11-14T19:16:38.442920+00:00",
+  "base_commit": "c7113c9b97ef46b0690cefc4cebba4247e410e92",
+  "branch": "zyc",
+  "working_tree_changes": true,
+  "source_sha256": {
+    "P4/scripts/managed_runtime.py": "7ba77aa79da651860f5b96212f393eeb8c592e624d3bb75b9fdcc5ffa4510513",
+    "P4/scripts/bootstrap.sh": "db0c6bbdb54cb57cbf28451794411192df0078e0a26a4ffd20bc582c52e36b66",
+    "P4/scripts/bootstrap.ps1": "852829d8f48d2d5586a9bcda0faa7957bf4da5f37f37f832a0bfe56a79388ace",
+    "P4/scripts/control.py": "29b5e9c5921c4e5a1957876756e34939e97d3c16394a990ed59726ae2f1efd5d",
+    "P4/scripts/compute_config.py": "f67b0893957e74e983cf0b0775a3782096ff45421bed04218d893260eddd1785",
+    "P4/scripts/cluster.py": "aa401eca1a58ea651903851f9ec059213be1c1d936b56ba72674d6f45e34660f",
+    "P4/start.cmd": "841c57fc8c9cd138a12b546ad7ec6df72d1d344280c5e3cd6f7e4cdba9e5d9db",
+    "P4/start.command": "9af8f45fd09b370e98c6e90add095d5391a0de93e2b91635188b34316cac3d88",
+    "P4/runtime/installers.tsv": "bb7172db33ee835a7b673186c13e00d1b8672fd10263b46746d4f8b7c9044c12"
+  },
+  "checks": {
+    "macos_arm64_fresh_private_preparation": "PASS",
+    "macos_arm64_second_start_revalidation_and_reuse": "PASS",
+    "p1_in_new_private_environment": {
+      "status": "PASS",
+      "tests": 132
+    },
+    "p2_in_new_private_environment": {
+      "status": "PASS",
+      "tests": 153
+    },
+    "p4_regression_before_last_repair_test": {
+      "status": "PASS",
+      "tests": 107
+    },
+    "managed_runtime_targeted": {
+      "status": "PASS",
+      "tests": 15
+    },
+    "real_cpu_ocr": {
+      "status": "PASS",
+      "python": "3.9.6",
+      "provider": "CPUExecutionProvider",
+      "text": [
+        "HELLO OCR 123"
+      ],
+      "model_sha256": "3358ac6b2a0919cf5c72159265440ba62fb496b504d1fc6fb92a4ffc4fc0edc5"
+    },
+    "windows_cpu_web_dependency_resolution": true,
+    "windows_cuda_dependency_resolution": true,
+    "windows_actual_installation": "NOT_RUN",
+    "windows_gpu_inference": "NOT_RUN",
+    "intel_mac_linux_installation": "NOT_RUN",
+    "two_physical_devices_browser_acceptance": "NOT_RUN",
+    "throughput_and_human_quality_reference": "NOT_RUN",
+    "p4_final_regression": {
+      "status": "PASS",
+      "tests": 108,
+      "evidence": "p4-junit.xml"
+    }
+  },
+  "notes": [
+    "No existing system Python or project venv was reused as the application environment.",
+    "No existing user services were stopped or restarted.",
+    "No formal integration stage was advanced.",
+    "Package resolution is not evidence of Windows runtime or GPU success."
+  ]
+}

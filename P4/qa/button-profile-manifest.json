@@ -1,0 +1,13 @@
+{
+  "transform": "CRLF_TO_LF_ONLY",
+  "files": {
+    "ocr.default.v1.lock.json": {
+      "source_sha256": "dc5c1cb389ffd9d822890d12449c36422bf602ef52adcd6f145cee8493ea43a1",
+      "runtime_sha256": "1290c0523d80e5f02d5ed8021ea5f6363d598468c542d60dbf47cb9e1a9cb6a9"
+    },
+    "task_types.json": {
+      "source_sha256": "18223e7bbb18d39c6415ffb30b6bd1af95ab7637da61d29d27041abc84044de3",
+      "runtime_sha256": "48063bc4d6510ce3a9db437aaec9d4f90e4fefc1d6e1106098fc91bf1e1cccbc"
+    }
+  }
+}

@@ -1,124 +1,38 @@
-# Heikesong · P2 OCR 任务服务
+> 集成开发（zyc）：P1/P2 契约 0.4.0，保留 main 工作台与配对流程。默认 CPU 单槽、关闭预取、轮转调度；双机/CUDA 与吞吐量按阶段验收。详见 [集成验收](P4/集成验收.md)。
 
-面向团队接口契约 **0.2.0** 的 P2 实现：图片批次校验、一图一 Task、资源准备与调度、状态查询、取消、失败重试、重启对账，以及有序 JSON/TXT/ZIP 汇总。
+> 2026-11-14 后续实现更新：计算终止、共享关闭与 P2 迁移已实现，新增交互式 CLI；当前行为、接口和测试范围以 [实施报告](qa/p1-p2/共享开关实施报告.md) 为准。以下此前未实现/原样导入描述保留为阶段背景。
 
-本服务只开放 `ocr.image.v1`。RapidOCR / ONNXRuntime、设备探测和真实图片推理由 **P1** 提供；本仓库中的模拟 P1 仅用于协议自测，不包含真实 OCR、物理节点或性能证据。
+# Heikesong · 多设备 OCR 项目
 
-## 环境与启动
+日常启动见 [P4 一键连接](P4/一键连接.md)：保留中心与工作台联合启动，并支持在控制台上传自己的 PNG/JPG 图片测试、下载带时间标识的结果。启动器、P1、P2 和可选 CUDA 的 Python 统一固定为 **3.9.6**，由启动器管理独立环境；工作台使用 Node.js 22，不属于 Python 环境。历史复验中的 3.11 要求已由本次版本统一替代。
 
-Python 3.11 或以上。使用 `uv.lock` 固定 P2 HTTP 服务及测试依赖，不安装 OCR 引擎。实际自测使用 Python 3.11。
+P2 的代码、依赖、测试、开发文档及本地演示数据已集中放在 **[P2](P2/README.md)** 目录。队友 `wzq@7368ad0` 的 P1 原始实现已接入 **[P1](P1/README.md)**，两端保持独立环境。公共执行包与 P1–P4 的任务说明保留在项目根目录。
+
+| 目录或文件 | 用途 |
+|---|---|
+| [P1/](P1/README.md) | 最新 wzq 的资源服务、节点与真实 OCR；保留原提交文件及来源校验 |
+| [P2/](P2/README.md) | P2 OCR 任务服务及独立测试；开发命令在此目录执行 |
+| [web/](web/README.md) | Edge Fabric 工作台，提供真实 OCR 和独立的 MOCK 演示 |
+| [P4/](P4/README.md) | 联合启动、节点配对、验收工具和演示流程 |
+| [qa/p1-p2/](qa/p1-p2/README.md) | 本机联合启动、真实 HTTP/OCR 复验与报告 |
+| [D题参赛执行包/](D题参赛执行包/README.md) | 团队任务说明、共享接口契约、验收要求和赛题依据 |
+| D题参赛执行包.zip | 原完整执行包压缩文件 |
+| 归档/ | 旧版分工资料，保留追溯 |
+
+进入 P2 开发目录：
 
 ```sh
+cd P2
 uv sync --frozen
-```
-
-真实联调前填写 `.env.example` 中的配置，并通过 shell 或进程管理器注入环境。程序**不会自动读取 .env**。最少需要 `RESOURCE_BASE_URL`、`TASK_TOKEN`、`DEMO_TOKEN`、`TASK_DATA_DIR`；启动入口：
-
-```sh
-uv run --frozen python -m task_service
-```
-
-- 默认监听 `0.0.0.0:8002`，可用 `TASK_BIND_HOST`、`TASK_PORT` 修改。
-- `RESOURCE_BASE_URL` 只能含协议、主机、端口，不带路径或尾斜杠。跨机器使用对方可达的局域网地址。
-- `TASK_DATA_DIR` 必须是独立绝对路径，与 P1 分离；重启使用原目录即可恢复任务及结果。
-- **单进程、单 worker**：数据目录有独占锁，避免重复启动调度器。不要使用多个 Uvicorn worker。
-- 没有默认令牌；DEMO_TOKEN 与 TASK_TOKEN 必须非空且不同。前端只使用 DEMO_TOKEN。
-- P2 没有自动 MOCK 回退。P1 不可达时，新建请求明确报错，已有任务保留原 ID 等待对账。
-- `/api/task/v1/healthz` 仅表示 P2 活着。接口规范在 `/openapi.json`，交互文档在 `/docs`；前端按团队约定使用同源代理。
-
-## 独立自测
-
-```sh
 uv run --frozen pytest -q
-uv run --frozen ruff check task_service splitters aggregators tests/tasks
-uv run --frozen ruff format --check task_service splitters aggregators tests/tasks
 ```
 
-测试既包含 HTTP/ASGI 模拟故障场景，也会启动两个真实本地 HTTP 服务进程，验证建任务、调度、取消、P2 重启和 P1 停止后下载；端口与数据目录隔离，结束时自动停止测试子进程。没有模型下载或外部服务依赖。
+服务启动与配置见 [P2 使用说明](P2/README.md)，真实接入要求见 [P1 联调清单](P2/docs/P1-联调交接清单.md)。
 
-只运行进程级自测：
+两端环境按各自 README 安装后，从项目根目录执行 `P2/.venv/bin/python qa/p1-p2/run_local.py check` 可复验真实闭环；改用 `serve` 可明确启动本机 P1（8001）、P2（8002）与节点。已通过的范围与尚缺的物理两机验收见 [实际联调报告](qa/p1-p2/实际联调报告.md)。
 
-```sh
-uv run --frozen python -m tests.tasks.smoke
-```
+日常使用可按 [P4 一键连接](P4/一键连接.md) 启动 P1、P2 和工作台。共享暂停和任务迁移的实现与验证范围见 [共享开关实施报告](qa/p1-p2/共享开关实施报告.md)。
 
-测试结果及范围见 [独立自测报告](docs/P2-独立自测报告.md)。团队原验收矩阵中的真实联调、OCR 质量及多机性能状态没有因此改为 PASS。
+原任务卡：[P1](D题参赛执行包/tasks/P1-资源接入与执行.md)、[P2](D题参赛执行包/tasks/P2-任务分析与调度.md)、[P3](D题参赛执行包/tasks/P3-前端体验.md)、[P4](D题参赛执行包/tasks/P4-验收压测与演示.md)。
 
-## 手工连接模拟 P1
-
-终端 A 显式开启模拟服务，默认仅监听本机 18001：
-
-```sh
-export P2_ENABLE_MOCK_P1=1
-export TASK_TOKEN=mock-task-token
-export DEMO_TOKEN=mock-demo-token
-uv run --frozen python -m tests.tasks.mock_p1
-```
-
-终端 B 启动 P2，使用专用测试目录：
-
-```sh
-export RESOURCE_BASE_URL=http://127.0.0.1:18001
-export TASK_TOKEN=mock-task-token
-export DEMO_TOKEN=mock-demo-token
-export TASK_BIND_HOST=127.0.0.1
-export TASK_PORT=18002
-export TASK_DATA_DIR="$PWD/var/p2-mock"
-uv run --frozen python -m task_service
-```
-
-模拟 P1 预置 `mock_image_1`、`mock_image_2`、`mock_image_3` 三张不同内容的 20×20 PNG，结果明确包含 `MOCK OCR`。它有两个合成节点，状态通过查询推进，**不模拟真实性能**。当前模拟服务不实现上传；开发 P2 时可直接使用预置 artifact ID。
-
-在终端 C 创建测试批次：
-
-```sh
-curl -sS http://127.0.0.1:18002/api/task/v1/jobs \
-  -H 'Authorization: Bearer mock-demo-token' \
-  -H 'Content-Type: application/json' \
-  --data-binary @tests/tasks/fixtures/create-ocr-job.json
-```
-
-样例中的 profile digest 是明确的合成值，只能用于此模拟服务。同一个 `client_request_id` 重放会返回原 Job；要创建新批次需更换 UUID。根据响应的 `job_id` 查询、取消和下载；真实模式则从 P1/P2 类型目录获取真实 profile，并先通过 P1 上传输入。
-
-## 对外接口
-
-除健康检查外，均要求 `Authorization: Bearer <DEMO_TOKEN>`。
-
-| 方法与路径 | 行为 |
-|---|---|
-| GET /api/task/v1/healthz | P2 自身健康及契约版本 |
-| GET /api/task/v1/task-types | P2 已实现类型与 P1 类型目录的交集，本轮仅 OCR |
-| POST /api/task/v1/jobs | 校验并持久创建 Job；首次 201，幂等重放 200，冲突 409 |
-| GET /api/task/v1/jobs/{id} | Job、逐图 Task、唯一计数、等待原因及已知执行摘要 |
-| POST /api/task/v1/jobs/{id}/cancel | 停止新分派；已终态 200；需要确认的活动取消返回 202 |
-| GET /api/task/v1/jobs/{id}/results | 部分/最终结果；每个输入都有一项，未完成结果为 null |
-| GET /api/task/v1/jobs/{id}/download | 终态 ZIP；未结束 409；失败及取消也可下载 |
-
-请求与响应按 [原始 OpenAPI](contracts/openapi.yaml) 校验；契约来源及哈希见 [来源记录](contracts/README.md)。数组顺序参与幂等比较，对象键顺序不影响重放。
-
-## 调度与持久化规则
-
-- 一图一 Task，输入顺序从 0 编号，单 Job 1–200 个不同原字节 SHA 的 JPG/PNG。
-- 按 Job 创建顺序取待派任务，匹配类型/profile、ONLINE、ACTIVE、READY、自测通过、清理完成和空槽。空闲节点稳定轮询，不按 RAM 比例分整批。
-- 先在 SQLite 保存完整分派请求与 ID，再发送 P1。接纳未知时 Task 保持 DISPATCHING；由于契约 ExecutionSummary 没有 UNKNOWN 枚举，未知请求只通过 current_execution_id 关联，得到确定状态后才加入 dispatches。
-- GET 404、HTTP 超时或 5xx 都不触发另一笔执行。按原 ID、原载荷查询或重放，直到 P1 给出确定结果。
-- REJECTED 不占尝试预算；可重试拒绝至少退避 1 秒。已接受 FAILED 且可重试才进入下一次尝试，总计不超过 3 次。
-- 正常轮询约 1 秒；依赖异常按 1/2/4/8/10 秒退避，同一调度轮不重叠。JSON 连接/响应超时 2/10 秒，文件传输 60 秒；这些都不是执行失败判据。
-- 准备请求也先持久化；准备失败不紧密重试，等待 P1 修复为 READY、更新会话或换可用节点。
-- P1 成功后，校验结果的 SHA、结构、输入关联、尺寸、bbox。保存结果与 Task 成功在同一次 SQLite 事务完成；失败不合并假文本。
-- 单个结果暂不可下载时保留同一执行，其他任务仍可推进。完成后的结果与 ZIP 从 P2 持久数据生成，不再依赖 P1。
-- Job 取消期间继续对账未知请求，不新开尝试；已成功结果保留。P2 重启恢复原映射，不重新创建一批任务。
-- SQLite 含原始分派映射和输入元信息，可供开发排查；ZIP 只导出公共状态和结果，不导出内部请求、租约、令牌或服务器路径。
-
-## 代码归属与下一步真实联调
-
-| 目录 | 内容 |
-|---|---|
-| task_service/ | HTTP 接口、配置、契约校验、P1 客户端、SQLite、调度与生命周期 |
-| splitters/ | 固定 OCR 输入校验与逐图拆分 |
-| aggregators/ | 顺序汇总与 ZIP 导出 |
-| tests/tasks/ | 显式模拟 P1、故障用例、真实 HTTP 进程自测、合成样例 |
-| contracts/ | 未修改的团队 OpenAPI 快照及来源说明 |
-| docs/ | P1 交接清单与本次独立自测证据 |
-
-真实联调所需的接口、配置、模型 profile、异常语义与验收顺序见 [P1 联调交接清单](docs/P1-联调交接清单.md)。P2 当前不包含原生 PDF、表格结构恢复、ASR、LLM、前端或模型执行器。
+迁移时，之前的演示服务仍在后台运行。根目录 `.venv` 和 `var` 暂留为兼容符号链接，实际文件分别位于 `P2/.venv-runtime` 和 `P2/var`，用于让旧进程继续读取环境和数据库。新的开发环境是 `P2/.venv`；后续启动、测试和开发均从 `P2` 目录执行。

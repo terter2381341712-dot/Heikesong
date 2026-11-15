@@ -1,0 +1,222 @@
+[
+  {
+    "file": "D题参赛执行包/05-接口契约与联调手册.md",
+    "basis": "zyc",
+    "review": "retain 0.4.0 schema/runtime or Windows entrypoint"
+  },
+  {
+    "file": "D题参赛执行包/contracts/examples.json",
+    "basis": "zyc",
+    "review": "retain 0.4.0 schema/runtime or Windows entrypoint"
+  },
+  {
+    "file": "D题参赛执行包/contracts/openapi.yaml",
+    "basis": "zyc",
+    "review": "retain 0.4.0 schema/runtime or Windows entrypoint"
+  },
+  {
+    "file": "D题参赛执行包/contracts/runtime-manifest.example.json",
+    "basis": "zyc",
+    "review": "retain 0.4.0 schema/runtime or Windows entrypoint"
+  },
+  {
+    "file": "D题参赛执行包/contracts/task-types.json",
+    "basis": "zyc",
+    "review": "retain 0.4.0 schema/runtime or Windows entrypoint"
+  },
+  {
+    "file": "P1/README.md",
+    "basis": "zyc",
+    "review": "combine main regressions/docs"
+  },
+  {
+    "file": "P1/SOURCE.json",
+    "basis": "zyc",
+    "review": "combine main regressions/docs"
+  },
+  {
+    "file": "P1/contracts/openapi.yaml",
+    "basis": "zyc",
+    "review": "retain 0.4.0 schema/runtime or Windows entrypoint"
+  },
+  {
+    "file": "P1/node_agent/agent.py",
+    "basis": "zyc",
+    "review": "combine main regressions/docs"
+  },
+  {
+    "file": "P1/node_agent/benchmark.py",
+    "basis": "zyc",
+    "review": "retain 0.4.0 schema/runtime or Windows entrypoint"
+  },
+  {
+    "file": "P1/node_agent/compute.py",
+    "basis": "zyc",
+    "review": "retain 0.4.0 schema/runtime or Windows entrypoint"
+  },
+  {
+    "file": "P1/node_agent/hardware.py",
+    "basis": "zyc",
+    "review": "retain 0.4.0 schema/runtime or Windows entrypoint"
+  },
+  {
+    "file": "P1/node_agent/telemetry.py",
+    "basis": "zyc",
+    "review": "retain 0.4.0 schema/runtime or Windows entrypoint"
+  },
+  {
+    "file": "P1/profiles/task_types.json",
+    "basis": "zyc",
+    "review": "retain 0.4.0 schema/runtime or Windows entrypoint"
+  },
+  {
+    "file": "P1/resource_service/__main__.py",
+    "basis": "main",
+    "review": "retain 0.4.0 schema/runtime or Windows entrypoint"
+  },
+  {
+    "file": "P1/resource_service/catalog.py",
+    "basis": "zyc",
+    "review": "retain 0.4.0 schema/runtime or Windows entrypoint"
+  },
+  {
+    "file": "P1/resource_service/config.py",
+    "basis": "zyc",
+    "review": "retain 0.4.0 schema/runtime or Windows entrypoint"
+  },
+  {
+    "file": "P1/resource_service/db.py",
+    "basis": "zyc",
+    "review": "retain 0.4.0 schema/runtime or Windows entrypoint"
+  },
+  {
+    "file": "P1/resource_service/models.py",
+    "basis": "zyc",
+    "review": "retain 0.4.0 schema/runtime or Windows entrypoint"
+  },
+  {
+    "file": "P1/resource_service/service.py",
+    "basis": "zyc",
+    "review": "combine main regressions/docs"
+  },
+  {
+    "file": "P1/runners/profile.py",
+    "basis": "zyc",
+    "review": "retain 0.4.0 schema/runtime or Windows entrypoint"
+  },
+  {
+    "file": "P1/runners/rapidocr_runner.py",
+    "basis": "zyc",
+    "review": "combine main regressions/docs"
+  },
+  {
+    "file": "P1/scripts/verify_p1.py",
+    "basis": "zyc",
+    "review": "retain 0.4.0 schema/runtime or Windows entrypoint"
+  },
+  {
+    "file": "P1/tests/resource/test_health.py",
+    "basis": "zyc",
+    "review": "retain 0.4.0 schema/runtime or Windows entrypoint"
+  },
+  {
+    "file": "P1/tests/resource/test_runner.py",
+    "basis": "main",
+    "review": "retain 0.4.0 schema/runtime or Windows entrypoint"
+  },
+  {
+    "file": "P1/tests/resource/test_sharing.py",
+    "basis": "zyc",
+    "review": "combine main regressions/docs"
+  },
+  {
+    "file": "P2/.env.example",
+    "basis": "zyc",
+    "review": "retain 0.4.0 schema/runtime or Windows entrypoint"
+  },
+  {
+    "file": "P2/README.md",
+    "basis": "zyc",
+    "review": "combine main regressions/docs"
+  },
+  {
+    "file": "P2/aggregators/ocr.py",
+    "basis": "zyc",
+    "review": "retain 0.4.0 schema/runtime or Windows entrypoint"
+  },
+  {
+    "file": "P2/contracts/openapi.yaml",
+    "basis": "zyc",
+    "review": "retain 0.4.0 schema/runtime or Windows entrypoint"
+  },
+  {
+    "file": "P2/task_service/__main__.py",
+    "basis": "main",
+    "review": "retain 0.4.0 schema/runtime or Windows entrypoint"
+  },
+  {
+    "file": "P2/task_service/app.py",
+    "basis": "zyc",
+    "review": "retain 0.4.0 schema/runtime or Windows entrypoint"
+  },
+  {
+    "file": "P2/task_service/config.py",
+    "basis": "zyc",
+    "review": "retain 0.4.0 schema/runtime or Windows entrypoint"
+  },
+  {
+    "file": "P2/task_service/contract.py",
+    "basis": "zyc",
+    "review": "retain 0.4.0 schema/runtime or Windows entrypoint"
+  },
+  {
+    "file": "P2/task_service/p1.py",
+    "basis": "zyc",
+    "review": "retain 0.4.0 schema/runtime or Windows entrypoint"
+  },
+  {
+    "file": "P2/task_service/service.py",
+    "basis": "zyc",
+    "review": "retain 0.4.0 schema/runtime or Windows entrypoint"
+  },
+  {
+    "file": "P2/task_service/store.py",
+    "basis": "zyc",
+    "review": "retain 0.4.0 schema/runtime or Windows entrypoint"
+  },
+  {
+    "file": "P2/tests/tasks/fixtures/contract-examples.json",
+    "basis": "zyc",
+    "review": "retain 0.4.0 schema/runtime or Windows entrypoint"
+  },
+  {
+    "file": "P2/tests/tasks/mock_p1.py",
+    "basis": "zyc",
+    "review": "retain 0.4.0 schema/runtime or Windows entrypoint"
+  },
+  {
+    "file": "P2/tests/tasks/smoke.py",
+    "basis": "zyc",
+    "review": "retain 0.4.0 schema/runtime or Windows entrypoint"
+  },
+  {
+    "file": "P2/tests/tasks/test_service.py",
+    "basis": "zyc",
+    "review": "combine main regressions/docs"
+  },
+  {
+    "file": "README.md",
+    "basis": "main",
+    "review": "combine main regressions/docs"
+  },
+  {
+    "file": "qa/p1-p2/README.md",
+    "basis": "zyc",
+    "review": "combine main regressions/docs"
+  },
+  {
+    "file": "qa/p1-p2/run_local.py",
+    "basis": "zyc",
+    "review": "retain 0.4.0 schema/runtime or Windows entrypoint"
+  }
+]

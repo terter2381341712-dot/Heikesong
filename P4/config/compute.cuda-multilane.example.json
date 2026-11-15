@@ -1,0 +1,12 @@
+{
+  "profile_set": "heterogeneous",
+  "node": {
+    "backend": "cuda",
+    "slots": 2,
+    "threads": 2,
+    "cpu_budget": 4,
+    "prefetch": 0,
+    "device_id": 0,
+    "gpu_lane_vram_bytes": null
+  }
+}

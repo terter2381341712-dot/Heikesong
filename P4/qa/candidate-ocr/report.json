@@ -1,0 +1,325 @@
+{
+  "mode": "REAL_HTTP_OCR_SINGLE_MACHINE_CANDIDATE_FIX",
+  "status": "PASS",
+  "started_at": "2026-11-14T09:26:10.298305Z",
+  "contract_version": "0.2.0",
+  "checks": [
+    {
+      "name": "G1 subset: health/version and 401/403 roles",
+      "status": "PASS",
+      "at": "2026-11-14T09:26:10.473460Z"
+    },
+    {
+      "name": "G1 subset: original-byte upload/download and upload replay",
+      "status": "PASS",
+      "at": "2026-11-14T09:26:10.526853Z"
+    },
+    {
+      "name": "T02 subset: same request same Job; changed payload 409",
+      "status": "PASS",
+      "at": "2026-11-14T09:26:10.543673Z"
+    },
+    {
+      "name": "G2/G3 API subset: OCR, input/execution/result links and ZIP",
+      "status": "PASS",
+      "at": "2026-11-14T09:26:16.617643Z"
+    }
+  ],
+  "physical_collaboration": "NOT_RUN",
+  "quality": "NOT_RUN",
+  "formal_performance": "NOT_RUN",
+  "browser_e2e": "NOT_RUN",
+  "static": {
+    "mode": "STATIC",
+    "status": "PASS",
+    "examples_checked": 55,
+    "task_types_checked": 2,
+    "contract_sha256": "f136a83be1a25ec08b17c388fec708271304109579ef66d9941102085aaf3a79",
+    "at": "2026-11-14T09:26:10.407908Z"
+  },
+  "profile_digest": "dc5c1cb389ffd9d822890d12449c36422bf602ef52adcd6f145cee8493ea43a1",
+  "initial_resources": {
+    "contract_version": "0.2.0",
+    "server_time": "2026-11-14T09:26:10Z",
+    "resources": [
+      {
+        "worker_id": "wdbb38ded32834dfb",
+        "session_id": "1c48960b-b233-4256-8b18-153a6a5a76be",
+        "name": "PC-A-smoke",
+        "connection": "OFFLINE",
+        "mode": "ACTIVE",
+        "hardware": {
+          "arch": "AMD64",
+          "cpu_name": "Intel64 Family 6 Model 186 Stepping 2, GenuineIntel",
+          "detection_errors": [],
+          "gpu_info_source": "unavailable",
+          "gpu_name": null,
+          "gpu_vram_bytes": null,
+          "logical_cores": null,
+          "manual_labels": {},
+          "os": "Windows 10",
+          "ram_available_bytes": null,
+          "ram_total_bytes": null
+        },
+        "capabilities": [
+          {
+            "backend": null,
+            "calibration": null,
+            "model_cached": false,
+            "model_sha256": null,
+            "profile_digest": null,
+            "profile_id": "asr.default.v1",
+            "reason": "计划类型；模型、许可和依赖待P1验证发布。",
+            "runtime_provider": null,
+            "state": "UNAVAILABLE",
+            "task_type": "asr.file.v1",
+            "verified": false
+          },
+          {
+            "backend": null,
+            "calibration": null,
+            "model_cached": false,
+            "model_sha256": null,
+            "profile_digest": "dc5c1cb389ffd9d822890d12449c36422bf602ef52adcd6f145cee8493ea43a1",
+            "profile_id": "ocr.default.v1",
+            "reason": "模型 SHA 与 profile 锁文件不符",
+            "runtime_provider": null,
+            "state": "ERROR",
+            "task_type": "ocr.image.v1",
+            "verified": false
+          }
+        ],
+        "max_slots": 1,
+        "reserved_slots": 0,
+        "available_slots": 0,
+        "active_execution_ids": [],
+        "active_preparation_id": null,
+        "cleanup_pending": true,
+        "last_seen_at": null,
+        "telemetry": {
+          "cpu_percent": 11.8,
+          "gpu_memory_used_bytes": null,
+          "gpu_metric_source": "unavailable",
+          "gpu_percent": null,
+          "ram_used_bytes": 25351290880,
+          "sampled_at": "2026-11-14T09:25:16Z"
+        }
+      },
+      {
+        "worker_id": "w47e14e5b187d4691",
+        "session_id": "070cfc9e-353f-49e2-b713-d8e7a325b41e",
+        "name": "PC-A-smoke",
+        "connection": "ONLINE",
+        "mode": "ACTIVE",
+        "hardware": {
+          "arch": "AMD64",
+          "cpu_name": "Intel64 Family 6 Model 186 Stepping 2, GenuineIntel",
+          "detection_errors": [],
+          "gpu_info_source": "unavailable",
+          "gpu_name": null,
+          "gpu_vram_bytes": null,
+          "logical_cores": null,
+          "manual_labels": {},
+          "os": "Windows 10",
+          "ram_available_bytes": null,
+          "ram_total_bytes": null
+        },
+        "capabilities": [
+          {
+            "backend": null,
+            "calibration": null,
+            "model_cached": false,
+            "model_sha256": null,
+            "profile_digest": null,
+            "profile_id": "asr.default.v1",
+            "reason": "计划类型；模型、许可和依赖待P1验证发布。",
+            "runtime_provider": null,
+            "state": "UNAVAILABLE",
+            "task_type": "asr.file.v1",
+            "verified": false
+          },
+          {
+            "backend": "cpu",
+            "calibration": {
+              "finished_at": "2026-11-14T09:25:35Z",
+              "median_compute_ms": 703.0,
+              "passed": true,
+              "sample_count": 3
+            },
+            "model_cached": true,
+            "model_sha256": "3358ac6b2a0919cf5c72159265440ba62fb496b504d1fc6fb92a4ffc4fc0edc5",
+            "profile_digest": "dc5c1cb389ffd9d822890d12449c36422bf602ef52adcd6f145cee8493ea43a1",
+            "profile_id": "ocr.default.v1",
+            "reason": null,
+            "runtime_provider": "CPUExecutionProvider",
+            "state": "READY",
+            "task_type": "ocr.image.v1",
+            "verified": true
+          }
+        ],
+        "max_slots": 1,
+        "reserved_slots": 0,
+        "available_slots": 1,
+        "active_execution_ids": [],
+        "active_preparation_id": null,
+        "cleanup_pending": false,
+        "last_seen_at": "2026-11-14T09:26:09Z",
+        "telemetry": {
+          "cpu_percent": 17.6,
+          "gpu_memory_used_bytes": null,
+          "gpu_metric_source": "unavailable",
+          "gpu_percent": null,
+          "ram_used_bytes": 25389559808,
+          "sampled_at": "2026-11-14T09:26:09Z"
+        }
+      }
+    ]
+  },
+  "job_id": "b9b70f87-94ba-4d67-9dd7-c71638b3ed30",
+  "observed_job_seconds": 6.067912900005467,
+  "observed_with_upload_seconds": 6.1084513000096194,
+  "final_resources": {
+    "contract_version": "0.2.0",
+    "server_time": "2026-11-14T09:26:16Z",
+    "resources": [
+      {
+        "worker_id": "wdbb38ded32834dfb",
+        "session_id": "1c48960b-b233-4256-8b18-153a6a5a76be",
+        "name": "PC-A-smoke",
+        "connection": "OFFLINE",
+        "mode": "ACTIVE",
+        "hardware": {
+          "arch": "AMD64",
+          "cpu_name": "Intel64 Family 6 Model 186 Stepping 2, GenuineIntel",
+          "detection_errors": [],
+          "gpu_info_source": "unavailable",
+          "gpu_name": null,
+          "gpu_vram_bytes": null,
+          "logical_cores": null,
+          "manual_labels": {},
+          "os": "Windows 10",
+          "ram_available_bytes": null,
+          "ram_total_bytes": null
+        },
+        "capabilities": [
+          {
+            "backend": null,
+            "calibration": null,
+            "model_cached": false,
+            "model_sha256": null,
+            "profile_digest": null,
+            "profile_id": "asr.default.v1",
+            "reason": "计划类型；模型、许可和依赖待P1验证发布。",
+            "runtime_provider": null,
+            "state": "UNAVAILABLE",
+            "task_type": "asr.file.v1",
+            "verified": false
+          },
+          {
+            "backend": null,
+            "calibration": null,
+            "model_cached": false,
+            "model_sha256": null,
+            "profile_digest": "dc5c1cb389ffd9d822890d12449c36422bf602ef52adcd6f145cee8493ea43a1",
+            "profile_id": "ocr.default.v1",
+            "reason": "模型 SHA 与 profile 锁文件不符",
+            "runtime_provider": null,
+            "state": "ERROR",
+            "task_type": "ocr.image.v1",
+            "verified": false
+          }
+        ],
+        "max_slots": 1,
+        "reserved_slots": 0,
+        "available_slots": 0,
+        "active_execution_ids": [],
+        "active_preparation_id": null,
+        "cleanup_pending": true,
+        "last_seen_at": null,
+        "telemetry": {
+          "cpu_percent": 11.8,
+          "gpu_memory_used_bytes": null,
+          "gpu_metric_source": "unavailable",
+          "gpu_percent": null,
+          "ram_used_bytes": 25351290880,
+          "sampled_at": "2026-11-14T09:25:16Z"
+        }
+      },
+      {
+        "worker_id": "w47e14e5b187d4691",
+        "session_id": "070cfc9e-353f-49e2-b713-d8e7a325b41e",
+        "name": "PC-A-smoke",
+        "connection": "ONLINE",
+        "mode": "ACTIVE",
+        "hardware": {
+          "arch": "AMD64",
+          "cpu_name": "Intel64 Family 6 Model 186 Stepping 2, GenuineIntel",
+          "detection_errors": [],
+          "gpu_info_source": "unavailable",
+          "gpu_name": null,
+          "gpu_vram_bytes": null,
+          "logical_cores": null,
+          "manual_labels": {},
+          "os": "Windows 10",
+          "ram_available_bytes": null,
+          "ram_total_bytes": null
+        },
+        "capabilities": [
+          {
+            "backend": null,
+            "calibration": null,
+            "model_cached": false,
+            "model_sha256": null,
+            "profile_digest": null,
+            "profile_id": "asr.default.v1",
+            "reason": "计划类型；模型、许可和依赖待P1验证发布。",
+            "runtime_provider": null,
+            "state": "UNAVAILABLE",
+            "task_type": "asr.file.v1",
+            "verified": false
+          },
+          {
+            "backend": "cpu",
+            "calibration": {
+              "finished_at": "2026-11-14T09:25:35Z",
+              "median_compute_ms": 703.0,
+              "passed": true,
+              "sample_count": 3
+            },
+            "model_cached": true,
+            "model_sha256": "3358ac6b2a0919cf5c72159265440ba62fb496b504d1fc6fb92a4ffc4fc0edc5",
+            "profile_digest": "dc5c1cb389ffd9d822890d12449c36422bf602ef52adcd6f145cee8493ea43a1",
+            "profile_id": "ocr.default.v1",
+            "reason": null,
+            "runtime_provider": "CPUExecutionProvider",
+            "state": "READY",
+            "task_type": "ocr.image.v1",
+            "verified": true
+          }
+        ],
+        "max_slots": 1,
+        "reserved_slots": 0,
+        "available_slots": 1,
+        "active_execution_ids": [],
+        "active_preparation_id": null,
+        "cleanup_pending": false,
+        "last_seen_at": "2026-11-14T09:26:15Z",
+        "telemetry": {
+          "cpu_percent": 34.8,
+          "gpu_memory_used_bytes": null,
+          "gpu_metric_source": "unavailable",
+          "gpu_percent": null,
+          "ram_used_bytes": 25465593856,
+          "sampled_at": "2026-11-14T09:26:15Z"
+        }
+      }
+    ]
+  },
+  "successful_workers": [
+    "w47e14e5b187d4691"
+  ],
+  "finished_at": "2026-11-14T09:26:16.617688Z",
+  "production_p1_status": "BLOCKED_WINDOWS_MODEL_ORDER",
+  "candidate_patch": "P4/qa/issues/P1-windows-model-order.patch",
+  "candidate_runner_sha256": "9d5625e65a30be7b4e63751e1ada72194a53d6fbb4820a4dd12def00a30a8f0f"
+}

@@ -1,0 +1,96 @@
+{
+  "status": "PASS",
+  "mode": "REAL_SINGLE_MACHINE_BUTTON_HTTP",
+  "checks": [
+    {
+      "name": "initial idle",
+      "status": "PASS"
+    },
+    {
+      "name": "automatic environment detection and center + workbench + local node",
+      "status": "PASS"
+    },
+    {
+      "name": "P1 and P2 use their supported Python versions",
+      "status": "PASS"
+    },
+    {
+      "name": "workbench is running in LIVE mode",
+      "status": "PASS"
+    },
+    {
+      "name": "workbench proxies resource",
+      "status": "PASS"
+    },
+    {
+      "name": "workbench proxies task",
+      "status": "PASS"
+    },
+    {
+      "name": "workbench accepts the local demo credential",
+      "status": "PASS"
+    },
+    {
+      "name": "self center excluded from join list",
+      "status": "PASS"
+    },
+    {
+      "name": "sharing off confirmed by P1",
+      "status": "PASS"
+    },
+    {
+      "name": "sharing on confirmed by P1",
+      "status": "PASS"
+    },
+    {
+      "name": "button submits real OCR and verifies result / ZIP",
+      "status": "PASS"
+    },
+    {
+      "name": "controller publishes the verifier state",
+      "status": "PASS"
+    },
+    {
+      "name": "workbench reads test job",
+      "status": "PASS"
+    },
+    {
+      "name": "workbench reads test job/results",
+      "status": "PASS"
+    },
+    {
+      "name": "button result ZIP download",
+      "status": "PASS"
+    },
+    {
+      "name": "workbench stays open after stopping services",
+      "status": "PASS"
+    },
+    {
+      "name": "workbench reports the stopped backend",
+      "status": "PASS"
+    }
+  ],
+  "physical_multinode": "NOT_RUN",
+  "macos_live": "NOT_RUN",
+  "python_versions": {
+    "P1": [
+      3,
+      9,
+      6
+    ],
+    "P2": [
+      3,
+      11,
+      15
+    ],
+    "node": [
+      3,
+      9,
+      6
+    ]
+  },
+  "test_job_id": "7ecf99d1-4fb4-4935-9267-6704f9dfa673",
+  "test_message": "测试 2026-11-15 02:05:13（北京时间）：真实OCR/结果/ZIP验证通过；贡献节点数 1。证据：/Users/zhouyuechen/Documents/heikesong/P4/var/integration-buttons-20261115/test-20261115-020513-996ccc2d",
+  "cleanup": "PASS"
+}

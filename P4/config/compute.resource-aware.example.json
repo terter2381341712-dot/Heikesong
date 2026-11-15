@@ -1,0 +1,6 @@
+{
+  "profile_set": "heterogeneous",
+  "scheduler": {
+    "policy": "resource_aware"
+  }
+}

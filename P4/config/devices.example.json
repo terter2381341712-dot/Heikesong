@@ -1,0 +1,4 @@
+[
+  {"worker_id": "replace-center-worker-id", "physical_device_id": "PC-A", "operator_attested": false, "note": "中心电脑，同时运行一个节点"},
+  {"worker_id": "replace-remote-worker-id", "physical_device_id": "PC-B", "operator_attested": false, "note": "另一台独立物理电脑，仅运行节点"}
+]

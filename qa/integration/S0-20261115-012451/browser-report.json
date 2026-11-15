@@ -1,0 +1,24 @@
+{
+  "mode": "REAL_BROWSER_SINGLE_MACHINE",
+  "job_id": "8355a53e-cdfe-4a54-9c44-413dd2fe8c68",
+  "original_sha_match": true,
+  "ui_observations": [
+    "center started from workbench",
+    "local DEMO token applied",
+    "two local PNG files chosen via browser",
+    "job SUCCEEDED 2/2",
+    "HELLO OCR 123",
+    "APPROVED 456",
+    "original and ZIP downloaded via browser",
+    "English/Chinese toggled"
+  ],
+  "physical_multinode": "NOT_RUN",
+  "zip_members": [
+    "manifest.json",
+    "results.json",
+    "combined.txt",
+    "results/0000-d2388d8f-512d-4b02-b649-82de507d3e79.json",
+    "results/0001-77c3b4a8-6a84-4588-a369-0c116c5eb034.json"
+  ],
+  "zip_integrity": true
+}

@@ -1,0 +1,2 @@
+﻿run_id,job_id,status,images,observed_job_seconds,correct_images_per_second,aggregation_efficiency
+round-3,e185ad50-9aaf-4834-a413-b5316a50a27d,SUCCEEDED,24,36.16189154100721,,

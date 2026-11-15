@@ -1,0 +1,11 @@
+✔ log refresh preserves DOM and reading position; follows only at bottom (1.066833ms)
+✔ failed refresh clears guard so later polling can recover (0.533375ms)
+✔ workbench is linked while running and clears the revealed token when stopped (0.357375ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 43.442959

@@ -1,0 +1,13 @@
+{
+  "status": "PASS",
+  "scope": "LOCAL_STOPPED_MAIN_COPY",
+  "physical_upgrade": "NOT_RUN",
+  "original_unchanged": true,
+  "snapshot_unchanged": true,
+  "checks": [
+    "new API reads old jobs/results/originals/ZIP",
+    "second startup migration idempotent",
+    "restored old code + data reads historical results"
+  ],
+  "note": "No production data used; full Windows/two-device upgrade and new-job rollback remain NOT_RUN"
+}

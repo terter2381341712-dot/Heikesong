@@ -1,0 +1,35 @@
+{
+  "task_type": "ocr.image.v1",
+  "profile_id": "ocr.default.v1",
+  "profile_digest": "1290c0523d80e5f02d5ed8021ea5f6363d598468c542d60dbf47cb9e1a9cb6a9",
+  "client_request_id": "3109c92e-f057-4730-b7eb-d3c42c61c140",
+  "input_artifact_ids": [
+    "adf33e457b98f4bc9bf720aa83daae62a",
+    "a5ebf74d5e1054c92a64972b2a558d38b",
+    "a89510cfbfe154591a83bb230c60512ee",
+    "ae1f5b141ec324044a43f2e09e9bc42ee",
+    "a040382eb2fa24df4803c5f49bde86048",
+    "a73eaf100afab458e9741512c6a1cc5a8",
+    "ac4f9b911012e40b0bd4a434f3c9d9d17",
+    "a49ee54f869494763aac9207605262041",
+    "ac399b926a9a84f0da7cfb4d8f2584dc0",
+    "adadea3648db34fa8a88f924b9db16643",
+    "ae7a881ea2606456fb28fda02237cd6f8",
+    "a76a362994d8b4eaa858c7ba0c3076b15",
+    "a5290d89abbe943a9bde12bc320d76272",
+    "ab85e3d142eef404bb27569e04cdeb23f",
+    "a6049a70f38de4c05a1058809fdc47fcf",
+    "aa2893b3ca04a4fe38ca202ad013cfd51",
+    "a0fa777325cad43cdbde43357250a6558",
+    "a95cdf47d56cc43beb2ae010c2fbecf28",
+    "acbb237a7307847748dbbfd43b11900e6",
+    "a358d79c1487b4d31bb0185c92d55ff4b",
+    "a3dacda9c38b74453b3f03e6888ea78a5",
+    "ae80173fdf32344e2b12db75b14b57a4e",
+    "af17013d6b46c406cb8682580783e86fe",
+    "aac70910b03e5445582ea722c00e639b2"
+  ],
+  "parameters": {
+    "language": "auto"
+  }
+}

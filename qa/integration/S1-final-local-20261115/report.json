@@ -1,0 +1,228 @@
+{
+  "stage": "S1",
+  "status": "NOT_RUN",
+  "contract_version": "0.4.0",
+  "started_at": "2026-11-14T18:01:44.188956+00:00",
+  "platform": "macOS-15.4.1-arm64-arm-64bit",
+  "gates": {
+    "G0": {
+      "name": "自动回归与契约",
+      "status": "PASS"
+    },
+    "G1": {
+      "name": "启动停止及 Windows",
+      "status": "NOT_RUN"
+    },
+    "G2": {
+      "name": "双机配对与身份",
+      "status": "NOT_RUN"
+    },
+    "G3": {
+      "name": "权限与两端工作台路由",
+      "status": "NOT_RUN"
+    },
+    "G4": {
+      "name": "真实浏览器 OCR 和双机贡献",
+      "status": "NOT_RUN"
+    },
+    "G5": {
+      "name": "共享取消迁移",
+      "status": "NOT_RUN"
+    },
+    "G6": {
+      "name": "断线重启幂等",
+      "status": "NOT_RUN"
+    },
+    "G7": {
+      "name": "原有演示与交互",
+      "status": "NOT_RUN"
+    }
+  },
+  "checks": [
+    {
+      "name": "P1",
+      "exit_code": 0,
+      "log": "P1.log"
+    },
+    {
+      "name": "P2",
+      "exit_code": 0,
+      "log": "P2.log"
+    },
+    {
+      "name": "P4",
+      "exit_code": 0,
+      "log": "P4.log"
+    },
+    {
+      "name": "launcher",
+      "exit_code": 0,
+      "log": "launcher.log"
+    },
+    {
+      "name": "control-js",
+      "exit_code": 0,
+      "log": "control-js.log"
+    },
+    {
+      "name": "contract",
+      "exit_code": 0,
+      "log": "contract.log"
+    }
+  ],
+  "stage_checks": {
+    "S0": {
+      "name": "main 历史基线、两人双机、Windows、20 张人工参考冻结及三轮质量/吞吐",
+      "status": "NOT_RUN"
+    },
+    "S1": {
+      "name": "默认 CPU 单槽常驻复用，停止/取消/共享关闭后无遗留进程",
+      "status": "NOT_RUN"
+    }
+  },
+  "compute": {
+    "profile_set": "default",
+    "node": {
+      "backend": "cpu",
+      "slots": 1,
+      "threads": 0,
+      "cpu_budget": null,
+      "device_id": 0,
+      "prefetch": 0,
+      "gpu_lane_vram_bytes": null,
+      "python": null
+    },
+    "scheduler": {
+      "policy": "round_robin"
+    }
+  },
+  "source_digest": "fd93ad8f4660a40e6a51ed849005ed25d0aa4e3bd9d26e46859a3443af2f7efe",
+  "commit": "8690c3cd3e595a0a38ca14cb9fd1bdeca5b9c0fe",
+  "working_tree_changed": true,
+  "profile_digest": {
+    "ocr.default.v1.lock.json": "1290c0523d80e5f02d5ed8021ea5f6363d598468c542d60dbf47cb9e1a9cb6a9"
+  },
+  "interpreters": {
+    "P1": {
+      "python": "3.9.6",
+      "packages": {
+        "anyio": "4.12.1",
+        "shapely": "2.0.7",
+        "rapidocr": "3.10.0",
+        "coloredlogs": "15.0.1",
+        "humanfriendly": "10.0",
+        "requests": "2.32.5",
+        "colorlog": "6.12.0",
+        "exceptiongroup": "1.3.1",
+        "starlette": "0.49.3",
+        "packaging": "26.3",
+        "Pygments": "2.21.0",
+        "certifi": "2026.10.23",
+        "pydantic_core": "2.46.5",
+        "click": "8.1.8",
+        "httpcore": "1.0.9",
+        "numpy": "2.0.2",
+        "sympy": "1.14.0",
+        "tqdm": "4.70.1",
+        "h11": "0.16.0",
+        "pydantic": "2.13.5",
+        "protobuf": "6.33.6",
+        "fastapi": "0.128.8",
+        "mpmath": "1.3.0",
+        "PyYAML": "6.0.3",
+        "pytest": "8.4.2",
+        "antlr4-python3-runtime": "4.9.3",
+        "urllib3": "2.6.3",
+        "uvicorn": "0.39.0",
+        "omegaconf": "2.3.1",
+        "python-multipart": "0.0.20",
+        "annotated-doc": "0.0.5",
+        "tomli": "2.5.0",
+        "flatbuffers": "25.12.19",
+        "pluggy": "1.6.0",
+        "httpx": "0.28.1",
+        "typing_extensions": "4.16.0",
+        "pillow": "11.3.0",
+        "onnxruntime": "1.19.2",
+        "psutil": "7.2.2",
+        "pyclipper": "1.3.0.post6",
+        "iniconfig": "2.1.0",
+        "charset-normalizer": "3.5.2",
+        "typing-inspection": "0.4.2",
+        "annotated-types": "0.7.0",
+        "six": "1.17.0",
+        "idna": "3.20",
+        "opencv-python-headless": "5.0.0.93"
+      }
+    },
+    "P2": {
+      "python": "3.11.15",
+      "packages": {
+        "uvicorn": "0.54.0",
+        "starlette": "1.10.0",
+        "packaging": "26.3",
+        "Pygments": "2.21.0",
+        "jsonschema-specifications": "2025.9.1",
+        "certifi": "2026.10.23",
+        "jsonschema": "4.26.0",
+        "pydantic": "2.14.3",
+        "click": "8.5.1",
+        "iniconfig": "2.3.1",
+        "ruff": "0.17.5",
+        "httpcore": "1.0.9",
+        "annotated-doc": "0.0.6",
+        "pydantic_core": "2.50.4",
+        "pluggy": "1.7.0",
+        "opentelemetry-api": "1.45.2",
+        "typing-inspection": "0.4.5",
+        "h11": "0.16.0",
+        "PyYAML": "6.0.3",
+        "fastapi": "0.162.7",
+        "pytest": "9.2.0",
+        "annotated-types": "0.8.0",
+        "referencing": "0.37.0",
+        "rpds-py": "2026.9.1",
+        "anyio": "4.16.0",
+        "attrs": "26.1.0",
+        "httpx": "0.28.1",
+        "typing_extensions": "4.16.0",
+        "pytest-asyncio": "1.5.0",
+        "idna": "3.20"
+      }
+    },
+    "P4": {
+      "python": "3.11.15",
+      "packages": {
+        "starlette": "1.10.0",
+        "packaging": "26.3",
+        "Pygments": "2.21.0",
+        "jsonschema-specifications": "2025.9.1",
+        "certifi": "2026.10.23",
+        "pydantic": "2.14.3",
+        "iniconfig": "2.3.1",
+        "httpcore": "1.0.9",
+        "jsonschema": "4.23.0",
+        "annotated-doc": "0.0.6",
+        "pydantic_core": "2.50.4",
+        "pluggy": "1.7.0",
+        "fastapi": "0.163.0",
+        "opentelemetry-api": "1.45.2",
+        "typing-inspection": "0.4.5",
+        "h11": "0.16.0",
+        "pytest": "9.2.0",
+        "annotated-types": "0.8.0",
+        "referencing": "0.37.0",
+        "rpds-py": "2026.9.1",
+        "anyio": "4.16.0",
+        "attrs": "26.1.0",
+        "PyYAML": "6.0.2",
+        "httpx": "0.28.1",
+        "typing_extensions": "4.16.0",
+        "pillow": "11.3.0",
+        "psutil": "7.2.2",
+        "idna": "3.20"
+      }
+    }
+  },
+  "finished_at": "2026-11-14T18:02:50.630742+00:00"
+}
