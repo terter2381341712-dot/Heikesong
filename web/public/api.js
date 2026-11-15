@@ -155,6 +155,7 @@ function jobPath(id) {
 export const resourceApi = {
   health: (signal) => health('P1', `${RESOURCE}/healthz`, 'p1_resource', signal),
   snapshot: (signal) => catalog('P1', `${RESOURCE}/resources`, signal, 'resources'),
+  performance: async (signal) => verifyVersion('P1', await request('P1', `${RESOURCE}/performance`, { signal })),
   upload,
   mode: (id, mode) => request('P1', `${RESOURCE}/resources/${encodeURIComponent(id)}/mode`, {
     method: 'POST', body: { mode },

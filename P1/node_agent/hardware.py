@@ -52,7 +52,7 @@ def _gpu() -> tuple[Optional[str], Optional[int]]:
         "--format=csv,noheader,nounits",
     ])
     if out and "," in out:
-        name, mem = out.split(",", 1)
+        name, mem = out.splitlines()[0].split(",", 1)
         try:
             return name.strip(), int(float(mem.strip())) * 1024 * 1024
         except ValueError:

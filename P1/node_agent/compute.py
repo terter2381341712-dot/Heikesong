@@ -27,7 +27,7 @@ def compute(connection, server, name, identity, kind, payload, prepared):
                     )
                 )
                 runner, _, _ = load_locked_runner(
-                    (root / (key[1] + ".lock.json")).read_bytes(), *key
+                    (root / (key[1] + ".lock.json")).read_bytes(), *key, backend=agent.backend
                 )
                 agent._prepared = (key, runner)
             agent._do_execution(payload)

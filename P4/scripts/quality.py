@@ -22,13 +22,33 @@ def distance(a, b):
     return previous[-1]
 
 
-def score(directory, reference_file):
+def load_references(reference_file):
     references = json.loads(reference_file.read_text(encoding="utf-8"))
     if not references.get("frozen_before_run") or not references.get("license"):
         raise ValueError("正式核验需要预先冻结阈值、人工参考与授权说明")
     threshold = references["max_cer"]
     if not isinstance(threshold, (float, int)) or not 0 <= threshold <= 1:
         raise ValueError("max_cer 应为 0–1")
+    return references
+
+
+def score_text(truth, text, succeeded, threshold):
+    truth = normalize(truth)
+    predicted = normalize(text) if text is not None else None
+    edits = distance(truth, predicted) if predicted is not None else None
+    cer = edits / len(truth) if truth and edits is not None else None
+    return {
+        "reference_chars": len(truth),
+        "edits": edits,
+        "cer": cer,
+        "quality_passed": succeeded and predicted is not None
+        and (cer <= threshold if truth else predicted == ""),
+    }
+
+
+def score(directory, reference_file):
+    references = load_references(reference_file)
+    threshold = references["max_cer"]
     results = json.loads((directory / "results.json").read_text(encoding="utf-8"))
     if results["task_type"] != "ocr.image.v1":
         raise ValueError("本工具只计 OCR，ASR 需独立质量报告")
@@ -42,29 +62,21 @@ def score(directory, reference_file):
     for item, source in zip(results["items"], manifest):
         if item["input_artifact_id"] != source["input_artifact_id"]:
             raise ValueError("输入与结果不对应")
-        truth = normalize(references["texts_by_sha256"][source["input_sha256"]])
-        predicted = normalize(item["result"]["text"]) if item["result"] is not None else None
-        error = distance(truth, predicted) if predicted is not None else None
-        cer = error / len(truth) if truth and error is not None else None
-        passed = (
-            item["status"] == "SUCCEEDED"
-            and predicted is not None
-            and (cer <= threshold if truth else predicted == "")
+        grade = score_text(
+            references["texts_by_sha256"][source["input_sha256"]],
+            item["result"]["text"] if item["result"] is not None else None,
+            item["status"] == "SUCCEEDED",
+            threshold,
         )
-        correct += int(passed)
-        if truth:
-            chars += len(truth)
-            # Failed inputs are not converted to fabricated empty OCR outputs.
-            if error is not None:
-                edits += error
+        correct += int(grade["quality_passed"])
+        chars += grade["reference_chars"]
+        if grade["reference_chars"] and grade["edits"] is not None:
+            edits += grade["edits"]
         rows.append(
             {
                 "input_sha256": source["input_sha256"],
                 "status": item["status"],
-                "reference_chars": len(truth),
-                "edits": error,
-                "cer": cer,
-                "quality_passed": passed,
+                **grade,
             }
         )
     report = json.loads((directory / "report.json").read_text(encoding="utf-8"))

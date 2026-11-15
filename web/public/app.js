@@ -37,7 +37,7 @@ const workflowDialog = $('workflow-dialog');
 const workflowBody = $('workflow-body');
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
 const state = {
-  mode: '', view: 'home', jobId: null, history: [], connections: { P1: 'pending', P2: 'pending' }, resources: null,
+  mode: '', view: 'home', jobId: null, history: [], connections: { P1: 'pending', P2: 'pending' }, resources: null, performance: null,
   resourceError: '', resourceChecked: 0, nodeModeBusy: new Set(), catalog: [], catalogError: '', catalogChecked: false, selected: '', language: '',
   files: [], checkingFiles: false, sending: false, formError: '', formNote: null, pendingCreate: null,
   job: null, results: null, jobError: '', resultsError: '', jobChecked: 0, cancelling: new Set(), downloading: new Set(), scenario: 'success',
@@ -228,6 +228,7 @@ function renderDeviceDetails() {
     changing: state.nodeModeBusy.has(selected),
     mock: state.mode === 'mock',
     pinned,
+    performance: state.performance,
   }), $('resource-grid').querySelector('[aria-expanded="true"]') ?? $('close-workflow'));
   if (phase) animateDeviceDetails(details, phase);
 }
@@ -407,6 +408,18 @@ async function refreshResources(signal) {
   }
 }
 
+async function refreshPerformance(signal) {
+  let backends = null;
+  try {
+    ({ backends } = await resourceApi.performance(signal));
+  } catch {
+    // Metrics are optional on centers running an earlier version.
+  }
+  if (signal.aborted) return;
+  state.performance = backends;
+  renderDeviceDetails();
+}
+
 async function refreshJob(id, showResults, signal) {
   try {
     const job = await taskApi.job(id, signal);
@@ -460,7 +473,8 @@ function restartPoll() {
     if (view === 'upload') p2 = refreshCatalog(signal);
     else if (isJobView(view) && jobId) p2 = refreshJob(jobId, view === 'results', signal);
     else p2 = checkHealth('P2', signal);
-    const checked = await Promise.allSettled([p1, p2]);
+    const performanceResults = view === 'resources' && state.mode !== 'mock' ? refreshPerformance(signal) : null;
+    const checked = await Promise.allSettled([p1, p2, performanceResults]);
     if (signal.aborted) return;
     for (const result of checked) {
       if (result.status === 'rejected') toast(errorText(result.reason));

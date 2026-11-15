@@ -56,7 +56,9 @@ def load_worker_id() -> str:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="P1 离线基线（供 P4 单机吞吐对照）")
-    parser.add_argument("--manifest", required=True, help="BaselineInput JSONL 文件")
+    source = parser.add_mutually_exclusive_group(required=True)
+    source.add_argument("--manifest", type=Path, help="BaselineInput JSONL 文件")
+    source.add_argument("--inputs", type=Path, help="独立测量用的 PNG/JPEG 目录")
     parser.add_argument("--profile", required=True, help="RuntimeProfile 锁文件路径")
     parser.add_argument("--backend", choices=["cpu", "cuda"], default="cpu")
     parser.add_argument("--threads", type=int, default=0, help="推理线程数；0=不设置")
@@ -91,17 +93,30 @@ def main() -> int:
         print(f"backend {args.backend} 不在锁文件 allowed_backends 内", file=sys.stderr)
         return 2
 
-    manifest_path = Path(args.manifest)
-    if not manifest_path.exists():
-        print(f"manifest 不存在: {manifest_path}", file=sys.stderr)
-        return 2
     inputs: list[dict] = []
     try:
-        for line in manifest_path.read_text(encoding="utf-8").splitlines():
-            line = line.strip()
-            if not line:
-                continue
-            item = json.loads(line)
+        if args.inputs:
+            paths = sorted(
+                p for p in args.inputs.iterdir()
+                if p.is_file() and p.suffix.lower() in {".png", ".jpg", ".jpeg"}
+            )
+            inputs = [
+                {
+                    "input_index": index,
+                    "input_artifact_id": f"input-{index}",
+                    "local_path": str(path.resolve()),
+                    "input_sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+                }
+                for index, path in enumerate(paths)
+            ]
+        else:
+            inputs = [
+                json.loads(line)
+                for line in args.manifest.read_text(encoding="utf-8").splitlines()
+                if line.strip()
+            ]
+        indices = set()
+        for item in inputs:
             if (
                 not isinstance(item, dict)
                 or item.keys() != {"input_index", "input_artifact_id", "local_path", "input_sha256"}
@@ -113,10 +128,10 @@ def main() -> int:
                 or not re.fullmatch(r"[a-f0-9]{64}", item["input_sha256"])
             ):
                 raise ValueError("manifest 行不符合 BaselineInput")
-            if any(previous["input_index"] == item["input_index"] for previous in inputs):
+            if item["input_index"] in indices:
                 raise ValueError("manifest 重复 input_index")
-            inputs.append(item)
-    except (json.JSONDecodeError, ValueError) as e:
+            indices.add(item["input_index"])
+    except (OSError, ValueError) as e:
         print(f"manifest 解析失败: {e}", file=sys.stderr)
         return 2
     if not inputs:
@@ -223,6 +238,10 @@ def main() -> int:
     # 持久副本（stdout 之外）
     (out_dir / f"baseline-{run_id}.jsonl").write_text(
         "\n".join(json.dumps(r, ensure_ascii=False) for r in records + [summary]) + "\n",
+        encoding="utf-8",
+    )
+    (out_dir / f"baseline-{run_id}.runtime.json").write_text(
+        json.dumps({"runtime_provider": provider, "threads": args.threads}, indent=2) + "\n",
         encoding="utf-8",
     )
     return 0 if failed == 0 else 1

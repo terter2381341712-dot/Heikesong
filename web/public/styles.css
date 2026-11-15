@@ -400,6 +400,12 @@ summary { cursor: pointer; font-weight: 700; color: var(--green); }
 .node-facts div { min-width: 0; border-radius: 10px; background: #fff9; padding: 7px 9px; }
 .node-facts dt { color: var(--muted); font-size: 12px; }
 .node-facts dd { font-size: 13px; font-weight: 550; overflow-wrap: anywhere; }
+.device-performance { width: 100%; margin: 0 0 9px; border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
+.device-performance caption { padding: 4px 0; text-align: left; font-size: 13px; font-weight: 650; }
+.device-performance :is(th, td) { padding: 5px 5px 5px 0; text-align: left; border-bottom: 1px solid var(--device-line); }
+.device-performance thead { color: var(--muted); }
+.device-performance thead th { font-weight: 500; }
+.device-performance td { font-weight: 550; }
 .device-capabilities li { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--device-line); font-size: 13px; }
 .node-footer { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
 @media (max-width: 660px) {

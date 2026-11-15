@@ -55,6 +55,9 @@ class Agent:
     def __init__(self, server: str, name: str) -> None:
         self.server = server.rstrip("/")
         self.name = name
+        self.backend = os.environ.get("NODE_OCR_BACKEND", "cpu")
+        if self.backend not in ("cpu", "cuda"):
+            raise ValueError("NODE_OCR_BACKEND 必须为 cpu 或 cuda")
         self.join_token = os.environ.get("JOIN_TOKEN", "")
         if not self.join_token:
             print("[agent] 缺少 JOIN_TOKEN 环境变量", file=sys.stderr)
@@ -262,7 +265,7 @@ class Agent:
         self._prep_status(prep_id, {"status": "LOADING", "progress": 0.2})
         try:
             raw = (profiles_dir / f"{prep['profile_id']}.lock.json").read_bytes()
-            runner, model_sha, provider = load_locked_runner(raw, *profile_key)
+            runner, model_sha, provider = load_locked_runner(raw, *profile_key, backend=self.backend)
             self._prep_status(prep_id, {"status": "VERIFYING", "progress": 0.6})
             calibration = self._self_test(prep["task_type"], runner)
             if not calibration["passed"]:
@@ -283,7 +286,7 @@ class Agent:
         self._prep_status(prep_id, {
             "status": "READY",
             "progress": 1.0,
-            "backend": "cpu",
+            "backend": self.backend,
             "runtime_provider": provider,
             "model_sha256": model_sha,
             "model_cached": True,

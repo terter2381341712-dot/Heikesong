@@ -48,7 +48,7 @@ const taskBaseUrl = readBaseUrl('TASK_BASE_URL');
 const resourceId = '[A-Za-z0-9_-]{1,80}';
 const uuid = '[a-fA-F0-9]{8}(?:-[a-fA-F0-9]{4}){3}-[a-fA-F0-9]{12}';
 const resourceRoutes = {
-  GET: new RegExp(`^/api/resource/v1/(healthz|resources|artifacts/${resourceId}(/content)?)$`),
+  GET: new RegExp(`^/api/resource/v1/(healthz|resources|performance|artifacts/${resourceId}(/content)?)$`),
   POST: new RegExp(`^/api/resource/v1/(artifacts|resources/${resourceId}/mode)$`),
 };
 const taskRoutes = {

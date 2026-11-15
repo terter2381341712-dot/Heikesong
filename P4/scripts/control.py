@@ -254,20 +254,21 @@ class Runtime:
 
     def probe(self, executable, component):
         modules = (
-            ["fastapi", "uvicorn", "httpx", "psutil", "multipart"]
+            ["fastapi", "uvicorn", "httpx", "psutil", "multipart", "onnxruntime"]
             if component == "P1"
             else ["fastapi", "uvicorn", "httpx", "jsonschema", "yaml"]
         )
         pinned = (
-            {"rapidocr": "3.10.0", "onnxruntime": "1.19.2", "pillow": "11.3.0"}
+            {"rapidocr": "3.10.0", "pillow": "11.3.0"}
             if component == "P1"
             else {}
         )
+        runtime_check = " and __import__('onnxruntime').__version__ == '1.19.2'" if component == "P1" else ""
         code = (
             "import sys,json,platform,importlib.util; from importlib.metadata import version; "
             "print(json.dumps({'version':platform.python_version(),'ready':"
             f"all(importlib.util.find_spec(x) is not None for x in {modules!r}) and "
-            f"all(version(k)==v for k,v in {pinned!r}.items())" + "}))"
+            f"all(version(k)==v for k,v in {pinned!r}.items())" + runtime_check + "}))"
         )
         try:
             process = subprocess.run([str(executable), "-c", code], capture_output=True, timeout=12)

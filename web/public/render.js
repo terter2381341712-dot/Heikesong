@@ -191,6 +191,30 @@ function nodeFacts(node) {
   return facts.filter(([, value]) => value !== '').map(([label, value]) => `<div><dt>${escape(label)}</dt><dd>${escape(value)}</dd></div>`).join('');
 }
 
+function metricNumber(value, suffix = '') {
+  if (!Number.isFinite(value)) return '—';
+  if (value > 0 && value < 0.01) return `&lt;0.01${suffix}`;
+  return `${Number(value.toFixed(2))}${suffix}`;
+}
+
+function devicePerformance(workerId, reports, mock) {
+  const rows = [['cpu', 'CPU'], ['cuda', 'GPU']].map(([backend, label]) => {
+    const report = mock ? null : reports?.[backend];
+    const device = Object.hasOwn(report?.devices ?? {}, workerId) ? report.devices[workerId] : null;
+    const pool = device ? report.pool : null;
+    const pending = t('待实测', 'Unmeasured');
+    const context = device ? date(report.measured_at) : pending;
+    return `<tr title="${escape(context)}"><th scope="row">${label}</th>
+      <td>${device ? metricNumber(device.baseline_images_per_second) : pending}</td>
+      <td>${metricNumber(pool?.images_per_second)}</td>
+      <td>${metricNumber(pool?.efficiency_percent, '%')}</td></tr>`;
+  }).join('');
+  return `<table class="device-performance">
+    <caption>${mock ? t('OCR 吞吐量 · 演示模式', 'OCR throughput · Demo mode') : t('OCR 实测 · 正确图片/秒', 'OCR benchmark · Correct images/s')}</caption>
+    <thead><tr><th scope="col">${t('后端', 'Backend')}</th><th scope="col">${t('单机吞吐', 'Standalone')}</th><th scope="col">${t('算力池吞吐', 'Pool throughput')}</th><th scope="col">${t('聚合效率', 'Pool efficiency')}</th></tr></thead>
+    <tbody>${rows}</tbody></table>`;
+}
+
 export function resourceTile(node) {
   const id = escape(node.worker_id);
   const tone = node.connection !== 'ONLINE' ? 'offline' : node.mode === 'ACTIVE' ? 'active' : 'paused';
@@ -207,7 +231,7 @@ export function resourceTile(node) {
   </button>`;
 }
 
-export function resourceCard(node, { stale, changing, mock, pinned }) {
+export function resourceCard(node, { stale, changing, mock, pinned, performance }) {
   const id = escape(node.worker_id);
   const action = node.mode === 'ACTIVE' ? 'DRAINING' : 'ACTIVE';
   const label = action === 'DRAINING' ? (mock ? t('退出接单', 'Stop accepting jobs') : t('暂停接新任务', 'Pause new jobs')) : t('恢复接单', 'Resume accepting jobs');
@@ -215,6 +239,7 @@ export function resourceCard(node, { stale, changing, mock, pinned }) {
     <div class="panel-heading"><h3>${escape(node.name)}</h3>${pinned ? `<span class="device-pin">${t('已固定', 'Pinned')}</span>` : ''}</div>
     <div class="node-tags">${tag(node.connection)}${tag(node.mode)}</div>
     <dl class="node-facts">${nodeFacts(node)}</dl>
+    ${devicePerformance(node.worker_id, performance, mock)}
     ${message(node.cleanup_pending ? t('正在等待设备确认停止。', 'Waiting for the device to confirm that work has stopped.') : '', 'warn')}
     ${node.capabilities.length ? `<ul class="device-capabilities">${node.capabilities.map((item) => `<li><strong>${escape(typeName(item.task_type))}</strong>${tag(item.state)}</li>`).join('')}</ul>` : ''}
     <div class="node-footer">

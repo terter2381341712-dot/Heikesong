@@ -11,6 +11,8 @@ import re
 from pathlib import Path
 from typing import Optional
 
+BACKEND_PROVIDERS = {"cpu": "CPUExecutionProvider", "cuda": "CUDAExecutionProvider"}
+
 DEFAULT_TASK_TYPES: list[dict] = [
     {
         "task_type": "ocr.image.v1",
@@ -54,6 +56,7 @@ class Catalog:
         self._dir = profiles_dir
         self._types: list[dict] = []
         self._model_hashes: dict[str, str] = {}
+        self._backends: dict[str, list[str]] = {}
         self._load()
 
     def _load(self) -> None:
@@ -64,6 +67,7 @@ class Catalog:
         else:
             self._types = json.loads(json.dumps(DEFAULT_TASK_TYPES))
         self._model_hashes.clear()
+        self._backends.clear()
         for t in self._types:
             lock = self._dir / f"{t['profile_id']}.lock.json"
             t.update(profile_digest=None, configuration_state="UNCONFIGURED")
@@ -85,6 +89,7 @@ class Catalog:
                 t["reason"] = "profile 锁文件无效。"
                 continue
             self._model_hashes[t["profile_id"]] = model_sha
+            self._backends[t["profile_id"]] = profile["allowed_backends"]
             t.update(
                 profile_digest=hashlib.sha256(raw).hexdigest(),
                 configuration_state="CONFIGURED",
@@ -105,3 +110,9 @@ class Catalog:
 
     def model_sha256(self, profile_id: str) -> Optional[str]:
         return self._model_hashes.get(profile_id)
+
+    def supports_provider(self, profile_id: str, backend: Optional[str], provider: Optional[str]) -> bool:
+        return bool(
+            provider and backend in self._backends.get(profile_id, [])
+            and BACKEND_PROVIDERS.get(backend) == provider
+        )

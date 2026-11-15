@@ -12,6 +12,8 @@ from typing import Any, Optional
 import numpy as np
 from PIL import Image, ImageOps
 
+from resource_service.catalog import BACKEND_PROVIDERS
+
 MODEL_NAMES = {
     "Det": "PP-OCRv6_det_small.onnx",
     "Cls": "ch_ppocr_mobile_v2.0_cls_mobile.onnx",
@@ -59,9 +61,10 @@ def _reading_order_key(block: dict) -> tuple[float, float]:
 class RapidOCRRunner:
     task_type = "ocr.image.v1"
 
-    def __init__(self, threads: int = 0) -> None:
+    def __init__(self, threads: int = 0, backend: str = "cpu") -> None:
         self._engine: Optional[Any] = None
         self._threads = threads
+        self._backend = backend
 
     def ensure_engine(self) -> Any:
         if self._engine is None:
@@ -74,6 +77,9 @@ class RapidOCRRunner:
             if self._threads:
                 params["EngineConfig.onnxruntime.intra_op_num_threads"] = self._threads
                 params["EngineConfig.onnxruntime.inter_op_num_threads"] = 1
+            if self._backend == "cuda":
+                params["EngineConfig.onnxruntime.use_cuda"] = True
+                params["EngineConfig.onnxruntime.cuda_ep_cfg.cudnn_conv_algo_search"] = "HEURISTIC"
             self._engine = RapidOCR(params=params)
             self._engine._load_det_model()
             self._engine._load_cls_model()
@@ -82,13 +88,17 @@ class RapidOCRRunner:
 
     def runtime_provider(self) -> str:
         engine = self.ensure_engine()
-        providers = [
-            stage.session.session.get_providers()
+        sessions = [
+            stage.session.session
             for stage in (engine.text_det, engine.text_cls, engine.text_rec)
         ]
-        if any(active != ["CPUExecutionProvider"] for active in providers):
-            raise ValueError("当前 profile 要求三组模型均使用 CPUExecutionProvider")
-        return providers[0][0]
+        expected = BACKEND_PROVIDERS[self._backend]
+        if any(session.get_providers()[:1] != [expected] for session in sessions):
+            raise ValueError(f"三组模型均须启用 {expected} 作为首选执行后端")
+        if self._backend == "cuda":
+            for session in sessions:
+                session.disable_fallback()
+        return expected
 
     def execute(
         self,

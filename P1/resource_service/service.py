@@ -47,6 +47,7 @@ from .models import (
     SharingRequest,
     as_uuid,
 )
+from .performance import published_results
 from .resultschema import ResultInvalid, validate_asr_result, validate_ocr_result
 from .timeutil import canonical_json, iso, iso_now, plus, utcnow
 
@@ -411,6 +412,15 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
             "contract_version": CONTRACT_VERSION,
             "server_time": iso_now(),
             "resources": [s.node_dict(r) for r in rows],
+        }
+
+    @app.get("/api/resource/v1/performance")
+    def get_performance(role: str = Depends(auth_demo_or_task)):
+        s = state()
+        ocr = s.catalog.get("ocr.image.v1") or {}
+        return {
+            "contract_version": CONTRACT_VERSION,
+            "backends": published_results(s.config.data_dir, ocr.get("profile_digest")),
         }
 
     @app.post("/api/resource/v1/resources/{worker_id}/mode")
@@ -1101,8 +1111,12 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
             error_code, error_message = body.error_code, body.error_message
             if status == "READY":
                 expected = s.catalog.model_sha256(row["profile_id"])
-                if (not body.calibration or not body.calibration.passed
-                        or body.backend != "cpu" or body.runtime_provider != "CPUExecutionProvider"):
+                if (
+                    not body.calibration or not body.calibration.passed
+                    or not s.catalog.supports_provider(
+                        row["profile_id"], body.backend, body.runtime_provider
+                    )
+                ):
                     status, error_code, error_message = "FAILED", "MODEL_LOAD_FAILED", "缺少通过的自测或实际后端"
                 elif not expected or body.model_sha256 != expected:
                     status, error_code, error_message = "FAILED", "MODEL_HASH_MISMATCH", "模型 SHA 与锁文件不符"
@@ -1439,8 +1453,9 @@ def create_app(config: Optional[Config] = None) -> FastAPI:
             and c.get("state") == "READY"
             and c.get("verified") is True
             and (c.get("calibration") or {}).get("passed") is True
-            and c.get("runtime_provider") == "CPUExecutionProvider"
-            and c.get("backend") == "cpu"
+            and s.catalog.supports_provider(
+                body.profile_id, c.get("backend"), c.get("runtime_provider")
+            )
             and c.get("model_sha256") == s.catalog.model_sha256(body.profile_id)
             for c in capabilities
         )

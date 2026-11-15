@@ -42,6 +42,8 @@ def table(path, rows, fields):
 
 def static_check():
     directory = ROOT / "D题参赛执行包/contracts"
+    if not directory.is_dir():
+        directory = ROOT / "contracts"
     canonical = (directory / "openapi.yaml").read_bytes()
     for component in ("P1", "P2"):
         require(
@@ -141,11 +143,11 @@ class Probe:
         self.report["checks"].append({"name": name, "status": "PASS", "at": stamp()})
         print("PASS", name, flush=True)
 
-    def sample(self):
+    def sample(self, phase="before"):
         snapshot = self.call("resource", "GET", "/resources", "ResourceSnapshot")
         with (self.output / "telemetry.jsonl").open("a", encoding="utf-8") as stream:
             stream.write(
-                json.dumps({"at": stamp(), "snapshot": snapshot}, ensure_ascii=False) + "\n"
+                json.dumps({"at": stamp(), "phase": phase, "snapshot": snapshot}, ensure_ascii=False) + "\n"
             )
         while True:
             page = self.call("resource", "GET", f"/events?after={self.events_after}", "EventPage")
@@ -256,7 +258,7 @@ class Probe:
                 f"等待 Job 超时；保留原 Job {job['job_id']}，未自动取消或重新派发",
             )
             if time.monotonic() >= next_sample:
-                self.sample()
+                self.sample("during")
                 next_sample = time.monotonic() + 3
             time.sleep(1)
             job = self.call("task", "GET", f"/jobs/{job['job_id']}", "Job")
@@ -359,7 +361,7 @@ class Probe:
                 "finished_at",
             ],
         )
-        self.report["final_resources"] = self.sample()
+        self.report["final_resources"] = self.sample("after")
         self.report["successful_workers"] = sorted(workers)
         table(
             self.output / "summary.csv",

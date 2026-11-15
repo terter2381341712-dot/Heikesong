@@ -16,7 +16,7 @@
   "postprocessing": "四点多边形取轴对齐外接矩形并裁剪到图像边界；块按 y0 分行(12px 行距)、行内按 x0 排序；text 为块文本换行拼接；confidence 保留 6 位小数",
   "minimum_ram_bytes": 1073741824,
   "supported_languages": ["auto", "zh", "en"],
-  "allowed_backends": ["cpu"],
+  "allowed_backends": ["cpu", "cuda"],
   "output_schema": "OCRResult",
   "frozen_at": "2026-11-14T04:30:00Z"
 }
