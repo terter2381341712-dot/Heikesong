@@ -80,6 +80,7 @@ class Manager:
     def __init__(self, directory=None, runner=None):
         self.directory = Path(directory or DIRECTORY)
         self.runner = runner
+        self.last_probe_error = ""
 
     def command(self, argv, output):
         if self.runner:
@@ -122,10 +123,10 @@ class Manager:
             # Import the runtime, not just its metadata: missing DLLs must fail here.
             code = """import importlib,importlib.metadata as m,json,platform,sys
 from pip._vendor.packaging.requirements import Requirement
-assert platform.python_version()==sys.argv[1]
+assert platform.python_version()==sys.argv[1], 'Python '+platform.python_version()+' != '+sys.argv[1]
 for text in json.loads(sys.argv[2]):
     req=Requirement(text)
-    if req.marker is None or req.marker.evaluate(): assert m.version(req.name) in req.specifier
+    if req.marker is None or req.marker.evaluate(): assert m.version(req.name) in req.specifier, str(req)+' installed='+m.version(req.name)
 for name in json.loads(sys.argv[3]): importlib.import_module(name)
 if sys.argv[4]:
     try: m.version(sys.argv[4])
@@ -138,8 +139,10 @@ if sys.argv[4]:
             argv = [str(executable), "-I", "-c", code, version, json.dumps(requirements(component)), json.dumps(modules), opposite]
         try:
             result = subprocess.run(argv, capture_output=True, timeout=45, env=process_environment(executable))
+            self.last_probe_error = "" if result.returncode == 0 else (result.stderr.decode("utf-8", errors="replace")[-3000:] or f"runtime exited with code {result.returncode}")
             return result.returncode == 0
-        except (OSError, subprocess.SubprocessError):
+        except (OSError, subprocess.SubprocessError) as exc:
+            self.last_probe_error = str(exc)
             return False
 
     def ensure(self, component, progress=print):
@@ -166,6 +169,7 @@ if sys.argv[4]:
             log = self.directory / "setup.log"
             try:
                 with log.open("ab", buffering=0) as output:
+                    output.write((f"\n=== Preparing {component}; Python {PYTHON_VERSION} ===\n").encode("utf-8"))
                     if portable:
                         self.command([sys.executable, "-I", ROOT / "P4/scripts/windows_runtime.py",
                                       "--directory", self.directory, "--component", component,
@@ -189,16 +193,24 @@ if sys.argv[4]:
                             # Embedded Python ignores pip's temporary PYTHONPATH build
                             # environment. Seed build tools in this private prefix instead.
                             self.command([executable, "-I", "-m", "pip", "--isolated", "install",
+                                          "--retries", "3", "--timeout", "60",
                                           "--only-binary=:all:", "--cache-dir", self.directory / "pip-cache",
                                           "setuptools==80.9.0", "wheel==0.45.1"], output)
                         self.command([executable, "-I", "-m", "pip", "--isolated", "install", "--force-reinstall", "--disable-pip-version-check",
+                                      "--retries", "3", "--timeout", "60",
                                       *(["--no-build-isolation"] if portable else []),
                                       "--cache-dir", self.directory / "pip-cache", *requirements(component)], output)
                         self.command([executable, "-I", "-m", "pip", "check"], output)
                 if not self.ready(component, executable):
-                    raise ValueError("安装后运行核验未通过")
+                    with log.open("ab") as output:
+                        output.write(("\nRuntime import check failed:\n" + self.last_probe_error + "\n").encode("utf-8"))
+                    raise ValueError("安装后运行核验未通过：" + self.last_probe_error.splitlines()[-1])
             except (OSError, subprocess.SubprocessError, ValueError) as exc:
-                raise ValueError(f"{component} 自动准备未完成，可重新启动重试。日志：{log}") from exc
+                lines = log.read_bytes()[-6000:].decode("utf-8", errors="replace").splitlines() if log.exists() else []
+                relevant = [line.strip() for line in lines if re.search(r"ERROR:|Error:|Cannot import|exited with code", line)]
+                detail = relevant[-1] if relevant else str(exc)
+                detail = re.sub(r"(https?://)[^/\s@]+@", r"\1***@", detail)[:350]
+                raise ValueError(f"{component} 自动准备未完成。原因：{detail}。日志：{log}") from exc
             progress(f"{component} 环境准备完成。")
             return str(executable)
 

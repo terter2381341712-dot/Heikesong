@@ -69,6 +69,7 @@ def metrics(directory, references=None):
               for state in ("SUCCEEDED", "FAILED", "CANCELLED")}
     m = {"job_id": job["job_id"], "job_status": job["status"], "inputs": len(ids),
          "counts": counts, "server_job_seconds": seconds, "observed_job_seconds": observed,
+         "measurement_started_at": job["created_at"], "measurement_finished_at": job.get("finished_at"),
          "observed_with_upload_seconds": report.get("observed_with_upload_seconds"),
          "successful_images_per_second": succeeded / seconds if seconds else None,
          "observed_successful_images_per_second": succeeded / observed if observed and observed > 0 else None,
@@ -107,6 +108,7 @@ def measure(args):
               "references_sha256": hashlib.sha256(reference.read_bytes()).hexdigest() if reference else None,
               "reference_status": "FROZEN" if reference else "NOT_RUN",
               "cold": None, "warmup": None, "rounds": [], "formal_benchmark": "NOT_RUN",
+              "sufficient_load_confirmed": getattr(args, "sufficient_load_confirmed", False),
               "notice": "服务端计时来自同一 P2 Job 时间线；成功不等于识别正确。未冻结人工参考时正确吞吐量为空。"}
     try:
         # First request is cold-or-current-state, never assumed cold unless the
@@ -220,6 +222,7 @@ def main():
     m.add_argument("--inputs", type=Path, required=True)
     m.add_argument("--references", type=Path)
     m.add_argument("--group", choices=["cpu", "gpu", "pool"], required=True)
+    m.add_argument("--sufficient-load-confirmed", action="store_true", help="操作人确认正式池测量已提供足够负载")
     m.add_argument("--compute-config")
     m.add_argument("--profiles-dir", type=Path)
     m.add_argument("--devices", type=Path)

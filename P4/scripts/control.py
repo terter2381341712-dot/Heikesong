@@ -957,6 +957,11 @@ class Panel:
                     stream.seek(max(0, path.stat().st_size - 5000))
                     state["logs"][role] = stream.read().decode("utf-8", errors="replace")
         saved = self.directory / "last-center.json"
+        runtime_log = managed_runtime.DIRECTORY / "setup.log"
+        if runtime_log.is_file():
+            with runtime_log.open("rb") as stream:
+                stream.seek(max(0, runtime_log.stat().st_size - 8000))
+                state["logs"]["env/setup"] = stream.read().decode("utf-8", errors="replace")
         state["last_center"] = read_json(saved)["address"] if saved.exists() else ""
         state["saved_pair"] = (self.directory / "node.json").exists()
         if state["saved_pair"]:
